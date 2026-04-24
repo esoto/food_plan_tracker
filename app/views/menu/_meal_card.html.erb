@@ -1,0 +1,53 @@
+<%= turbo_frame_tag dom_id(meal) do %>
+  <article class="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden <%= "ring-2 ring-emerald-300" if completed %>">
+    <div class="flex items-start gap-3 p-4">
+      <div class="text-3xl leading-none"><%= meal.icon %></div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="font-semibold text-slate-900 truncate"><%= meal.name %></h3>
+          <span class="text-xs text-slate-500"><%= meal.time_of_day %></span>
+        </div>
+        <p class="text-xs text-slate-500 mt-0.5">
+          <%= meal.target_kcal %> kcal · <span class="text-rose-600 font-medium"><%= meal.target_protein_g.to_i %>g P</span>
+          · <span class="text-amber-600 font-medium"><%= meal.target_carbs_g.to_i %>g C</span>
+          · <span class="text-emerald-600 font-medium"><%= meal.target_fat_g.to_i %>g G</span>
+        </p>
+      </div>
+    </div>
+
+    <ul class="px-4 pb-3 space-y-1">
+      <% meal.meal_items.each do |mi| %>
+        <li class="flex items-center gap-2 text-sm text-slate-700">
+          <span class="inline-block w-1.5 h-1.5 rounded-full <%= mi.food.category_colors[:dot] %>"></span>
+          <span class="flex-1"><%= mi.food.name %></span>
+          <span class="text-xs text-slate-500"><%= mi.quantity_grams.to_i %>g</span>
+        </li>
+      <% end %>
+    </ul>
+
+    <% if meal.name.include?("Cena") %>
+      <div class="mx-4 mb-3 rounded-xl bg-purple-50 border border-purple-200 p-3 flex items-center gap-2">
+        <span class="text-lg">💊</span>
+        <p class="text-xs text-purple-900"><strong>Fibrotina</strong> con esta comida — con grasa.</p>
+      </div>
+    <% end %>
+
+    <div class="border-t border-slate-100 bg-slate-50/60 px-4 py-3">
+      <% if completed %>
+        <%= button_to meal_completion_path(daily_log.meal_completions.find_by(meal_id: meal.id)),
+              method: :delete,
+              data: { turbo_frame: dom_id(meal) },
+              class: "w-full rounded-xl bg-emerald-500 text-white text-sm font-medium py-2 flex items-center justify-center gap-2 hover:bg-emerald-600 transition" do %>
+          ✓ Comida completada
+        <% end %>
+      <% else %>
+        <%= button_to meal_completions_path(meal_id: meal.id),
+              method: :post,
+              data: { turbo_frame: dom_id(meal) },
+              class: "w-full rounded-xl bg-white ring-1 ring-slate-300 text-slate-700 text-sm font-medium py-2 hover:bg-slate-50 transition" do %>
+          Marcar como completada
+        <% end %>
+      <% end %>
+    </div>
+  </article>
+<% end %>

@@ -118,9 +118,10 @@ end
 
 def upsert_meal(plan:, position:, name:, time:, kcal:, protein:, carbs:, fat:, items:)
   meal = plan.meals.find_or_initialize_by(position: position)
+  hour, minute = time.split(":").map(&:to_i)
   meal.assign_attributes(
     name: name,
-    scheduled_time: Time.zone.parse(time),
+    scheduled_time: Time.utc(2000, 1, 1, hour, minute),
     target_kcal: kcal,
     target_protein_g: protein,
     target_carbs_g: carbs,

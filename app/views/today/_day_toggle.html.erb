@@ -1,0 +1,11 @@
+<%= form_with model: daily_log, url: daily_log_path(daily_log), method: :patch, data: { controller: "auto-submit" }, class: "mt-5 rounded-full bg-white/15 p-1 flex gap-1" do |f| %>
+  <% plans.each do |plan| %>
+    <% active = daily_log.plan_id == plan.id %>
+    <label class="flex-1 cursor-pointer relative">
+      <%= f.radio_button :plan_id, plan.id, checked: active, class: "sr-only peer", data: { action: "change->auto-submit#submit" } %>
+      <span class="block text-center text-sm font-medium py-2 rounded-full transition <%= active ? "bg-white text-indigo-700 shadow" : "text-white/90 hover:text-white" %>">
+        <%= plan.name %>
+      </span>
+    </label>
+  <% end %>
+<% end %>

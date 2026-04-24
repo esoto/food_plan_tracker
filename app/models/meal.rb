@@ -13,7 +13,7 @@ class Meal < ApplicationRecord
   scope :ordered, -> { order(:position) }
 
   def time_of_day
-    scheduled_time.strftime("%-l:%M %p")
+    scheduled_time.utc.strftime("%-l:%M %p")
   end
 
   ICONS = {

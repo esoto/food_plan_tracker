@@ -1,0 +1,41 @@
+<% content_for :title, "Hoy · Food Plan Tracker" %>
+
+<header class="px-5 pt-8 pb-6 bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 text-white rounded-b-3xl shadow-sm">
+  <p class="text-sm opacity-80"><%= l(Date.current, format: "%A, %-d %B").capitalize %></p>
+  <h1 class="text-3xl font-bold tracking-tight mt-1">Hola, <%= current_user&.email_address&.split("@")&.first&.capitalize || "amigo" %></h1>
+  <p class="text-sm mt-1 opacity-90">Tu plan del día — mantén el rumbo.</p>
+
+  <%= render "today/day_toggle", plans: @plans, daily_log: @daily_log %>
+</header>
+
+<section class="px-4 -mt-6">
+  <%= render "today/macro_summary", daily_log: @daily_log, plan: @plan %>
+</section>
+
+<section class="px-4 mt-6">
+  <%= render "today/weight_input", daily_log: @daily_log %>
+</section>
+
+<section class="px-4 mt-6">
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Progreso hacia metas</h2>
+  <div class="grid gap-3">
+    <% @goals.each do |goal| %>
+      <%= render "today/goal_card", goal: goal %>
+    <% end %>
+  </div>
+</section>
+
+<section class="px-4 mt-6">
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">5 reglas no negociables</h2>
+  <%= render "today/rules" %>
+</section>
+
+<section class="px-4 mt-6">
+  <%= link_to progress_path, class: "flex items-center justify-between w-full rounded-2xl bg-white border border-slate-200 px-5 py-4 text-left shadow-sm hover:shadow transition" do %>
+    <div>
+      <p class="text-sm text-slate-500">Ver tendencias</p>
+      <p class="font-semibold text-slate-900">Progreso y proyecciones →</p>
+    </div>
+    <div class="text-indigo-600 text-2xl">📈</div>
+  <% end %>
+</section>

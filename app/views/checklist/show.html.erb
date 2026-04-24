@@ -1,0 +1,47 @@
+<% content_for :title, "Hábitos · Food Plan Tracker" %>
+
+<header class="px-5 pt-8 pb-4">
+  <div class="flex items-end justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Hábitos diarios</h1>
+      <p class="text-sm text-slate-500 mt-1"><%= @daily_log.checklist_adherence_pct %>% completado hoy</p>
+    </div>
+    <div class="rounded-2xl bg-indigo-600 text-white px-4 py-2 text-center shadow-sm">
+      <p class="text-[10px] uppercase tracking-wider opacity-80">Racha</p>
+      <p class="text-xl font-bold leading-none mt-0.5"><%= @streak %></p>
+      <p class="text-[10px] opacity-80">días</p>
+    </div>
+  </div>
+
+  <div class="mt-3 h-2 rounded-full bg-slate-200 overflow-hidden">
+    <div class="h-2 bg-emerald-500 rounded-full transition-all" style="width: <%= @daily_log.checklist_adherence_pct %>%"></div>
+  </div>
+</header>
+
+<section class="px-4">
+  <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
+    <% @templates.each do |template| %>
+      <% completion = @completions_by_template[template.id] %>
+      <% checked = completion&.checked || false %>
+      <%= form_with url: checklist_completion_path(template), method: :patch, class: "block" do |f| %>
+        <%= f.hidden_field :checked, value: checked ? "0" : "1" %>
+        <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center <%= checked ? "bg-emerald-500 text-white" : "ring-2 ring-slate-300" %>">
+            <% if checked %>
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            <% end %>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-slate-900 <%= "line-through text-slate-400" if checked %>"><%= template.icon %> <%= template.label %></p>
+            <p class="text-xs text-slate-500"><%= template.description %></p>
+          </div>
+        </button>
+      <% end %>
+    <% end %>
+  </div>
+</section>
+
+<section class="px-4 mt-6">
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Últimos 30 días</h2>
+  <%= render "checklist/heatmap", last_30_logs: @last_30_logs %>
+</section>

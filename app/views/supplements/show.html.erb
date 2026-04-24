@@ -1,0 +1,63 @@
+<% content_for :title, "Suplementos · Food Plan Tracker" %>
+
+<header class="px-5 pt-8 pb-4">
+  <h1 class="text-2xl font-bold text-slate-900">Suplementos</h1>
+  <p class="text-sm text-slate-500 mt-1">Tu stack diario por horario.</p>
+</header>
+
+<% SupplementSchedule::TIME_SLOT_LABELS.each do |slot_key, meta| %>
+  <section class="px-4 mb-5">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold"><%= meta[:label] %></h2>
+      <span class="text-xs text-slate-400"><%= meta[:time] %></span>
+    </div>
+    <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
+      <% (@grouped[slot_key] || []).each do |schedule| %>
+        <% supplement = schedule.supplement %>
+        <% taken = @taken_ids.include?(supplement.id) %>
+        <div class="flex items-start gap-3 px-4 py-3 <%= "bg-purple-50/40" if supplement.critical %>">
+          <% if taken %>
+            <%= button_to supplement_completion_path(@daily_log.supplement_completions.find_by(supplement_id: supplement.id)),
+                  method: :delete,
+                  class: "mt-0.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold" do %>
+              ✓
+            <% end %>
+          <% else %>
+            <%= button_to supplement_completions_path(supplement_id: supplement.id),
+                  method: :post,
+                  class: "mt-0.5 w-6 h-6 rounded-full ring-2 ring-slate-300 hover:ring-slate-400" do %>
+              <span class="sr-only">Marcar</span>
+            <% end %>
+          <% end %>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="font-medium text-slate-900 truncate <%= "text-purple-800" if supplement.critical %>">
+                <% if supplement.critical %>⭐<% end %>
+                <%= supplement.name %>
+              </p>
+              <span class="text-xs text-slate-500"><%= supplement.dose %></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5"><%= supplement.notes %></p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
+<% if @critical_warnings.any? { |s| s.contraindications.present? } %>
+  <section class="px-4 mt-6">
+    <div class="rounded-2xl bg-rose-50 border border-rose-200 p-4">
+      <p class="text-sm font-semibold text-rose-900 mb-2">⚠️ No tomar con Fibrotina</p>
+      <ul class="text-sm text-rose-800 space-y-1">
+        <% @critical_warnings.each do |sup| %>
+          <% if sup.contraindications.present? %>
+            <% sup.contraindications.split("·").each do |line| %>
+              <li>— <%= line.strip %></li>
+            <% end %>
+          <% end %>
+        <% end %>
+      </ul>
+    </div>
+  </section>
+<% end %>

@@ -1,0 +1,30 @@
+<div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
+  <div class="grid grid-flow-col grid-rows-5 gap-1.5">
+    <% 30.downto(1).each do |offset| %>
+      <% date = Date.current - (offset - 1) %>
+      <% log = last_30_logs[date] %>
+      <% pct = log&.checklist_adherence_pct.to_i %>
+      <% color =
+           if pct >= 80 then "bg-emerald-500"
+           elsif pct >= 50 then "bg-emerald-300"
+           elsif pct >= 25 then "bg-emerald-200"
+           elsif pct >  0 then "bg-emerald-100"
+           else "bg-slate-100"
+           end
+      %>
+      <div class="w-5 h-5 rounded <%= color %>" title="<%= date.strftime("%-d %b") %> · <%= pct %>%"></div>
+    <% end %>
+  </div>
+  <div class="mt-3 flex items-center justify-between text-[10px] text-slate-400">
+    <span>Hace 30 días</span>
+    <div class="flex items-center gap-1">
+      <span>Menos</span>
+      <span class="w-2.5 h-2.5 bg-slate-100 rounded-sm"></span>
+      <span class="w-2.5 h-2.5 bg-emerald-200 rounded-sm"></span>
+      <span class="w-2.5 h-2.5 bg-emerald-400 rounded-sm"></span>
+      <span class="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></span>
+      <span>Más</span>
+    </div>
+    <span>Hoy</span>
+  </div>
+</div>

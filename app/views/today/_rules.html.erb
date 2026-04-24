@@ -1,0 +1,14 @@
+<div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
+  <% [
+    { emoji: "💊", text: "Fibrotina con cena grasa (7:30 PM) — sin excepción" },
+    { emoji: "🥩", text: "5 comidas de 30-45g proteína cada una" },
+    { emoji: "💪", text: "CrossFit 3×/semana + caminatas diarias" },
+    { emoji: "😴", text: "7-8 horas de sueño — crítico para reducir PCR" },
+    { emoji: "🥛", text: "Kefir + fermentados (kimchi/chucrut) diarios" }
+  ].each do |rule| %>
+    <div class="flex items-center gap-3 px-4 py-3">
+      <div class="text-2xl"><%= rule[:emoji] %></div>
+      <p class="text-sm text-slate-700"><%= rule[:text] %></p>
+    </div>
+  <% end %>
+</div>

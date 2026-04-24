@@ -1,0 +1,8 @@
+<% pct = target.to_f.positive? ? [ ((consumed.to_f / target.to_f) * 100).round, 100 ].min : 0 %>
+<div class="rounded-2xl bg-<%= color %>-50 ring-1 ring-<%= color %>-100 px-3 py-2.5">
+  <p class="text-[10px] uppercase tracking-wider text-<%= color %>-700 font-semibold"><%= label %></p>
+  <p class="mt-0.5 text-sm font-bold text-slate-900"><%= consumed.to_i %><span class="text-slate-400 font-normal">/<%= target.to_i %><%= unit %></span></p>
+  <div class="mt-2 h-1 rounded-full bg-<%= color %>-100 overflow-hidden">
+    <div class="h-1 bg-<%= color %>-500 rounded-full transition-all" style="width: <%= pct %>%"></div>
+  </div>
+</div>
