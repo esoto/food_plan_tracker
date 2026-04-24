@@ -4,6 +4,7 @@ class Food < ApplicationRecord
   enum :category, CATEGORIES
 
   has_many :meal_items, dependent: :restrict_with_error
+  has_many :logged_foods, dependent: :restrict_with_error
 
   validates :name, presence: true, uniqueness: { scope: :category }
   validates :category, presence: true

@@ -6,6 +6,7 @@ class DailyLog < ApplicationRecord
   has_many :supplement_completions, dependent: :destroy
   has_many :completed_supplements, through: :supplement_completions, source: :supplement
   has_many :checklist_completions, dependent: :destroy
+  has_many :logged_foods, -> { order(logged_at: :desc) }, dependent: :destroy
 
   validates :date, presence: true, uniqueness: true
 
@@ -20,24 +21,20 @@ class DailyLog < ApplicationRecord
     self.for(Date.current)
   end
 
-  def consumed
-    completed_meals.includes(meal_items: :food).flat_map(&:meal_items)
-  end
-
   def consumed_kcal
-    consumed.sum(&:kcal)
+    (completed_meals.sum(:target_kcal) + logged_foods.sum(&:kcal)).to_i
   end
 
   def consumed_protein_g
-    consumed.sum { |mi| mi.protein_g.to_f }.round(1)
+    (completed_meals.sum(:target_protein_g).to_f + logged_foods.sum(&:protein_g).to_f).round(1)
   end
 
   def consumed_carbs_g
-    consumed.sum { |mi| mi.carbs_g.to_f }.round(1)
+    (completed_meals.sum(:target_carbs_g).to_f + logged_foods.sum(&:carbs_g).to_f).round(1)
   end
 
   def consumed_fat_g
-    consumed.sum { |mi| mi.fat_g.to_f }.round(1)
+    (completed_meals.sum(:target_fat_g).to_f + logged_foods.sum(&:fat_g).to_f).round(1)
   end
 
   def checklist_adherence_pct

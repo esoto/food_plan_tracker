@@ -9,17 +9,25 @@ export default class extends Controller {
     fat: Number
   }
 
-  static targets = ["serving", "kcal", "protein", "carbs", "fat"]
+  static targets = ["serving", "kcal", "protein", "carbs", "fat", "quantityInput"]
+
+  connect() {
+    this.multiplier = 1.0
+  }
 
   setMultiplier(event) {
-    const mult = parseFloat(event.currentTarget.dataset.multiplier)
+    this.multiplier = parseFloat(event.currentTarget.dataset.multiplier)
     this.element.querySelectorAll("[data-multiplier]").forEach(btn => {
-      btn.dataset.active = String(parseFloat(btn.dataset.multiplier) === mult)
+      btn.dataset.active = String(parseFloat(btn.dataset.multiplier) === this.multiplier)
     })
-    this.servingTarget.textContent = Math.round(this.servingGramsValue * mult)
-    this.kcalTarget.textContent = Math.round(this.kcalValue * mult)
-    this.proteinTarget.textContent = (this.proteinValue * mult).toFixed(0)
-    this.carbsTarget.textContent = (this.carbsValue * mult).toFixed(0)
-    this.fatTarget.textContent = (this.fatValue * mult).toFixed(0)
+    const m = this.multiplier
+    this.servingTarget.textContent = Math.round(this.servingGramsValue * m)
+    this.kcalTarget.textContent = Math.round(this.kcalValue * m)
+    this.proteinTarget.textContent = (this.proteinValue * m).toFixed(0)
+    this.carbsTarget.textContent = (this.carbsValue * m).toFixed(0)
+    this.fatTarget.textContent = (this.fatValue * m).toFixed(0)
+    if (this.hasQuantityInputTarget) {
+      this.quantityInputTarget.value = (this.servingGramsValue * m).toFixed(2)
+    }
   }
 }

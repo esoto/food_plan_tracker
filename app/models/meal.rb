@@ -16,6 +16,20 @@ class Meal < ApplicationRecord
     scheduled_time.utc.strftime("%-l:%M %p")
   end
 
+  def scheduled_minutes
+    scheduled_time.utc.hour * 60 + scheduled_time.utc.min
+  end
+
+  # "Now" window: within ±90 min of the current time, and the single closest
+  # meal across the plan. Returns false if nothing is within the window.
+  NOW_WINDOW = (-90..90).freeze
+
+  def now?(reference = Time.current)
+    now_min = reference.hour * 60 + reference.min
+    candidates = plan.meals.select { |m| NOW_WINDOW.cover?(m.scheduled_minutes - now_min) }
+    candidates.min_by { |m| (m.scheduled_minutes - now_min).abs } == self
+  end
+
   ICONS = {
     "Breakfast"          => "🥣",
     "Lunch"              => "🍱",

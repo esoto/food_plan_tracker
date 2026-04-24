@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_24_175404) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_24_191100) do
   create_table "biomarker_entries", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "goal_id", null: false
@@ -77,6 +77,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_24_175404) do
     t.string "unit", null: false
     t.datetime "updated_at", null: false
     t.index ["metric"], name: "index_goals_on_metric", unique: true
+  end
+
+  create_table "logged_foods", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "daily_log_id", null: false
+    t.integer "food_id", null: false
+    t.datetime "logged_at", null: false
+    t.decimal "quantity_grams", precision: 7, scale: 2, null: false
+    t.datetime "updated_at", null: false
+    t.index ["daily_log_id", "logged_at"], name: "index_logged_foods_on_daily_log_id_and_logged_at"
+    t.index ["daily_log_id"], name: "index_logged_foods_on_daily_log_id"
+    t.index ["food_id"], name: "index_logged_foods_on_food_id"
   end
 
   create_table "meal_completions", force: :cascade do |t|
@@ -180,6 +192,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_24_175404) do
   add_foreign_key "checklist_completions", "checklist_templates"
   add_foreign_key "checklist_completions", "daily_logs"
   add_foreign_key "daily_logs", "plans"
+  add_foreign_key "logged_foods", "daily_logs"
+  add_foreign_key "logged_foods", "foods"
   add_foreign_key "meal_completions", "daily_logs"
   add_foreign_key "meal_completions", "meals"
   add_foreign_key "meal_items", "foods"

@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   resources :checklist_completions,  only: :update
   resources :biomarker_entries,      only: %i[create]
   resources :daily_logs,             only: :update
+  resources :logged_foods,           only: %i[create destroy]
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   get "up" => "rails/health#show", as: :rails_health_check

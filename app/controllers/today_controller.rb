@@ -5,6 +5,7 @@ class TodayController < ApplicationController
     @plan = @daily_log.plan
     @meals = @plan.meals.includes(meal_items: :food)
     @completed_meal_ids = @daily_log.meal_completions.pluck(:meal_id)
+    @now_meal = @meals.detect(&:now?)
     @goals = Goal.all
     @recent_weights = BiomarkerEntry
       .joins(:goal)
