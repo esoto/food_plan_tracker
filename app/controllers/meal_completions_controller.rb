@@ -4,10 +4,7 @@ class MealCompletionsController < ApplicationController
   def create
     meal = Meal.find(params[:meal_id])
     @daily_log.meal_completions.find_or_create_by!(meal: meal) { |mc| mc.completed_at = Time.current }
-    respond_to do |format|
-      format.turbo_stream { render turbo_stream: turbo_stream.replace(dom_id(meal), partial: "menu/meal_card", locals: { meal: meal, completed: true, daily_log: @daily_log }) }
-      format.html { redirect_back fallback_location: menu_path }
-    end
+    render partial: "menu/meal_card", locals: { meal: meal, completed: true, daily_log: @daily_log }
   end
 
   def destroy
@@ -15,10 +12,7 @@ class MealCompletionsController < ApplicationController
     meal = completion.meal
     daily_log = completion.daily_log
     completion.destroy!
-    respond_to do |format|
-      format.turbo_stream { render turbo_stream: turbo_stream.replace(dom_id(meal), partial: "menu/meal_card", locals: { meal: meal, completed: false, daily_log: daily_log }) }
-      format.html { redirect_back fallback_location: menu_path }
-    end
+    render partial: "menu/meal_card", locals: { meal: meal, completed: false, daily_log: daily_log }
   end
 
   private
