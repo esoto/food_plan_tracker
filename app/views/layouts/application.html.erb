@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <title><%= content_for(:title) || "Food Plan Tracker" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="application-name" content="Food Plan Tracker">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#4f46e5">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="bg-slate-50 text-slate-900 antialiased">
+    <% if notice.present? %>
+      <div class="fixed top-3 inset-x-0 z-50 flex justify-center pointer-events-none">
+        <div class="pointer-events-auto rounded-full bg-slate-900 text-white text-sm px-4 py-2 shadow-lg"><%= notice %></div>
+      </div>
+    <% end %>
+
+    <% if alert.present? %>
+      <div class="fixed top-3 inset-x-0 z-50 flex justify-center pointer-events-none">
+        <div class="pointer-events-auto rounded-full bg-rose-600 text-white text-sm px-4 py-2 shadow-lg"><%= alert %></div>
+      </div>
+    <% end %>
+
+    <main class="max-w-lg mx-auto pb-32 min-h-screen">
+      <%= yield %>
+    </main>
+
+    <% if authenticated? %>
+      <%= render "shared/bottom_nav" %>
+    <% end %>
+  </body>
+</html>
