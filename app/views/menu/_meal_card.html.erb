@@ -10,7 +10,7 @@
         <p class="text-xs text-slate-500 mt-0.5">
           <%= meal.target_kcal %> kcal · <span class="text-rose-600 font-medium"><%= meal.target_protein_g.to_i %>g P</span>
           · <span class="text-amber-600 font-medium"><%= meal.target_carbs_g.to_i %>g C</span>
-          · <span class="text-emerald-600 font-medium"><%= meal.target_fat_g.to_i %>g G</span>
+          · <span class="text-emerald-600 font-medium"><%= meal.target_fat_g.to_i %>g F</span>
         </p>
       </div>
     </div>
@@ -25,10 +25,10 @@
       <% end %>
     </ul>
 
-    <% if meal.name.include?("Cena") %>
+    <% if meal.name.downcase.include?("dinner") %>
       <div class="mx-4 mb-3 rounded-xl bg-purple-50 border border-purple-200 p-3 flex items-center gap-2">
         <span class="text-lg">💊</span>
-        <p class="text-xs text-purple-900"><strong>Fibrotina</strong> con esta comida — con grasa.</p>
+        <p class="text-xs text-purple-900"><strong>Fibrotina</strong> with this meal — take with fat.</p>
       </div>
     <% end %>
 
@@ -38,14 +38,14 @@
               method: :delete,
               data: { turbo_frame: dom_id(meal) },
               class: "w-full rounded-xl bg-emerald-500 text-white text-sm font-medium py-2 flex items-center justify-center gap-2 hover:bg-emerald-600 transition" do %>
-          ✓ Comida completada
+          ✓ Meal completed
         <% end %>
       <% else %>
         <%= button_to meal_completions_path(meal_id: meal.id),
               method: :post,
               data: { turbo_frame: dom_id(meal) },
               class: "w-full rounded-xl bg-white ring-1 ring-slate-300 text-slate-700 text-sm font-medium py-2 hover:bg-slate-50 transition" do %>
-          Marcar como completada
+          Mark as completed
         <% end %>
       <% end %>
     </div>

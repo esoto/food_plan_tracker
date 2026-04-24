@@ -33,3 +33,8 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
+
+# Playwright MCP test artifacts
+/.playwright-mcp/
+/*.png
+/*.jpg

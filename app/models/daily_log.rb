@@ -12,7 +12,7 @@ class DailyLog < ApplicationRecord
   scope :chronological, -> { order(:date) }
   scope :recent, ->(n) { order(date: :desc).limit(n) }
 
-  def self.for(date, default_plan: Plan.crossfit || Plan.ordered.first)
+  def self.for(date, default_plan: Plan.active || Plan.exercise || Plan.ordered.first)
     find_or_create_by!(date: date) { |log| log.plan = default_plan }
   end
 

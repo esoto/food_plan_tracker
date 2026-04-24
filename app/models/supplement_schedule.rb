@@ -8,10 +8,10 @@ class SupplementSchedule < ApplicationRecord
   validates :time_slot, :position, presence: true
 
   TIME_SLOT_LABELS = {
-    "morning"   => { label: "Mañana",        time: "7:00 AM" },
-    "pre_lunch" => { label: "Antes Almuerzo", time: "11:45 AM" },
-    "dinner"    => { label: "Cena",           time: "7:30 PM" },
-    "pre_sleep" => { label: "Antes Dormir",   time: "10:00 PM" }
+    "morning"   => { label: "Morning",      time: "7:00 AM" },
+    "pre_lunch" => { label: "Pre-lunch",    time: "11:45 AM" },
+    "dinner"    => { label: "Dinner",       time: "7:30 PM" },
+    "pre_sleep" => { label: "Before bed",   time: "10:00 PM" }
   }.freeze
 
   def slot_label

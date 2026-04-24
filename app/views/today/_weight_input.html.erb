@@ -1,19 +1,21 @@
 <% weight_goal = Goal.find_by(metric: Goal.metrics[:weight_kg]) %>
 <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
-  <div class="flex items-center justify-between gap-3">
-    <div>
-      <p class="text-xs uppercase tracking-wider text-slate-500">Peso de hoy</p>
-      <p class="text-2xl font-bold text-slate-900 mt-1">
-        <%= daily_log.weight_kg.present? ? number_with_precision(daily_log.weight_kg, precision: 1) : "—" %>
-        <span class="text-sm font-normal text-slate-500">kg</span>
-      </p>
-    </div>
-    <%= form_with url: biomarker_entries_path, class: "flex items-center gap-2" do |f| %>
-      <%= f.hidden_field "biomarker_entry[goal_id]", value: weight_goal&.id %>
-      <%= f.hidden_field "biomarker_entry[recorded_on]", value: Date.current %>
-      <%= f.number_field "biomarker_entry[value]", step: 0.1, placeholder: "93.4", required: true,
-          class: "w-24 rounded-xl border-slate-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" %>
-      <%= f.submit "Registrar", class: "rounded-xl bg-indigo-600 text-white text-sm font-medium px-3 py-2 hover:bg-indigo-700" %>
-    <% end %>
+  <div class="flex items-baseline justify-between">
+    <p class="text-xs uppercase tracking-wider text-slate-500">Today's weight</p>
+    <p class="text-xs text-slate-400">Goal: <%= weight_goal&.target_value&.to_f %> kg</p>
   </div>
+  <p class="text-3xl font-bold text-slate-900 mt-1">
+    <%= daily_log.weight_kg.present? ? number_with_precision(daily_log.weight_kg, precision: 1) : "—" %>
+    <span class="text-base font-normal text-slate-400">kg</span>
+  </p>
+  <%= form_with url: biomarker_entries_path, class: "mt-3 flex items-center gap-2" do |f| %>
+    <%= f.hidden_field "biomarker_entry[goal_id]", value: weight_goal&.id %>
+    <%= f.hidden_field "biomarker_entry[recorded_on]", value: Date.current %>
+    <div class="flex-1 relative">
+      <%= f.number_field "biomarker_entry[value]", step: 0.1, placeholder: "Enter your weight", required: true,
+          class: "w-full rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2.5 pr-10" %>
+      <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">kg</span>
+    </div>
+    <%= f.submit "Log", class: "rounded-xl bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-indigo-700 cursor-pointer" %>
+  <% end %>
 </div>

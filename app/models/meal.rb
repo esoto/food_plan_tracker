@@ -17,13 +17,13 @@ class Meal < ApplicationRecord
   end
 
   ICONS = {
-    "Desayuno"        => "🥣",
-    "Almuerzo"        => "🍱",
-    "Pre-WOD"         => "⚡",
-    "Merienda"        => "🍎",
-    "Cena Post-WOD"   => "🍽️",
-    "Cena"            => "🍽️",
-    "Pre-sueño"       => "🌙"
+    "Breakfast"          => "🥣",
+    "Lunch"              => "🍱",
+    "Pre-workout"        => "⚡",
+    "Snack"              => "🍎",
+    "Post-workout dinner" => "🍽️",
+    "Dinner"             => "🍽️",
+    "Pre-sleep"          => "🌙"
   }.freeze
 
   def icon

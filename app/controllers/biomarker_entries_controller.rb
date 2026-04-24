@@ -10,7 +10,7 @@ class BiomarkerEntriesController < ApplicationController
       if goal.weight_kg?
         today_log.update!(weight_kg: entry.value) if today_log.date == entry.recorded_on
       end
-      redirect_back fallback_location: root_path, notice: "#{goal.display_name} registrado"
+      redirect_back fallback_location: root_path, notice: "#{goal.display_name} logged"
     else
       redirect_back fallback_location: root_path, alert: entry.errors.full_messages.to_sentence
     end

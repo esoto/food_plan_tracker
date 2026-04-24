@@ -25,8 +25,7 @@ module FoodPlanTracker
     config.autoload_lib(ignore: %w[assets tasks])
 
     config.time_zone = "America/Costa_Rica"
-    config.i18n.available_locales = [ :es, :en ]
-    config.i18n.default_locale = :es
+    config.i18n.default_locale = :en
 
     config.generators.system_tests = nil
   end

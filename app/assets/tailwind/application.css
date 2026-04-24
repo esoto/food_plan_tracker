@@ -9,6 +9,10 @@
   --color-brand-500: #4f46e5;
 }
 
+@utility safe-top {
+  padding-top: calc(env(safe-area-inset-top) + 2rem);
+}
+
 /* Safelist dynamic color classes used in Food.category_colors + macro pills */
 @source inline("{bg,ring,text}-{rose,amber,emerald,lime,indigo,purple,blue,slate}-{50,100,200,300,400,500,600,700,800,900}");
 @source inline("bg-{rose,amber,emerald,lime}-500 bg-{rose,amber,emerald,lime}-100");

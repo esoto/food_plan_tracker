@@ -12,10 +12,10 @@ class Food < ApplicationRecord
   scope :alphabetical, -> { order(:name) }
 
   CATEGORY_LABELS = {
-    "protein"   => "Proteínas",
-    "carb"      => "Carbohidratos",
-    "fat"       => "Grasas",
-    "vegetable" => "Vegetales"
+    "protein"   => "Protein",
+    "carb"      => "Carbs",
+    "fat"       => "Fats",
+    "vegetable" => "Veggies"
   }.freeze
 
   CATEGORY_COLORS = {

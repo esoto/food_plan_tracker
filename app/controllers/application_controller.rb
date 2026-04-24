@@ -18,11 +18,11 @@ class ApplicationController < ActionController::Base
   end
 
   NAV_ITEMS = [
-    { key: :today,       path: "/",            label: "Hoy",         icon: "home" },
-    { key: :menu,        path: "/menu",        label: "Menú",        icon: "utensils" },
-    { key: :exchanges,   path: "/exchanges",   label: "Alimentos",   icon: "shuffle" },
-    { key: :supplements, path: "/supplements", label: "Suplementos", icon: "pill" },
-    { key: :checklist,   path: "/checklist",   label: "Hábitos",     icon: "check" }
+    { key: :today,       path: "/",            label: "Today",      icon: "home" },
+    { key: :menu,        path: "/menu",        label: "Menu",       icon: "utensils" },
+    { key: :exchanges,   path: "/exchanges",   label: "Foods",      icon: "shuffle" },
+    { key: :supplements, path: "/supplements", label: "Supplements", icon: "pill" },
+    { key: :checklist,   path: "/checklist",   label: "Habits",     icon: "check" }
   ].freeze
 
   def nav_items

@@ -2,10 +2,7 @@ class DailyLogsController < ApplicationController
   def update
     log = DailyLog.find(params[:id])
     log.update!(daily_log_params)
-    respond_to do |format|
-      format.turbo_stream { head :ok }
-      format.html { redirect_back fallback_location: root_path }
-    end
+    redirect_back fallback_location: root_path, status: :see_other
   end
 
   private

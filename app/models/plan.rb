@@ -1,6 +1,7 @@
 class Plan < ApplicationRecord
-  CROSSFIT_SLUG = "crossfit".freeze
-  REST_SLUG = "rest".freeze
+  EXERCISE_SLUG = "exercise".freeze
+  ACTIVE_SLUG   = "active".freeze
+  REST_SLUG     = "rest".freeze
 
   has_many :meals, -> { order(:position) }, dependent: :destroy, inverse_of: :plan
   has_many :daily_logs, dependent: :restrict_with_error
@@ -12,15 +13,19 @@ class Plan < ApplicationRecord
 
   scope :ordered, -> { order(:id) }
 
-  def self.crossfit
-    find_by(slug: CROSSFIT_SLUG)
+  def self.exercise
+    find_by(slug: EXERCISE_SLUG)
+  end
+
+  def self.active
+    find_by(slug: ACTIVE_SLUG)
   end
 
   def self.rest
     find_by(slug: REST_SLUG)
   end
 
-  def crossfit?
-    slug == CROSSFIT_SLUG
+  def exercise?
+    slug == EXERCISE_SLUG
   end
 end

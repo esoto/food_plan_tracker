@@ -9,26 +9,26 @@
 
   <div class="grid grid-cols-2 gap-3 text-sm">
     <div class="rounded-xl bg-slate-50 p-3">
-      <p class="text-xs text-slate-500">Ritmo actual</p>
-      <p class="font-semibold text-slate-900 mt-0.5"><%= rate_per_week.round(2) %> kg/sem</p>
+      <p class="text-xs text-slate-500">Current rate</p>
+      <p class="font-semibold text-slate-900 mt-0.5"><%= rate_per_week.round(2) %> kg/week</p>
     </div>
     <div class="rounded-xl bg-slate-50 p-3">
-      <p class="text-xs text-slate-500">Faltan</p>
+      <p class="text-xs text-slate-500">Remaining</p>
       <p class="font-semibold text-slate-900 mt-0.5"><%= remaining.round(1) %> kg</p>
     </div>
     <div class="rounded-xl bg-indigo-50 p-3 col-span-2">
-      <p class="text-xs text-indigo-700">Proyección a meta</p>
+      <p class="text-xs text-indigo-700">ETA to goal</p>
       <p class="font-semibold text-indigo-900 mt-0.5">
         <% if weeks_to_goal.nil? || weeks_to_goal < 0 %>
-          Ajusta el déficit — ritmo no positivo.
+          Adjust your deficit — rate is not positive.
         <% elsif weeks_to_goal.zero? %>
-          ¡Ya alcanzaste la meta!
+          Goal reached!
         <% else %>
-          ≈ <%= weeks_to_goal %> semanas al ritmo actual
+          ≈ <%= weeks_to_goal %> weeks at the current pace
         <% end %>
       </p>
     </div>
   </div>
 <% else %>
-  <p class="text-sm text-slate-500">Registra al menos 2 pesos (con algunos días de diferencia) para ver la proyección.</p>
+  <p class="text-sm text-slate-500">Log at least 2 weights (a few days apart) to see the projection.</p>
 <% end %>
