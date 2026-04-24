@@ -63,13 +63,16 @@
 <% end %>
 
 <section class="px-4 mt-6 mb-4">
-  <details class="rounded-2xl bg-white border border-slate-100 shadow-sm group">
-    <summary class="list-none cursor-pointer px-4 py-3 flex items-center justify-between">
-      <div>
-        <p class="text-sm font-semibold text-slate-900">Why this stack?</p>
-        <p class="text-xs text-slate-500 mt-0.5">Evidence-based rationale</p>
+  <details class="rounded-2xl bg-white border border-slate-100 shadow-sm group [&_summary::-webkit-details-marker]:hidden [&_summary]:list-none">
+    <summary class="cursor-pointer px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 rounded-2xl">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-lg">🧠</div>
+        <div>
+          <p class="text-sm font-semibold text-slate-900">Why this stack? <span class="text-xs text-indigo-600 dark:text-indigo-300 ml-1 font-normal">(tap to read)</span></p>
+          <p class="text-xs text-slate-500 mt-0.5">Evidence-based rationale</p>
+        </div>
       </div>
-      <span class="text-slate-400 group-open:rotate-180 transition">▾</span>
+      <span class="text-slate-400 group-open:rotate-180 transition text-lg">▾</span>
     </summary>
     <div class="px-4 pb-4 space-y-4 text-sm text-slate-700">
       <div>

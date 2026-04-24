@@ -10,11 +10,14 @@
 /* Dark-mode surface overrides. Tailwind utilities win by specificity in the
  * cascade; these overrides only apply inside a .dark tree, mapping common
  * light surfaces to their dark equivalents without rewriting every view.
+ *
+ * Deliberately narrow — only bg-white and text/border/ring slates. bg-slate-50
+ * is NOT overridden here because it's used as hover state (and must stay
+ * distinct from body bg) and on form inputs. Per-component dark: classes
+ * handle those cases.
  */
 @layer utilities {
   .dark .bg-white { background-color: var(--color-slate-800) !important; }
-  .dark .bg-slate-50 { background-color: var(--color-slate-950) !important; }
-  .dark .bg-slate-100 { background-color: var(--color-slate-800) !important; }
   .dark .text-slate-900 { color: var(--color-slate-100) !important; }
   .dark .text-slate-800 { color: var(--color-slate-200) !important; }
   .dark .text-slate-700 { color: var(--color-slate-300) !important; }
@@ -26,15 +29,23 @@
   .dark .ring-slate-200 { --tw-ring-color: var(--color-slate-700) !important; }
   .dark .ring-slate-300 { --tw-ring-color: var(--color-slate-600) !important; }
   .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--color-slate-700) !important; }
-  .dark .bg-slate-50\/60 { background-color: rgb(2 6 23 / 0.6) !important; }
-  /* Soft-tint macro pill backgrounds need a darker variant to stay readable */
+  /* Macro-pill and other 50-tint surfaces: keep a visible tint on dark */
   .dark .bg-rose-50 { background-color: rgb(159 18 57 / 0.25) !important; }
-  .dark .bg-amber-50 { background-color: rgb(146 64 14 / 0.25) !important; }
-  .dark .bg-emerald-50 { background-color: rgb(6 78 59 / 0.25) !important; }
-  .dark .bg-indigo-50 { background-color: rgb(30 27 75 / 0.5) !important; }
-  .dark .bg-purple-50 { background-color: rgb(59 7 100 / 0.35) !important; }
+  .dark .bg-amber-50 { background-color: rgb(146 64 14 / 0.3) !important; }
+  .dark .bg-emerald-50 { background-color: rgb(6 78 59 / 0.3) !important; }
+  .dark .bg-indigo-50 { background-color: rgb(30 27 75 / 0.55) !important; }
+  .dark .bg-purple-50 { background-color: rgb(59 7 100 / 0.4) !important; }
   .dark .bg-purple-50\/40 { background-color: rgb(59 7 100 / 0.2) !important; }
-  .dark .bg-rose-50 { border-color: transparent; }
+  /* Warning card (rose-50 border/text should be readable in dark) */
+  .dark .border-rose-200 { border-color: rgb(244 63 94 / 0.4) !important; }
+  .dark .text-rose-900 { color: rgb(254 205 211) !important; }
+  .dark .text-rose-800 { color: rgb(254 205 211) !important; }
+  /* Brighten small macro-pill labels that read rose/amber/emerald-700 on tinted bg */
+  .dark .text-rose-700 { color: rgb(253 164 175) !important; }
+  .dark .text-amber-700 { color: rgb(252 211 77) !important; }
+  .dark .text-emerald-700 { color: rgb(110 231 183) !important; }
+  .dark .text-indigo-700 { color: rgb(165 180 252) !important; }
+  .dark .text-purple-800, .dark .text-purple-900, .dark .text-purple-700 { color: rgb(216 180 254) !important; }
 }
 
 @theme {

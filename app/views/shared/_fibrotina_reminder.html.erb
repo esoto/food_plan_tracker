@@ -9,7 +9,8 @@
     <%= button_to supplement_completions_path(supplement_id: fibrotina.id),
           method: :post,
           form: { data: { turbo: false } },
-          class: "rounded-xl bg-white text-purple-700 text-xs font-semibold px-3 py-2 shadow hover:bg-purple-50 cursor-pointer shrink-0" do %>
+          style: "background-color: white; color: rgb(126 34 206);",
+          class: "rounded-xl text-xs font-semibold px-3 py-2 shadow hover:opacity-90 cursor-pointer shrink-0" do %>
       Mark taken
     <% end %>
   </div>
