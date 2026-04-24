@@ -23,7 +23,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-slate-50 text-slate-900 antialiased">
+  <body class="bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100" data-controller="theme">
     <% if notice.present? %>
       <div class="fixed top-3 inset-x-0 z-50 flex justify-center pointer-events-none">
         <div class="pointer-events-auto rounded-full bg-slate-900 text-white text-sm px-4 py-2 shadow-lg"><%= notice %></div>
@@ -37,6 +37,9 @@
     <% end %>
 
     <main class="max-w-lg mx-auto pb-32 min-h-screen">
+      <% if fibrotina_due? %>
+        <%= render "shared/fibrotina_reminder" %>
+      <% end %>
       <%= yield %>
     </main>
 

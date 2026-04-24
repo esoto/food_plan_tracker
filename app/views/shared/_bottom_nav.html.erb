@@ -1,8 +1,8 @@
-<nav class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80" style="padding-bottom: env(safe-area-inset-bottom);">
+<nav class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-slate-800 dark:bg-slate-900/95 dark:supports-[backdrop-filter]:bg-slate-900/80" style="padding-bottom: env(safe-area-inset-bottom);">
   <div class="max-w-lg mx-auto grid grid-cols-5 text-[11px] font-medium">
     <% nav_items.each do |item| %>
       <% active = current_page?(item[:path]) %>
-      <%= link_to item[:path], class: "flex flex-col items-center gap-1 py-3 transition #{active ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"}" do %>
+      <%= link_to item[:path], class: "flex flex-col items-center gap-1 py-3 transition #{active ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"}" do %>
         <%= render "shared/icons/#{item[:icon]}", classes: "w-6 h-6 #{"stroke-2" if active}" %>
         <span><%= item[:label] %></span>
       <% end %>

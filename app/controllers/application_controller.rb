@@ -5,7 +5,7 @@ class ApplicationController < ActionController::Base
 
   stale_when_importmap_changes
 
-  helper_method :today_log, :current_user, :nav_items
+  helper_method :today_log, :current_user, :nav_items, :fibrotina_due?
 
   private
 
@@ -15,6 +15,25 @@ class ApplicationController < ActionController::Base
 
   def current_user
     Current.user
+  end
+
+  # Remind to take Fibrotina between 6:45 PM and 8:45 PM if it hasn't been
+  # marked as taken today.
+  FIBROTINA_WINDOW = (18 * 60 + 45)..(20 * 60 + 45) # 6:45 PM – 8:45 PM
+
+  def fibrotina_due?
+    return false unless authenticated?
+
+    # Dev-only preview override: append ?preview_fibrotina=1 to any URL.
+    return true if Rails.env.development? && params[:preview_fibrotina] == "1"
+
+    now = Time.current
+    return false unless FIBROTINA_WINDOW.cover?(now.hour * 60 + now.min)
+
+    fibrotina = Supplement.find_by("name LIKE ?", "Fibrotina%")
+    return false unless fibrotina
+
+    !today_log.supplement_completions.exists?(supplement: fibrotina)
   end
 
   NAV_ITEMS = [

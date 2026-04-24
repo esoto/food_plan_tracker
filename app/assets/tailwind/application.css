@@ -5,6 +5,38 @@
 @source "../../components/**/*.{erb,html,rb}";
 @source "../../javascript/controllers/**/*.js";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Dark-mode surface overrides. Tailwind utilities win by specificity in the
+ * cascade; these overrides only apply inside a .dark tree, mapping common
+ * light surfaces to their dark equivalents without rewriting every view.
+ */
+@layer utilities {
+  .dark .bg-white { background-color: var(--color-slate-800) !important; }
+  .dark .bg-slate-50 { background-color: var(--color-slate-950) !important; }
+  .dark .bg-slate-100 { background-color: var(--color-slate-800) !important; }
+  .dark .text-slate-900 { color: var(--color-slate-100) !important; }
+  .dark .text-slate-800 { color: var(--color-slate-200) !important; }
+  .dark .text-slate-700 { color: var(--color-slate-300) !important; }
+  .dark .text-slate-600 { color: var(--color-slate-300) !important; }
+  .dark .text-slate-500 { color: var(--color-slate-400) !important; }
+  .dark .border-slate-100 { border-color: var(--color-slate-700) !important; }
+  .dark .border-slate-200 { border-color: var(--color-slate-700) !important; }
+  .dark .border-slate-300 { border-color: var(--color-slate-600) !important; }
+  .dark .ring-slate-200 { --tw-ring-color: var(--color-slate-700) !important; }
+  .dark .ring-slate-300 { --tw-ring-color: var(--color-slate-600) !important; }
+  .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--color-slate-700) !important; }
+  .dark .bg-slate-50\/60 { background-color: rgb(2 6 23 / 0.6) !important; }
+  /* Soft-tint macro pill backgrounds need a darker variant to stay readable */
+  .dark .bg-rose-50 { background-color: rgb(159 18 57 / 0.25) !important; }
+  .dark .bg-amber-50 { background-color: rgb(146 64 14 / 0.25) !important; }
+  .dark .bg-emerald-50 { background-color: rgb(6 78 59 / 0.25) !important; }
+  .dark .bg-indigo-50 { background-color: rgb(30 27 75 / 0.5) !important; }
+  .dark .bg-purple-50 { background-color: rgb(59 7 100 / 0.35) !important; }
+  .dark .bg-purple-50\/40 { background-color: rgb(59 7 100 / 0.2) !important; }
+  .dark .bg-rose-50 { border-color: transparent; }
+}
+
 @theme {
   --color-brand-500: #4f46e5;
 }

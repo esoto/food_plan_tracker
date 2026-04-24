@@ -1,0 +1,16 @@
+<% fibrotina = Supplement.find_by("name LIKE ?", "Fibrotina%") %>
+<div class="safe-top px-4 pb-3">
+  <div class="rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 shadow-lg flex items-center gap-3">
+    <div class="text-2xl">💊</div>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold">Fibrotina time</p>
+      <p class="text-xs text-white/85">Take it with your fatty dinner.</p>
+    </div>
+    <%= button_to supplement_completions_path(supplement_id: fibrotina.id),
+          method: :post,
+          form: { data: { turbo: false } },
+          class: "rounded-xl bg-white text-purple-700 text-xs font-semibold px-3 py-2 shadow hover:bg-purple-50 cursor-pointer shrink-0" do %>
+      Mark taken
+    <% end %>
+  </div>
+</div>
