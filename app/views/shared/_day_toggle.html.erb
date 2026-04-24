@@ -6,10 +6,10 @@
     when :dark
       "mt-5 rounded-full bg-white/15 p-1 flex gap-1"
     else
-      "mt-3 rounded-full bg-slate-100 p-1 flex gap-1"
+      "mt-3 rounded-full bg-slate-100 dark:bg-slate-800 p-1 flex gap-1"
     end
-  active_class   = variant == :dark ? "bg-white text-indigo-700 shadow" : "bg-white text-indigo-700 shadow-sm"
-  inactive_class = variant == :dark ? "text-white/90 hover:text-white" : "text-slate-500 hover:text-slate-800"
+  active_class   = variant == :dark ? "bg-white text-indigo-700 shadow" : "bg-white text-indigo-700 shadow-sm dark:bg-slate-700 dark:text-indigo-300"
+  inactive_class = variant == :dark ? "text-white/90 hover:text-white" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
 %>
 <%= form_with model: daily_log, url: daily_log_path(daily_log), method: :patch, data: { controller: "auto-submit" }, class: wrapper_class do |f| %>
   <% plans.each do |plan| %>
