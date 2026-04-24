@@ -1,0 +1,38 @@
+<% content_for :title, "Settings · Food Plan Tracker" %>
+
+<header class="safe-top px-5 pb-6 bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 text-white rounded-b-3xl shadow-sm">
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <p class="text-sm opacity-80">Tune as you progress</p>
+      <h1 class="text-3xl font-bold tracking-tight mt-1">Settings ⚙️</h1>
+      <p class="text-sm mt-1 opacity-90">Update macro targets and goals as your weight changes.</p>
+    </div>
+    <%= link_to root_path, class: "shrink-0 w-10 h-10 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition", aria: { label: "Back to today" } do %>
+      ✕
+    <% end %>
+  </div>
+</header>
+
+<section class="px-4 mt-6">
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Plan macro targets</h2>
+  <div class="grid gap-3">
+    <% @plans.each do |plan| %>
+      <%= render "settings/plan_form", plan: plan %>
+    <% end %>
+  </div>
+</section>
+
+<section class="px-4 mt-8">
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Goal targets</h2>
+  <div class="grid gap-3">
+    <% @goals.each do |goal| %>
+      <%= render "settings/goal_form", goal: goal %>
+    <% end %>
+  </div>
+</section>
+
+<section class="px-4 mt-8">
+  <p class="text-xs text-slate-500 leading-relaxed">
+    Plan names, slugs, and goal metrics aren't editable from here on purpose — they keep the rest of the app stable. To add or remove a plan/goal, use the Rails console.
+  </p>
+</section>

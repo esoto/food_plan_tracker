@@ -12,6 +12,10 @@ Rails.application.routes.draw do
   resource :supplements, only: :show, controller: "supplements"
   resource :checklist, only: :show, controller: "checklist"
   resource :progress, only: :show, controller: "progress"
+  resource :settings,  only: :show, controller: "settings"
+
+  resources :plans, only: :update
+  resources :goals, only: :update
 
   resources :meal_completions,       only: %i[create destroy]
   resources :supplement_completions, only: %i[create destroy]
