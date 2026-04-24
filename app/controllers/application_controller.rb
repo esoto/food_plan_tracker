@@ -24,16 +24,18 @@ class ApplicationController < ActionController::Base
   def fibrotina_due?
     return false unless authenticated?
 
+    fibrotina = Supplement.find_by("name LIKE ?", "Fibrotina%")
+    return false unless fibrotina
+
+    # If already taken today, never show the banner (covers both real window
+    # and dev preview).
+    return false if today_log.supplement_completions.exists?(supplement: fibrotina)
+
     # Dev-only preview override: append ?preview_fibrotina=1 to any URL.
     return true if Rails.env.development? && params[:preview_fibrotina] == "1"
 
     now = Time.current
-    return false unless FIBROTINA_WINDOW.cover?(now.hour * 60 + now.min)
-
-    fibrotina = Supplement.find_by("name LIKE ?", "Fibrotina%")
-    return false unless fibrotina
-
-    !today_log.supplement_completions.exists?(supplement: fibrotina)
+    FIBROTINA_WINDOW.cover?(now.hour * 60 + now.min)
   end
 
   NAV_ITEMS = [
