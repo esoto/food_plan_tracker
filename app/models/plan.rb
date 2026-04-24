@@ -11,7 +11,8 @@ class Plan < ApplicationRecord
   validates :target_kcal, :target_protein_g, :target_carbs_g, :target_fat_g,
             presence: true, numericality: { greater_than: 0 }
 
-  scope :ordered, -> { order(:id) }
+  # Highest to lowest demand: Exercise → Active → Rest.
+  scope :ordered, -> { in_order_of(:slug, [ EXERCISE_SLUG, ACTIVE_SLUG, REST_SLUG ]) }
 
   def self.exercise
     find_by(slug: EXERCISE_SLUG)
