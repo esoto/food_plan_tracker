@@ -1,26 +1,32 @@
-// Add a service worker for processing Web Push notifications:
-//
-// self.addEventListener("push", async (event) => {
-//   const { title, options } = await event.data.json()
-//   event.waitUntil(self.registration.showNotification(title, options))
-// })
-//
-// self.addEventListener("notificationclick", function(event) {
-//   event.notification.close()
-//   event.waitUntil(
-//     clients.matchAll({ type: "window" }).then((clientList) => {
-//       for (let i = 0; i < clientList.length; i++) {
-//         let client = clientList[i]
-//         let clientPath = (new URL(client.url)).pathname
-//
-//         if (clientPath == event.notification.data.path && "focus" in client) {
-//           return client.focus()
-//         }
-//       }
-//
-//       if (clients.openWindow) {
-//         return clients.openWindow(event.notification.data.path)
-//       }
-//     })
-//   )
-// })
+const CACHE = "fpt-shell-v1"
+const SHELL = [ "/", "/menu", "/exchanges", "/supplements", "/checklist", "/progress", "/manifest.json", "/icon.png", "/icon.svg" ]
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL).catch(() => null)))
+  self.skipWaiting()
+})
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((names) => Promise.all(names.filter((n) => n !== CACHE).map((n) => caches.delete(n))))
+  )
+  self.clients.claim()
+})
+
+// Network-first for HTML; cache fallback for offline. Pass-through for everything else.
+self.addEventListener("fetch", (event) => {
+  const { request } = event
+  if (request.method !== "GET") return
+  const accept = request.headers.get("accept") || ""
+  if (!accept.includes("text/html")) return
+
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        const copy = response.clone()
+        caches.open(CACHE).then((cache) => cache.put(request, copy).catch(() => null))
+        return response
+      })
+      .catch(() => caches.match(request).then((hit) => hit || caches.match("/")))
+  )
+})

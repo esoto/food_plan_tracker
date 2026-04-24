@@ -3,3 +3,9 @@ import "@hotwired/turbo-rails"
 import "controllers"
 import "chartkick"
 import "Chart.bundle"
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {})
+  })
+}
