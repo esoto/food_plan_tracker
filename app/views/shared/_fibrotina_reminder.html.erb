@@ -6,7 +6,7 @@
       <p class="text-sm font-semibold">Fibrotina time</p>
       <p class="text-xs text-white/85">Take it with your fatty dinner.</p>
     </div>
-    <%= button_to supplement_completions_path(supplement_id: fibrotina.id),
+    <%= button_to supplement_completions_path(supplement_id: fibrotina.id, source: "reminder"),
           method: :post,
           form: { data: { turbo: false } },
           style: "background-color: white; color: rgb(126 34 206);",

@@ -3,8 +3,11 @@ class SupplementCompletionsController < ApplicationController
 
   def create
     supplement = Supplement.find(params[:supplement_id])
-    @daily_log.supplement_completions.find_or_create_by!(supplement: supplement) { |sc| sc.taken_at = Time.current }
+    completion = @daily_log.supplement_completions.find_or_create_by!(supplement: supplement) { |sc| sc.taken_at = Time.current }
     sync_related_habit(supplement, checked: true)
+    if params[:source] == "reminder"
+      flash[:undo] = { "path" => supplement_completion_path(completion), "label" => "Undo \"#{supplement.name}\"" }
+    end
     redirect_back fallback_location: supplements_path
   end
 

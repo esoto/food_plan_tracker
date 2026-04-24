@@ -1,0 +1,22 @@
+<% if flash[:undo].is_a?(Hash) %>
+  <div class="fixed top-3 inset-x-0 z-50 flex justify-center pointer-events-none">
+    <div class="pointer-events-auto rounded-full bg-emerald-600 text-white text-sm pl-4 pr-1 py-1 shadow-lg flex items-center gap-3">
+      <span><%= flash[:undo]["label"] || flash[:undo][:label] %></span>
+      <%= button_to (flash[:undo]["path"] || flash[:undo][:path]), method: :delete,
+            form: { data: { turbo: false } },
+            class: "rounded-full bg-white/15 hover:bg-white/25 text-xs font-semibold px-3 py-1.5 cursor-pointer" do %>
+        Undo
+      <% end %>
+    </div>
+  </div>
+<% elsif notice.present? %>
+  <div class="fixed top-3 inset-x-0 z-50 flex justify-center pointer-events-none">
+    <div class="pointer-events-auto rounded-full bg-slate-900 text-white text-sm px-4 py-2 shadow-lg"><%= notice %></div>
+  </div>
+<% end %>
+
+<% if alert.present? %>
+  <div class="fixed top-14 inset-x-0 z-50 flex justify-center pointer-events-none">
+    <div class="pointer-events-auto rounded-full bg-rose-600 text-white text-sm px-4 py-2 shadow-lg"><%= alert %></div>
+  </div>
+<% end %>
