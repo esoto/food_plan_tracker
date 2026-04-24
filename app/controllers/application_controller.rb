@@ -13,6 +13,17 @@ class ApplicationController < ActionController::Base
     @today_log ||= DailyLog.today
   end
 
+  # Resolve which DailyLog a write should target. When a form passes an
+  # explicit daily_log_id (the past-day editor does this) we trust it;
+  # otherwise default to today.
+  def daily_log_from_params
+    if params[:daily_log_id].present?
+      DailyLog.find(params[:daily_log_id])
+    else
+      today_log
+    end
+  end
+
   def current_user
     Current.user
   end

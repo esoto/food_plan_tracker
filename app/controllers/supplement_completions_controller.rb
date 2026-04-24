@@ -20,7 +20,7 @@ class SupplementCompletionsController < ApplicationController
   private
 
   def set_daily_log
-    @daily_log = today_log
+    @daily_log = daily_log_from_params
   end
 
   # Keep the "Took Fibrotina with dinner" habit in sync with the supplement

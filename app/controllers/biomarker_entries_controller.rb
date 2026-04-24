@@ -8,7 +8,8 @@ class BiomarkerEntriesController < ApplicationController
 
     if entry.save
       if goal.weight_kg?
-        today_log.update!(weight_kg: entry.value) if today_log.date == entry.recorded_on
+        target_log = daily_log_from_params
+        target_log.update!(weight_kg: entry.value) if target_log.date == entry.recorded_on
       end
       redirect_back fallback_location: root_path, notice: "#{goal.display_name} logged"
     else

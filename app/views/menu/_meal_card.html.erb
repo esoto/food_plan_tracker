@@ -51,7 +51,7 @@
           ✓ Meal completed
         <% end %>
       <% else %>
-        <%= button_to meal_completions_path(meal_id: meal.id),
+        <%= button_to meal_completions_path(meal_id: meal.id, daily_log_id: daily_log.id),
               method: :post,
               data: { turbo_frame: dom_id(meal) },
               class: "w-full rounded-xl bg-white ring-1 ring-slate-300 text-slate-700 text-sm font-medium py-2 hover:bg-slate-50 transition" do %>

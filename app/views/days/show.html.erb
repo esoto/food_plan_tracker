@@ -1,0 +1,39 @@
+<% content_for :title, "#{l(@daily_log.date, format: '%b %-d')} · Food Plan Tracker" %>
+
+<header class="safe-top px-5 pb-6 bg-gradient-to-br from-slate-800 via-slate-700 to-indigo-700 text-white rounded-b-3xl shadow-sm">
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <p class="text-sm opacity-80"><%= l(@daily_log.date, format: "%A") %></p>
+      <h1 class="text-3xl font-bold tracking-tight mt-1"><%= l(@daily_log.date, format: "%B %-d, %Y") %></h1>
+      <p class="text-sm mt-1 opacity-90">Backfill missed entries for this day.</p>
+    </div>
+    <%= link_to root_path, class: "shrink-0 w-10 h-10 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition", aria: { label: "Back to today" } do %>
+      ✕
+    <% end %>
+  </div>
+
+  <%= render "shared/day_toggle", plans: @plans, daily_log: @daily_log, variant: :dark %>
+</header>
+
+<section class="px-4 mt-4 flex items-center justify-between text-sm">
+  <%= link_to day_path(@prev_date), class: "text-indigo-600 hover:text-indigo-700 font-medium" do %>
+    ← <%= l(@prev_date, format: "%b %-d") %>
+  <% end %>
+  <% if @next_date %>
+    <%= link_to (@next_date == Date.current ? root_path : day_path(@next_date)), class: "text-indigo-600 hover:text-indigo-700 font-medium" do %>
+      <%= @next_date == Date.current ? "Today" : l(@next_date, format: "%b %-d") %> →
+    <% end %>
+  <% else %>
+    <span></span>
+  <% end %>
+</section>
+
+<section class="px-4 mt-4">
+  <%= render "today/macro_summary", daily_log: @daily_log, plan: @plan %>
+</section>
+
+<%= render "today/logged_foods", logged_foods: @logged_foods %>
+
+<section class="px-4 mt-6">
+  <%= render "today/weight_input", daily_log: @daily_log %>
+</section>

@@ -18,6 +18,6 @@ class MealCompletionsController < ApplicationController
   private
 
   def set_daily_log
-    @daily_log = today_log
+    @daily_log = daily_log_from_params
   end
 end
