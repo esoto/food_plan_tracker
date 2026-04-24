@@ -1,0 +1,31 @@
+<% if logged_foods.any? %>
+  <section class="px-4 mt-6">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Today's extras</h2>
+      <span class="text-xs text-slate-400"><%= logged_foods.size %> logged</span>
+    </div>
+    <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
+      <% logged_foods.each do |lf| %>
+        <div class="flex items-center gap-3 px-4 py-3">
+          <span class="inline-block w-2 h-2 rounded-full <%= lf.food.category_colors[:dot] %>"></span>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-slate-900 truncate"><%= lf.food.name %></p>
+            <p class="text-xs text-slate-500">
+              <%= lf.quantity_grams.to_i %>g · <%= lf.kcal %> kcal ·
+              <span class="text-rose-600"><%= lf.protein_g.to_f.round(0) %>g P</span> ·
+              <span class="text-amber-600"><%= lf.carbs_g.to_f.round(0) %>g C</span> ·
+              <span class="text-emerald-600"><%= lf.fat_g.to_f.round(0) %>g F</span>
+            </p>
+          </div>
+          <%= button_to logged_food_path(lf), method: :delete,
+                class: "shrink-0 w-8 h-8 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 flex items-center justify-center",
+                aria: { label: "Remove #{lf.food.name}" } do %>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+<% end %>

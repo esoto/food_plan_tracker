@@ -21,6 +21,8 @@
   <%= render "today/macro_summary", daily_log: @daily_log, plan: @plan %>
 </section>
 
+<%= render "today/logged_foods", logged_foods: @logged_foods %>
+
 <% if @now_meal %>
   <section class="px-4 mt-4">
     <%= link_to menu_path, class: "block rounded-2xl bg-indigo-50 border border-indigo-200 p-4 hover:bg-indigo-100 transition" do %>
