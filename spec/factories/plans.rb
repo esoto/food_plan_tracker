@@ -1,10 +1,10 @@
 FactoryBot.define do
   factory :plan do
-    name { "MyString" }
-    slug { "MyString" }
-    target_kcal { 1 }
-    target_protein_g { 1 }
-    target_carbs_g { 1 }
-    target_fat_g { 1 }
+    name { "Active day" }
+    sequence(:slug) { |n| "active-#{n}" }
+    target_kcal { 2075 }
+    target_protein_g { 180 }
+    target_carbs_g { 180 }
+    target_fat_g { 80 }
   end
 end

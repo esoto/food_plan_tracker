@@ -2,9 +2,9 @@ class GoalsController < ApplicationController
   def update
     goal = Goal.find(params[:id])
     if goal.update(goal_params)
-      redirect_to settings_path, notice: "#{goal.display_name} target updated."
+      redirect_to settings_path, notice: "#{goal.display_name} target updated.", status: :see_other
     else
-      redirect_to settings_path, alert: goal.errors.full_messages.to_sentence
+      redirect_to settings_path, alert: goal.errors.full_messages.to_sentence, status: :see_other
     end
   end
 
