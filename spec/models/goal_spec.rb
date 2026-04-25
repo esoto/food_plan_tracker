@@ -18,7 +18,7 @@ RSpec.describe Goal, type: :model do
       goal = create(:goal, :weight)
       create(:biomarker_entry, goal: goal, recorded_on: Date.current - 1, value: 91.0)
       create(:biomarker_entry, goal: goal, recorded_on: Date.current,     value: 90.0)
-      expect(Goal.with_measurements).to eq([goal])
+      expect(Goal.with_measurements).to eq([ goal ])
     end
   end
 
