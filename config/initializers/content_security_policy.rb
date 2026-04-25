@@ -15,15 +15,17 @@
 
 Rails.application.configure do
   config.content_security_policy do |policy|
-    policy.default_src :self
-    policy.script_src  :self, :unsafe_inline
-    policy.style_src   :self, :unsafe_inline
-    policy.img_src     :self, :data
-    policy.font_src    :self, :data
-    policy.connect_src :self
-    policy.object_src  :none
+    policy.default_src     :self
+    policy.script_src      :self, :unsafe_inline
+    policy.style_src       :self, :unsafe_inline
+    policy.img_src         :self, :data
+    policy.font_src        :self
+    policy.connect_src     :self
+    policy.worker_src      :self  # Explicit: Safari historically fails to fall back from default_src
+    policy.manifest_src    :self  # Explicit: Safari/iOS PWA install requires manifest_src
+    policy.object_src      :none
     policy.frame_ancestors :none
-    policy.base_uri    :self
-    policy.form_action :self
+    policy.base_uri        :self
+    policy.form_action     :self
   end
 end
