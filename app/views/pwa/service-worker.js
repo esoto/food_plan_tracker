@@ -1,5 +1,9 @@
-const CACHE = "fpt-shell-v1"
-const SHELL = [ "/", "/menu", "/exchanges", "/supplements", "/checklist", "/progress", "/manifest.json", "/icon.png", "/icon.svg" ]
+const CACHE = "fpt-shell-v2"
+const SHELL = [
+  "/", "/menu", "/exchanges", "/supplements", "/checklist", "/progress",
+  "/manifest.json",
+  "/icon.svg", "/icon.png", "/icon-192.png", "/icon-maskable.png", "/apple-touch-icon.png", "/favicon.ico"
+]
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL).catch(() => null)))
