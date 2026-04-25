@@ -1,0 +1,114 @@
+module Api
+  module Concerns
+    module DaySerializer
+      extend ActiveSupport::Concern
+
+      private
+
+      def serialize_day(log)
+        plan = log.plan
+        meals = plan.meals.includes(meal_items: :food)
+
+        {
+          date: log.date.iso8601,
+          plan: serialize_plan(plan),
+          targets: {
+            kcal:      plan.target_kcal,
+            protein_g: plan.target_protein_g.to_f,
+            carbs_g:   plan.target_carbs_g.to_f,
+            fat_g:     plan.target_fat_g.to_f
+          },
+          consumed: {
+            kcal:      log.consumed_kcal,
+            protein_g: log.consumed_protein_g,
+            carbs_g:   log.consumed_carbs_g,
+            fat_g:     log.consumed_fat_g
+          },
+          weight_kg: log.weight_kg&.to_f,
+          completed_meal_ids: log.meal_completions.pluck(:meal_id),
+          now_meal: serialize_now_meal(meals.detect(&:now?)),
+          logged_foods: log.logged_foods.includes(:food).map { |lf| serialize_logged_food(lf) }
+        }
+      end
+
+      def serialize_plan(plan)
+        {
+          id: plan.id,
+          slug: plan.slug,
+          name: plan.name,
+          target_kcal:      plan.target_kcal,
+          target_protein_g: plan.target_protein_g.to_f,
+          target_carbs_g:   plan.target_carbs_g.to_f,
+          target_fat_g:     plan.target_fat_g.to_f
+        }
+      end
+
+      def serialize_now_meal(meal)
+        return nil unless meal
+        { id: meal.id, name: meal.name, time_of_day: meal.time_of_day }
+      end
+
+      def serialize_logged_food(lf)
+        {
+          id:             lf.id,
+          food_id:        lf.food_id,
+          food_name:      lf.food.name,
+          quantity_grams: lf.quantity_grams.to_f,
+          kcal:           lf.kcal,
+          protein_g:      lf.protein_g.to_f,
+          carbs_g:        lf.carbs_g.to_f,
+          fat_g:          lf.fat_g.to_f,
+          logged_at:      lf.logged_at.iso8601
+        }
+      end
+
+      def serialize_meal(meal)
+        {
+          id:               meal.id,
+          name:             meal.name,
+          position:         meal.position,
+          time_of_day:      meal.time_of_day,
+          target_kcal:      meal.target_kcal,
+          target_protein_g: meal.target_protein_g.to_f,
+          target_carbs_g:   meal.target_carbs_g.to_f,
+          target_fat_g:     meal.target_fat_g.to_f,
+          items: meal.meal_items.map do |mi|
+            {
+              food_id: mi.food_id,
+              food_name: mi.food.name,
+              category: mi.food.category,
+              quantity_grams: mi.quantity_grams.to_f
+            }
+          end
+        }
+      end
+
+      def serialize_food(food)
+        {
+          id:            food.id,
+          name:          food.name,
+          category:      food.category,
+          serving_grams: food.serving_grams.to_f,
+          kcal:          food.kcal,
+          protein_g:     food.protein_g.to_f,
+          carbs_g:       food.carbs_g.to_f,
+          fat_g:         food.fat_g.to_f
+        }
+      end
+
+      def serialize_goal(goal)
+        {
+          id:             goal.id,
+          metric:         goal.metric,
+          display_name:   goal.display_name,
+          unit:           goal.unit,
+          direction:      goal.direction,
+          starting_value: goal.starting_value.to_f,
+          current_value:  goal.current_value.to_f,
+          target_value:   goal.target_value.to_f,
+          progress_pct:   goal.progress_pct
+        }
+      end
+    end
+  end
+end

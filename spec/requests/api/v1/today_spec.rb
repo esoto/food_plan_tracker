@@ -1,12 +1,9 @@
 require "rails_helper"
 
 RSpec.describe "GET /api/v1/today", type: :request do
-  let(:token) { "test-token-123" }
-
   before do
-    allow(ENV).to receive(:[]).and_call_original
-    allow(ENV).to receive(:[]).with("API_TOKEN").and_return(token)
-    seed_minimum_data
+    stub_api_token
+    seed_plan(slug: "active")
   end
 
   it "returns 401 without a token" do
@@ -21,7 +18,7 @@ RSpec.describe "GET /api/v1/today", type: :request do
   end
 
   it "returns today snapshot with valid token" do
-    get "/api/v1/today", headers: { "Authorization" => "Bearer #{token}" }
+    get "/api/v1/today", headers: auth_headers
 
     expect(response).to have_http_status(:ok)
     body = response.parsed_body
@@ -32,15 +29,5 @@ RSpec.describe "GET /api/v1/today", type: :request do
     expect(body).to have_key("weight_kg")
     expect(body["completed_meal_ids"]).to be_an(Array)
     expect(body["logged_foods"]).to be_an(Array)
-  end
-
-  def seed_minimum_data
-    Plan.find_or_create_by!(slug: "active") do |p|
-      p.name = "Active day"
-      p.target_kcal = 2075
-      p.target_protein_g = 180
-      p.target_carbs_g = 180
-      p.target_fat_g = 80
-    end
   end
 end
