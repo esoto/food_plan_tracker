@@ -58,28 +58,16 @@ re-run `bin/rails db:seed` (seeds are idempotent).
 bundle exec rspec
 ```
 
-## Deploy to your VPS via Kamal
+## Deploy
 
-1. Edit [`config/deploy.yml`](config/deploy.yml): replace `REPLACE_WITH_VPS_IP`
-   with the server IP and `REPLACE_WITH_HOSTNAME` with your DNS name.
-2. Set local env vars:
+See [`DEPLOY.md`](DEPLOY.md) for the full setup: prerequisites, the
+1Password-driven secrets workflow (`op inject` + master-key sed), the first
+`kamal setup` run, iterative `kamal deploy`, ops aliases (logs / console /
+shell / seed), and troubleshooting.
 
-   ```bash
-   export KAMAL_REGISTRY_PASSWORD=...     # ghcr token with write:packages
-   export ESTEBAN_EMAIL=esoto074@gmail.com
-   export ESTEBAN_PASSWORD='a-strong-password'
-   ```
-3. First-time setup:
-
-   ```bash
-   bin/kamal setup
-   bin/kamal deploy
-   bin/kamal seed   # alias → bin/rails db:seed inside the container
-   ```
-
-SQLite lives on the `food_plan_tracker_storage` volume so data survives
-redeploys. Back up `/rails/storage/production.sqlite3` on any cadence you
-like (it's a single file).
+The app runs on a single Hetzner VPS shared with several other personal apps.
+SSL is terminated by a shared `kamal-proxy`. SQLite databases (primary, cache,
+queue, cable) live in a named Docker volume, so data survives redeploys.
 
 ## Install on iOS
 
