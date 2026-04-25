@@ -454,8 +454,8 @@ puts "  #{Goal.count} goals"
 
 puts "Seeding user…"
 
-email    = ENV.fetch("ESTEBAN_EMAIL", "esoto074@gmail.com")
-password = ENV.fetch("ESTEBAN_PASSWORD", "changeme-now-please")
+email    = ENV.fetch("ADMIN_EMAIL", "esoto074@gmail.com")
+password = ENV.fetch("ADMIN_PASSWORD", "changeme-now-please")
 
 user = User.find_or_initialize_by(email_address: email)
 user.password = password if user.new_record?
