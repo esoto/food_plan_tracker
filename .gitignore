@@ -38,3 +38,7 @@
 /.playwright-mcp/
 /*.png
 /*.jpg
+
+# MCP server local installs
+/mcp/node_modules
+/mcp/.env
