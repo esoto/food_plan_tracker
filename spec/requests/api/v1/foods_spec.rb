@@ -17,6 +17,6 @@ RSpec.describe "GET /api/v1/foods", type: :request do
 
   it "filters by query (case-insensitive)" do
     get "/api/v1/foods?q=CHICK", headers: auth_headers
-    expect(response.parsed_body["foods"].map { |f| f["name"] }).to eq(["Chicken breast"])
+    expect(response.parsed_body["foods"].map { |f| f["name"] }).to eq([ "Chicken breast" ])
   end
 end
