@@ -1,6 +1,27 @@
 require "rails_helper"
 
 RSpec.describe Goal, type: :model do
+  describe ".with_measurements" do
+    it "returns goals that have at least one biomarker entry" do
+      tracked = create(:goal, :weight, :with_measurement, measurement_value: 90.0)
+      _untracked = create(:goal)
+      expect(Goal.with_measurements).to contain_exactly(tracked)
+    end
+
+    it "excludes goals with no biomarker entries" do
+      create(:goal)
+      create(:goal, :preserve)
+      expect(Goal.with_measurements).to be_empty
+    end
+
+    it "deduplicates goals that have multiple biomarker entries" do
+      goal = create(:goal, :weight)
+      create(:biomarker_entry, goal: goal, recorded_on: Date.current - 1, value: 91.0)
+      create(:biomarker_entry, goal: goal, recorded_on: Date.current,     value: 90.0)
+      expect(Goal.with_measurements).to eq([goal])
+    end
+  end
+
   describe "#show_progress_bar?" do
     context "when the goal has measurements" do
       it "is true for a directional goal" do
