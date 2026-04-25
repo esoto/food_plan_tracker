@@ -28,7 +28,7 @@ Rails.application.routes.draw do
     namespace :v1 do
       resource :today, only: :show, controller: "today"
 
-      get  "/days/:date", to: "days#show",        constraints: { date: /\d{4}-\d{2}-\d{2}/ }
+      get "/days/:date", to: "days#show",        constraints: { date: /\d{4}-\d{2}-\d{2}/ }
       patch "/days/:date/plan", to: "days#update_plan", constraints: { date: /\d{4}-\d{2}-\d{2}/ }
 
       resources :plans, only: :index
