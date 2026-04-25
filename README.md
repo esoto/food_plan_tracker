@@ -60,14 +60,14 @@ bundle exec rspec
 
 ## Deploy
 
-See [`DEPLOY.md`](DEPLOY.md) for the full setup: prerequisites, the
-1Password-driven secrets workflow (`op inject` + master-key sed), the first
-`kamal setup` run, iterative `kamal deploy`, ops aliases (logs / console /
-shell / seed), and troubleshooting.
+Deployed via [Kamal 2](https://kamal-deploy.org) on a personal Hetzner VPS
+shared with several other apps. SSL is terminated by a shared `kamal-proxy`,
+and the four production SQLite databases (primary, cache, queue, cable) live
+in a named Docker volume so data survives redeploys.
 
-The app runs on a single Hetzner VPS shared with several other personal apps.
-SSL is terminated by a shared `kamal-proxy`. SQLite databases (primary, cache,
-queue, cable) live in a named Docker volume, so data survives redeploys.
+The detailed deploy runbook (workstation prerequisites, the 1Password-driven
+secrets workflow, ops aliases, backup recipe, troubleshooting) lives in the
+private operator notes — not in this repo.
 
 ## Install on iOS
 
