@@ -36,7 +36,7 @@
       </div>
     <% end %>
 
-    <main class="max-w-lg mx-auto pb-32 min-h-screen">
+    <main class="max-w-lg lg:max-w-2xl mx-auto pb-32 lg:pb-8 lg:pl-20 min-h-screen">
       <% if fibrotina_due? %>
         <%= render "shared/fibrotina_reminder" %>
       <% end %>
@@ -44,6 +44,7 @@
     </main>
 
     <% if authenticated? %>
+      <%= render "shared/side_nav" %>
       <%= render "shared/bottom_nav" %>
     <% end %>
   </body>
