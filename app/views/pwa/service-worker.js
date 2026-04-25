@@ -2,7 +2,7 @@ const CACHE = "fpt-shell-v2"
 const SHELL = [
   "/", "/menu", "/exchanges", "/supplements", "/checklist", "/progress",
   "/manifest.json",
-  "/icon.svg", "/icon.png", "/icon-192.png", "/apple-touch-icon.png", "/favicon.ico"
+  "/icon.svg", "/icon.png", "/icon-192.png", "/icon-maskable.png", "/apple-touch-icon.png", "/favicon.ico"
 ]
 
 self.addEventListener("install", (event) => {

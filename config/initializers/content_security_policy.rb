@@ -18,7 +18,7 @@ Rails.application.configure do
     policy.default_src     :self
     policy.script_src      :self, :unsafe_inline
     policy.style_src       :self, :unsafe_inline
-    policy.img_src         :self, :data
+    policy.img_src         :self
     policy.font_src        :self
     policy.connect_src     :self
     policy.worker_src      :self  # Explicit: Safari historically fails to fall back from default_src
