@@ -7,7 +7,7 @@ class TodayController < ApplicationController
     @completed_meal_ids = @daily_log.meal_completions.pluck(:meal_id)
     @now_meal = @meals.detect(&:now?)
     @logged_foods = @daily_log.logged_foods.includes(:food)
-    @goals = Goal.all
+    @goals = Goal.with_measurements.includes(:biomarker_entries)
     @recent_weights = BiomarkerEntry
       .joins(:goal)
       .where(goals: { metric: Goal.metrics[:weight_kg] })

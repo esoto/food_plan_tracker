@@ -19,6 +19,8 @@ class Goal < ApplicationRecord
   validates :starting_value, :target_value, presence: true, numericality: true
   validates :metric, uniqueness: true
 
+  scope :with_measurements, -> { joins(:biomarker_entries).distinct }
+
   def current_value
     biomarker_entries.last&.value || starting_value
   end
