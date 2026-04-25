@@ -16,7 +16,7 @@
     <% active = daily_log.plan_id == plan.id %>
     <label class="flex-1 cursor-pointer relative">
       <%= f.radio_button :plan_id, plan.id, checked: active, class: "sr-only peer", data: { action: "change->auto-submit#submit" } %>
-      <span class="block text-center text-xs font-medium py-2 rounded-full transition <%= active ? active_class : inactive_class %>">
+      <span class="block text-center text-xs font-medium py-3 rounded-full transition peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-2 <%= active ? active_class : inactive_class %>">
         <%= plan.name %>
       </span>
     </label>
