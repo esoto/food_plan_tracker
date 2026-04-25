@@ -21,6 +21,15 @@ deployable via Kamal.
 | `/supplements` | Timeline of 13 supplements across 4 time slots |
 | `/checklist` | 12 daily habits, streak, and 30-day heatmap |
 | `/progress` | 90-day weight curve, 14-day adherence, projection math |
+| `/settings` | Edit plan macro targets and goal targets |
+| `/days/:date` | Backfill weight or change the day-type for a past day |
+
+## JSON API + MCP
+
+A bearer-token JSON API at `/api/v1` lets external tools read state and
+make daily writes (log weight, mark a meal complete, log a food, switch
+the plan for a day). Set `API_TOKEN` in `.env`. See [`mcp/README.md`](mcp/README.md)
+for the matching MCP server and the `claude mcp add` command.
 
 ## Running locally
 
