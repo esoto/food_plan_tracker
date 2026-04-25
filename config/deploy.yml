@@ -37,8 +37,8 @@ env:
     TZ: America/Costa_Rica
   secret:
     - RAILS_MASTER_KEY
-    - ESTEBAN_EMAIL
-    - ESTEBAN_PASSWORD
+    - ADMIN_EMAIL
+    - ADMIN_PASSWORD
 
 # SQLite database + Active Storage survive deploys via a named volume.
 volumes:
