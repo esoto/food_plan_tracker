@@ -33,6 +33,27 @@ function jsonResult(payload) {
   return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
 }
 
+const ISO_DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
+
+async function resolveFoodId(query) {
+  const res = await api("GET", `/api/v1/foods?q=${encodeURIComponent(query)}`);
+  const foods = res.foods || [];
+  if (foods.length === 0) throw new Error(`No food matches "${query}". Try search_foods to find the right name.`);
+  return foods[0];
+}
+
+async function resolveMealId({ name, plan_slug, date }) {
+  let plan = plan_slug;
+  if (!plan) {
+    const today = await api("GET", date ? `/api/v1/days/${date}` : "/api/v1/today");
+    plan = today.plan.slug;
+  }
+  const res = await api("GET", `/api/v1/meals?plan=${encodeURIComponent(plan)}`);
+  const meal = (res.meals || []).find(m => m.name.toLowerCase() === name.toLowerCase());
+  if (!meal) throw new Error(`No meal "${name}" on plan "${plan}". Available: ${(res.meals || []).map(m => m.name).join(", ")}`);
+  return meal;
+}
+
 const server = new McpServer({ name: "food-tracker", version: "0.1.0" });
 
 server.registerTool(
@@ -43,6 +64,126 @@ server.registerTool(
     inputSchema: {}
   },
   async () => jsonResult(await api("GET", "/api/v1/today"))
+);
+
+server.registerTool(
+  "get_day_status",
+  {
+    title: "Get a past day's status",
+    description: "Same shape as get_today_status, for a specific date (YYYY-MM-DD).",
+    inputSchema: { date: ISO_DATE }
+  },
+  async ({ date }) => jsonResult(await api("GET", `/api/v1/days/${date}`))
+);
+
+server.registerTool(
+  "log_weight",
+  {
+    title: "Log weight",
+    description: "Record a body-weight measurement in kg. Defaults to today; pass `date` to backfill.",
+    inputSchema: {
+      value: z.number().positive().describe("weight in kilograms"),
+      date: ISO_DATE.optional()
+    }
+  },
+  async ({ value, date }) => jsonResult(await api("POST", "/api/v1/weight", { value, date }))
+);
+
+server.registerTool(
+  "complete_meal",
+  {
+    title: "Mark a meal complete",
+    description: "Look up a meal by name (e.g. 'Breakfast') on the active plan and mark it complete.",
+    inputSchema: {
+      name: z.string().describe("meal name, e.g. 'Breakfast', 'Lunch', 'Dinner'"),
+      plan_slug: z.enum(["exercise", "active", "rest"]).optional().describe("if omitted, uses the day's currently selected plan"),
+      date: ISO_DATE.optional()
+    }
+  },
+  async ({ name, plan_slug, date }) => {
+    const meal = await resolveMealId({ name, plan_slug, date });
+    return jsonResult(await api("POST", `/api/v1/meals/${meal.id}/complete`, { date }));
+  }
+);
+
+server.registerTool(
+  "uncomplete_meal",
+  {
+    title: "Unmark a meal as complete",
+    description: "Remove a meal completion. Same lookup as complete_meal.",
+    inputSchema: {
+      name: z.string(),
+      plan_slug: z.enum(["exercise", "active", "rest"]).optional(),
+      date: ISO_DATE.optional()
+    }
+  },
+  async ({ name, plan_slug, date }) => {
+    const meal = await resolveMealId({ name, plan_slug, date });
+    return jsonResult(await api("DELETE", `/api/v1/meals/${meal.id}/complete?date=${date || ""}`));
+  }
+);
+
+server.registerTool(
+  "log_food",
+  {
+    title: "Log a food",
+    description: "Resolve a food by name (case-insensitive partial match) and log a serving. Defaults to the food's serving_grams.",
+    inputSchema: {
+      name: z.string().describe("food name, e.g. 'Chicken breast'"),
+      quantity_grams: z.number().positive().optional(),
+      date: ISO_DATE.optional()
+    }
+  },
+  async ({ name, quantity_grams, date }) => {
+    const food = await resolveFoodId(name);
+    return jsonResult(await api("POST", `/api/v1/foods/${food.id}/log`, { quantity_grams, date }));
+  }
+);
+
+server.registerTool(
+  "delete_logged_food",
+  {
+    title: "Delete a logged food",
+    description: "Remove a previously logged food by its id (find ids via get_today_status or get_day_status).",
+    inputSchema: { id: z.number().int().positive() }
+  },
+  async ({ id }) => jsonResult(await api("DELETE", `/api/v1/logged_foods/${id}`))
+);
+
+server.registerTool(
+  "set_plan_for_day",
+  {
+    title: "Set the plan for a day",
+    description: "Switch the day's plan (exercise/active/rest). Defaults to today.",
+    inputSchema: {
+      slug: z.enum(["exercise", "active", "rest"]),
+      date: ISO_DATE.optional()
+    }
+  },
+  async ({ slug, date }) => {
+    const target = date || new Date().toISOString().slice(0, 10);
+    return jsonResult(await api("PATCH", `/api/v1/days/${target}/plan`, { slug }));
+  }
+);
+
+server.registerTool(
+  "list_goals",
+  {
+    title: "List goals",
+    description: "All tracked goals (weight, body fat, HDL, etc.) with current value, target, and progress percent.",
+    inputSchema: {}
+  },
+  async () => jsonResult(await api("GET", "/api/v1/goals"))
+);
+
+server.registerTool(
+  "search_foods",
+  {
+    title: "Search foods",
+    description: "Find the canonical name of a food before logging it. Case-insensitive partial match, top 20.",
+    inputSchema: { q: z.string() }
+  },
+  async ({ q }) => jsonResult(await api("GET", `/api/v1/foods?q=${encodeURIComponent(q)}`))
 );
 
 const transport = new StdioServerTransport();
