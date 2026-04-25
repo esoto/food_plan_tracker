@@ -1,29 +1,29 @@
-# Be sure to restart your server when you modify this file.
+# Application-wide Content Security Policy.
+# Defense-in-depth against XSS: even if a stored field rendered raw HTML, an
+# attacker can't run external scripts or steal cookies via injected iframes.
+#
+# Notes for future tightening:
+#   * `style-src :unsafe_inline` is required because the app uses inline
+#     `style="width: X%"` on macro / progress / checklist progress bars and
+#     Tailwind's `safe-top` utility relies on inline padding.
+#   * `script-src :unsafe_inline` is required by Chartkick (it emits an inline
+#     <script> next to each chart). Once Chartkick is wrapped in a Stimulus
+#     controller or a nonce-aware helper, drop :unsafe_inline and switch to a
+#     nonce strategy.
+#   * `connect-src :self` keeps Hotwire's Turbo Streams + Action Cable on the
+#     same origin (we use Solid Cable, no external WS).
 
-# Define an application-wide content security policy.
-# See the Securing Rails Applications Guide for more information:
-# https://guides.rubyonrails.org/security.html#content-security-policy-header
-
-# Rails.application.configure do
-#   config.content_security_policy do |policy|
-#     policy.default_src :self, :https
-#     policy.font_src    :self, :https, :data
-#     policy.img_src     :self, :https, :data
-#     policy.object_src  :none
-#     policy.script_src  :self, :https
-#     policy.style_src   :self, :https
-#     # Specify URI for violation reports
-#     # policy.report_uri "/csp-violation-report-endpoint"
-#   end
-#
-#   # Generate session nonces for permitted importmap, inline scripts, and inline styles.
-#   config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
-#   config.content_security_policy_nonce_directives = %w(script-src style-src)
-#
-#   # Automatically add `nonce` to `javascript_tag`, `javascript_include_tag`, and `stylesheet_link_tag`
-#   # if the corresponding directives are specified in `content_security_policy_nonce_directives`.
-#   # config.content_security_policy_nonce_auto = true
-#
-#   # Report violations without enforcing the policy.
-#   # config.content_security_policy_report_only = true
-# end
+Rails.application.configure do
+  config.content_security_policy do |policy|
+    policy.default_src :self
+    policy.script_src  :self, :unsafe_inline
+    policy.style_src   :self, :unsafe_inline
+    policy.img_src     :self, :data
+    policy.font_src    :self, :data
+    policy.connect_src :self
+    policy.object_src  :none
+    policy.frame_ancestors :none
+    policy.base_uri    :self
+    policy.form_action :self
+  end
+end
