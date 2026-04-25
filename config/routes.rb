@@ -35,6 +35,12 @@ Rails.application.routes.draw do
       resources :goals, only: :index
       resources :foods, only: :index
       resources :meals, only: :index
+
+      post   "/weight",                  to: "weight#create"
+      post   "/meals/:meal_id/complete", to: "meal_completions#create"
+      delete "/meals/:meal_id/complete", to: "meal_completions#destroy"
+      post   "/foods/:food_id/log",      to: "logged_foods#create"
+      delete "/logged_foods/:id",        to: "logged_foods#destroy"
     end
   end
 
