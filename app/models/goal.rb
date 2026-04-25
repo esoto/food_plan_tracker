@@ -27,6 +27,10 @@ class Goal < ApplicationRecord
     biomarker_entries.any?
   end
 
+  def show_progress_bar?
+    has_measurements?
+  end
+
   def progress_pct
     if preserve?
       # Preserve goals start at 100% and lose ground as |current - starting| grows.
