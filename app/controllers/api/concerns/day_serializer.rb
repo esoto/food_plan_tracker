@@ -63,6 +63,19 @@ module Api
       end
 
       def serialize_meal(meal)
+        items = meal.meal_items.map do |mi|
+          {
+            food_id:        mi.food_id,
+            food_name:      mi.food.name,
+            category:       mi.food.category,
+            quantity_grams: mi.quantity_grams.to_f,
+            kcal:           mi.kcal,
+            protein_g:      mi.protein_g.to_f,
+            carbs_g:        mi.carbs_g.to_f,
+            fat_g:          mi.fat_g.to_f
+          }
+        end
+
         {
           id:               meal.id,
           name:             meal.name,
@@ -72,14 +85,19 @@ module Api
           target_protein_g: meal.target_protein_g.to_f,
           target_carbs_g:   meal.target_carbs_g.to_f,
           target_fat_g:     meal.target_fat_g.to_f,
-          items: meal.meal_items.map do |mi|
-            {
-              food_id: mi.food_id,
-              food_name: mi.food.name,
-              category: mi.food.category,
-              quantity_grams: mi.quantity_grams.to_f
-            }
-          end
+          # Totals are summed from the already-rounded per-item values (each
+          # MealItem#protein_g/carbs_g/fat_g rounds to 1 decimal; #kcal rounds
+          # to integer). The final round(1) catches floating-point drift on
+          # the macro sums. Note: this is meal-plan math (target_food × ratio),
+          # not the same path as DailyLog#consumed_*, which sums per-day
+          # LoggedFood records — the two endpoints answer different questions.
+          totals: {
+            kcal:      items.sum { |i| i[:kcal] },
+            protein_g: items.sum { |i| i[:protein_g] }.round(1),
+            carbs_g:   items.sum { |i| i[:carbs_g] }.round(1),
+            fat_g:     items.sum { |i| i[:fat_g] }.round(1)
+          },
+          items: items
         }
       end
 
