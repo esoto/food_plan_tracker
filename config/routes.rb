@@ -26,6 +26,20 @@ Rails.application.routes.draw do
   resource :checklist, only: :show, controller: "checklist"
   resource :progress, only: :show, controller: "progress"
   resource :settings,  only: :show, controller: "settings"
+  namespace :settings do
+    resources :supplements do
+      member { patch :restore }
+      collection { get :archived }
+    end
+    resources :habits, controller: "checklist_templates" do
+      member do
+        patch :restore
+        patch :move_up
+        patch :move_down
+      end
+      collection { get :archived }
+    end
+  end
 
   resources :plans, only: :update
   resources :goals, only: :update
