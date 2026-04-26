@@ -39,7 +39,6 @@ env:
     - RAILS_MASTER_KEY
     - ADMIN_EMAIL
     - ADMIN_PASSWORD
-    - API_TOKEN
 
 # SQLite database + Active Storage survive deploys via a named volume.
 volumes:
@@ -49,7 +48,8 @@ volumes:
 asset_path: /rails/public/assets
 
 aliases:
-  console: app exec --interactive --reuse "bin/rails console"
-  shell:   app exec --interactive --reuse "bash"
-  logs:    app logs -f
-  seed:    app exec --reuse "bin/rails db:seed"
+  console:        app exec --interactive --reuse "bin/rails console"
+  shell:          app exec --interactive --reuse "bash"
+  logs:           app logs -f
+  seed:           app exec --reuse "bin/rails db:seed"
+  api-token-list: app exec --reuse "bin/rails api_tokens:list"

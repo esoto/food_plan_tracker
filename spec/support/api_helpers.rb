@@ -5,9 +5,12 @@ module ApiHelpers
     { "Authorization" => "Bearer #{token}", "Content-Type" => "application/json" }
   end
 
+  # Creates a real ApiToken row with a known plaintext so request specs can
+  # send `Bearer <TOKEN>` and exercise the actual digest lookup. Idempotent
+  # across examples in the same example group.
   def stub_api_token(value = TOKEN)
-    allow(ENV).to receive(:[]).and_call_original
-    allow(ENV).to receive(:[]).with("API_TOKEN").and_return(value)
+    ApiToken.where(name: "spec").destroy_all
+    ApiToken.create!(name: "spec", token: value)
   end
 
   def seed_plan(slug:, **overrides)

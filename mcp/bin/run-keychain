@@ -1,0 +1,15 @@
+#!/bin/bash
+# Wrapper that pulls the API token from macOS Keychain at spawn time, sets
+# it as an env var ONLY for the child Node process, and never echoes the
+# value. Used by the Claude Code MCP registration so the token doesn't end
+# up in ~/.claude.json (which `claude mcp get` would print in plaintext).
+set -euo pipefail
+
+token=$(security find-generic-password -s food_plan_tracker_mcp_token -w 2>/dev/null) || {
+  echo "food_plan_tracker_mcp_token not found in macOS Keychain." >&2
+  echo "Add it with:" >&2
+  echo "  security add-generic-password -a \"\$USER\" -s food_plan_tracker_mcp_token -w \"<token>\"" >&2
+  exit 1
+}
+
+exec env FOOD_API_TOKEN="$token" node "$(dirname "$0")/../index.js"
