@@ -17,6 +17,7 @@ Rails.application.routes.draw do
 
   resources :plans, only: :update
   resources :goals, only: :update
+  resources :meals, only: :update
 
   resources :meal_completions,       only: %i[create destroy]
   resources :supplement_completions, only: %i[create destroy]

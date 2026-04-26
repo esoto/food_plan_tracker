@@ -25,6 +25,27 @@
 </section>
 
 <section class="px-4 mt-8">
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Per-meal targets</h2>
+  <p class="text-xs text-slate-500 mb-3">Tune the name, time, and per-meal macros for each plan's 5 feedings.</p>
+  <% @plans.each do |plan| %>
+    <details class="mb-3 rounded-2xl bg-white border border-slate-100 shadow-sm group [&_summary::-webkit-details-marker]:hidden [&_summary]:list-none">
+      <summary class="cursor-pointer px-4 py-3 flex items-center justify-between hover:bg-slate-50 rounded-2xl">
+        <div>
+          <p class="text-xs uppercase tracking-wider text-slate-500"><%= plan.slug.titleize %> day</p>
+          <p class="text-sm font-semibold text-slate-900"><%= plan.name %> · <%= plan.meals.size %> meals</p>
+        </div>
+        <span class="text-slate-400 group-open:rotate-180 transition text-lg">▾</span>
+      </summary>
+      <div class="px-3 pb-3 grid gap-2">
+        <% plan.meals.ordered.each do |meal| %>
+          <%= render "settings/meal_form", meal: meal %>
+        <% end %>
+      </div>
+    </details>
+  <% end %>
+</section>
+
+<section class="px-4 mt-8">
   <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Goal targets</h2>
   <div class="grid gap-3">
     <% @goals.each do |goal| %>

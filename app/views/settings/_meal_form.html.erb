@@ -1,0 +1,44 @@
+<div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
+  <%= form_with model: meal, url: meal_path(meal), method: :patch do |f| %>
+    <div class="flex items-start gap-2 mb-3">
+      <div class="text-2xl leading-none mt-1"><%= meal.icon %></div>
+      <div class="flex-1 min-w-0 grid grid-cols-3 gap-2">
+        <label class="block col-span-2">
+          <span class="text-[11px] uppercase tracking-wider text-slate-500">Name</span>
+          <%= f.text_field :name, required: true,
+                class: "mt-1 w-full rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2" %>
+        </label>
+        <label class="block">
+          <span class="text-[11px] uppercase tracking-wider text-slate-500">Time</span>
+          <%= f.time_field :scheduled_time, value: meal.scheduled_time.utc.strftime("%H:%M"), required: true,
+                class: "mt-1 w-full rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2" %>
+        </label>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-4 gap-2">
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-slate-500">kcal</span>
+        <%= f.number_field :target_kcal, step: 1, min: 0, required: true,
+              class: "mt-1 w-full rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-2 py-1.5" %>
+      </label>
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-rose-600">P</span>
+        <%= f.number_field :target_protein_g, step: 0.1, min: 0, required: true,
+              class: "mt-1 w-full rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-2 py-1.5" %>
+      </label>
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-amber-600">C</span>
+        <%= f.number_field :target_carbs_g, step: 0.1, min: 0, required: true,
+              class: "mt-1 w-full rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-2 py-1.5" %>
+      </label>
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-emerald-600">F</span>
+        <%= f.number_field :target_fat_g, step: 0.1, min: 0, required: true,
+              class: "mt-1 w-full rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-2 py-1.5" %>
+      </label>
+    </div>
+
+    <%= f.submit "Save", class: "mt-3 w-full rounded-xl bg-indigo-600 text-white text-sm font-medium px-3 py-2 hover:bg-indigo-700 cursor-pointer" %>
+  <% end %>
+</div>
