@@ -23,6 +23,10 @@ gem "bcrypt", "~> 3.1.7"
 # OAuth provider for the remote MCP endpoint that claude.ai connects to.
 gem "doorkeeper"
 
+# Web Push (PWA reminders). VAPID keys live in Rails credentials under
+# the `vapid:` key.
+gem "web-push", "~> 3.0"
+
 # Charts for weight/adherence trends
 gem "chartkick"
 gem "groupdate"

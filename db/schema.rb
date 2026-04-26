@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_26_023314) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_26_195139) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -193,6 +193,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_023314) do
     t.integer "target_protein_g", null: false
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_plans_on_slug", unique: true
+  end
+
+  create_table "push_subscriptions", force: :cascade do |t|
+    t.string "auth_key", null: false
+    t.datetime "created_at", null: false
+    t.text "endpoint", null: false
+    t.string "p256dh_key", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.index "md5(endpoint)", name: "index_push_subscriptions_on_endpoint_md5", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|
