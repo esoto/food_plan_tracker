@@ -65,7 +65,10 @@
 </section>
 
 <section class="px-4 mt-4 mb-6">
-  <h2 class="text-xs uppercase tracking-wider text-slate-500 mb-2">Other goals</h2>
+  <div class="flex items-baseline justify-between mb-2">
+    <h2 class="text-xs uppercase tracking-wider text-slate-500">Other goals</h2>
+    <%= link_to "+ Log a reading", new_biomarker_entry_path, class: "text-xs font-semibold text-indigo-600 hover:text-indigo-700" %>
+  </div>
   <div class="grid gap-2">
     <% @goals.reject { |g| g.metric == "weight_kg" }.each do |goal| %>
       <%= render "today/goal_card", goal: goal %>

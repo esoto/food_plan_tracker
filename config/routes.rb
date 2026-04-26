@@ -22,7 +22,9 @@ Rails.application.routes.draw do
   resources :meal_completions,       only: %i[create destroy]
   resources :supplement_completions, only: %i[create destroy]
   resources :checklist_completions,  only: :update
-  resources :biomarker_entries,      only: %i[create]
+  resources :biomarker_entries,      only: %i[new create] do
+    collection { post :bulk }
+  end
   resources :daily_logs,             only: :update
   resources :logged_foods,           only: %i[create destroy]
 
