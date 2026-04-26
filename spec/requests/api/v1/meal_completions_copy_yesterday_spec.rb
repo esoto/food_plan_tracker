@@ -14,7 +14,12 @@ RSpec.describe "POST /api/v1/meal_completions/copy_yesterday", type: :request do
                        target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20)
   end
 
-  before { stub_api_token }
+  before do
+    stub_api_token
+    travel_to Time.zone.local(2026, 4, 25, 12, 0)
+  end
+
+  after { travel_back }
 
   it "returns 401 without a token" do
     post "/api/v1/meal_completions/copy_yesterday"
@@ -55,6 +60,37 @@ RSpec.describe "POST /api/v1/meal_completions/copy_yesterday", type: :request do
 
     expect(response).to have_http_status(:unprocessable_entity)
     expect(response.parsed_body["error"]).to eq("no_yesterday_log")
+  end
+
+  it "does not create a phantom DailyLog when the request fails the no_yesterday_log guard" do
+    target_date = Date.current - 5
+    DailyLog.where(date: target_date - 1).destroy_all
+    DailyLog.where(date: target_date).destroy_all
+
+    expect {
+      post "/api/v1/meal_completions/copy_yesterday",
+           params: { date: target_date.iso8601 }.to_json,
+           headers: auth_headers
+    }.not_to change { DailyLog.where(date: target_date).count }
+
+    expect(response).to have_http_status(:unprocessable_entity)
+  end
+
+  it "does not create a phantom DailyLog when the request fails the plan_mismatch guard" do
+    target_date = Date.current - 5
+    yesterday = DailyLog.create!(date: target_date - 1, plan: other_plan)
+    yesterday.meal_completions.create!(meal: breakfast, completed_at: target_date - 1)
+    DailyLog.create!(date: target_date, plan: plan)
+
+    initial_count = DailyLog.count
+
+    post "/api/v1/meal_completions/copy_yesterday",
+         params: { date: target_date.iso8601 }.to_json,
+         headers: auth_headers
+
+    expect(DailyLog.count).to eq(initial_count)
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body["error"]).to eq("plan_mismatch")
   end
 
   it "respects an explicit date param (backfilling onto a past day)" do
