@@ -9,6 +9,7 @@ Rails.application.routes.draw do
 
   resource :menu, only: :show, controller: "menu"
   resources :exchanges, only: :index
+  resources :foods,     only: %i[new create]
   resource :supplements, only: :show, controller: "supplements"
   resource :checklist, only: :show, controller: "checklist"
   resource :progress, only: :show, controller: "progress"
@@ -33,7 +34,7 @@ Rails.application.routes.draw do
 
       resources :plans, only: :index
       resources :goals, only: :index
-      resources :foods, only: :index
+      resources :foods, only: %i[index create]
       resources :meals, only: :index
 
       post   "/weight",                  to: "weight#create"

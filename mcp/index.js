@@ -186,5 +186,24 @@ server.registerTool(
   async ({ q }) => jsonResult(await api("GET", `/api/v1/foods?q=${encodeURIComponent(q)}`))
 );
 
+server.registerTool(
+  "create_food",
+  {
+    title: "Create a food",
+    description: "Add a new food to the library. All macro values are per a single serving (serving_grams). Notes optional (brand, prep, source).",
+    inputSchema: {
+      name:          z.string(),
+      category:      z.enum(["protein", "carb", "fat", "vegetable"]),
+      serving_grams: z.number().positive(),
+      kcal:          z.number().int().nonnegative(),
+      protein_g:     z.number().nonnegative(),
+      carbs_g:       z.number().nonnegative(),
+      fat_g:         z.number().nonnegative(),
+      notes:         z.string().optional()
+    }
+  },
+  async (food) => jsonResult(await api("POST", "/api/v1/foods", { food }))
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
