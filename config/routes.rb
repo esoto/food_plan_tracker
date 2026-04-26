@@ -1,4 +1,16 @@
 Rails.application.routes.draw do
+  # Single-user OAuth provider used by claude.ai's custom-connector flow.
+  # We expose the standard endpoints (authorize/token/revoke) plus a DCR
+  # registration endpoint and the two well-known discovery documents.
+  use_doorkeeper do
+    skip_controllers :applications, :authorized_applications
+  end
+  post "/oauth/register",                          to: "oauth/registrations#create"
+  get  "/.well-known/oauth-authorization-server",  to: "well_known#authorization_server"
+  get  "/.well-known/oauth-protected-resource",    to: "well_known#protected_resource"
+
+  match "/mcp", to: "api/mcp#handle", via: %i[get post delete]
+
   resource :session
   resources :passwords, param: :token
 
