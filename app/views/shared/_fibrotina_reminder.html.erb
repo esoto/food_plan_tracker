@@ -1,4 +1,4 @@
-<% fibrotina = Supplement.find_by("name ILIKE ?", "Fibrotina%") %>
+<% fibrotina = Supplement.kept.find_by("name ILIKE ?", "Fibrotina%") %>
 <div class="safe-top px-4 pb-3">
   <div class="rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 shadow-lg flex items-center gap-3">
     <div class="text-2xl">💊</div>

@@ -14,7 +14,7 @@ class WeeklySummary
   def adherence_pct
     return nil if logs.empty?
 
-    template_count = ChecklistTemplate.count
+    template_count = ChecklistTemplate.kept.count
     return 0 if template_count.zero?
 
     checked_per_log = ChecklistCompletion.where(daily_log: logs, checked: true).group(:daily_log_id).count
@@ -37,7 +37,7 @@ class WeeklySummary
   end
 
   def supplement_completion_pct
-    supplement_count = Supplement.count
+    supplement_count = Supplement.kept.count
     return nil if supplement_count.zero?
 
     expected = supplement_count * @range.count

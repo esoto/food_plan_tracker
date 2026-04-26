@@ -1,4 +1,6 @@
 class Supplement < ApplicationRecord
+  include Discardable
+
   has_many :supplement_schedules, dependent: :destroy
   has_many :supplement_completions, dependent: :destroy
 

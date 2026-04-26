@@ -1,7 +1,7 @@
 class ChecklistController < ApplicationController
   def show
     @daily_log = today_log
-    @templates = ChecklistTemplate.ordered
+    @templates = ChecklistTemplate.kept.ordered
     @completions_by_template = @daily_log.checklist_completions.index_by(&:checklist_template_id)
     @last_30_logs = DailyLog.where(date: 29.days.ago.to_date..Date.current).includes(:checklist_completions).index_by(&:date)
     @streak = compute_streak
