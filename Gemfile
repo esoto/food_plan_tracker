@@ -20,6 +20,9 @@ gem "tailwindcss-rails"
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 gem "bcrypt", "~> 3.1.7"
 
+# OAuth provider for the remote MCP endpoint that claude.ai connects to.
+gem "doorkeeper"
+
 # Charts for weight/adherence trends
 gem "chartkick"
 gem "groupdate"
