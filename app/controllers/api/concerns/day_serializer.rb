@@ -85,6 +85,12 @@ module Api
           target_protein_g: meal.target_protein_g.to_f,
           target_carbs_g:   meal.target_carbs_g.to_f,
           target_fat_g:     meal.target_fat_g.to_f,
+          # Totals are summed from the already-rounded per-item values (each
+          # MealItem#protein_g/carbs_g/fat_g rounds to 1 decimal; #kcal rounds
+          # to integer). The final round(1) catches floating-point drift on
+          # the macro sums. Note: this is meal-plan math (target_food × ratio),
+          # not the same path as DailyLog#consumed_*, which sums per-day
+          # LoggedFood records — the two endpoints answer different questions.
           totals: {
             kcal:      items.sum { |i| i[:kcal] },
             protein_g: items.sum { |i| i[:protein_g] }.round(1),

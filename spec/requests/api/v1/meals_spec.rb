@@ -29,6 +29,7 @@ RSpec.describe "GET /api/v1/meals", type: :request do
   end
 
   it "denormalizes per-item macros and exposes a meal totals block" do
+    @meal.meal_items.destroy_all # idempotent — Breakfast may have items from a previous example via find_or_create_by!
     egg = seed_food(name: "Egg", category: "protein", serving_grams: 100, kcal: 150, protein_g: 12, carbs_g: 0, fat_g: 10)
     rice = seed_food(name: "Rice", category: "carb", serving_grams: 100, kcal: 130, protein_g: 3, carbs_g: 28, fat_g: 0)
     @meal.meal_items.create!(food: egg,  quantity_grams: 200) # 2× serving → 300 kcal / 24 P / 0 C / 20 F
@@ -37,6 +38,7 @@ RSpec.describe "GET /api/v1/meals", type: :request do
     get "/api/v1/meals?plan=active", headers: auth_headers
 
     meal = response.parsed_body["meals"].find { |m| m["name"] == "Breakfast" }
+    expect(meal["items"].size).to eq(2)
     egg_item = meal["items"].find { |i| i["food_name"] == "Egg" }
     rice_item = meal["items"].find { |i| i["food_name"] == "Rice" }
 
