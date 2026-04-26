@@ -123,5 +123,4 @@ RSpec.describe ReminderTickerJob, type: :job do
       described_class.perform_now(now: Time.zone.local(2026, 4, 26, 11, 45))
     end
   end
-
 end
