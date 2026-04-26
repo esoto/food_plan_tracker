@@ -39,6 +39,7 @@ env:
     - RAILS_MASTER_KEY
     - ADMIN_EMAIL
     - ADMIN_PASSWORD
+    - API_TOKEN
 
 # SQLite database + Active Storage survive deploys via a named volume.
 volumes:
