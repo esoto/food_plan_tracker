@@ -60,6 +60,19 @@
 </section>
 
 <section class="px-4 mt-8">
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Account</h2>
+  <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
+    <p class="text-sm text-slate-700">
+      Signed in as <strong><%= current_user.email_address %></strong>.
+    </p>
+    <%= button_to "Sign out", session_path,
+          method: :delete,
+          form: { class: "mt-3" },
+          class: "w-full rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 text-sm font-medium px-4 py-2 cursor-pointer" %>
+  </div>
+</section>
+
+<section class="px-4 mt-8 mb-6">
   <p class="text-xs text-slate-500 leading-relaxed">
     Plan names, slugs, and goal metrics aren't editable from here on purpose — they keep the rest of the app stable. To add or remove a plan/goal, use the Rails console.
   </p>
