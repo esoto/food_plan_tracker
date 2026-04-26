@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Kamal pre-deploy hook: refuse the deploy if there are pending migrations
+# against the currently-running container's image.
+#
+# Without this guard, an engineer can push a new image whose schema doesn't
+# match the production DB, causing immediate 500s on
+# ActiveRecord::PendingMigrationError until `kamal app exec "bin/rails
+# db:migrate"` is run by hand. Same pattern used by expense_tracker
+# (PER-493).
+set -euo pipefail
+
+echo "  Verifying no pending migrations..."
+
+output="$(kamal app exec --reuse "bin/rails db:migrate:status" 2>&1 || true)"
+
+if echo "$output" | grep -q "^[[:space:]]*down[[:space:]]"; then
+  echo "ERROR: Pending migrations detected. Refusing to deploy." >&2
+  # Print status + version only, not migration filenames, to avoid leaking
+  # schema evolution detail into deploy logs (CWE-532).
+  echo "$output" | awk '/^[[:space:]]*down[[:space:]]/ { print $1, $2 }' >&2
+  echo "Run 'kamal app exec \"bin/rails db:migrate\"' from a safe window first." >&2
+  exit 1
+fi
+
+echo "  No pending migrations."
