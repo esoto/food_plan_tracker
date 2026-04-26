@@ -217,11 +217,11 @@ module Api
       target_date = date_arg(args)
       yesterday = DailyLog.find_by(date: target_date - 1)
 
-      raise ToolArgumentError, "no log from yesterday — nothing to copy" if yesterday.nil?
+      raise ToolArgumentError, "no_yesterday_log: no log from yesterday — nothing to copy" if yesterday.nil?
 
       existing_today = DailyLog.find_by(date: target_date)
       if existing_today && !existing_today.can_copy_from?(yesterday)
-        raise ToolArgumentError, "yesterday's plan (#{yesterday.plan.slug}) doesn't match today's (#{existing_today.plan.slug})"
+        raise ToolArgumentError, "plan_mismatch: yesterday's plan (#{yesterday.plan.slug}) doesn't match today's (#{existing_today.plan.slug})"
       end
 
       today = existing_today || DailyLog.for(target_date, default_plan: yesterday.plan)
@@ -260,6 +260,12 @@ module Api
         description: "Same shape as get_today_status, for a specific date (YYYY-MM-DD).",
         inputSchema: { type: "object", properties: { "date" => DATE_PROP }, required: %w[date] },
         handler:     :handle_get_day_status
+      },
+      {
+        name:        "get_weekly_summary",
+        description: "Rolling 7-day recap: avg habits adherence %, weight delta in kg (negative = weight loss), meal completion %, supplement adherence %. Any metric may be null when there's no data to compute it.",
+        inputSchema: { type: "object", properties: {} },
+        handler:     :handle_get_weekly_summary
       },
       {
         name:        "log_weight",
@@ -301,6 +307,15 @@ module Api
           required: %w[name]
         },
         handler: :handle_uncomplete_meal
+      },
+      {
+        name:        "copy_yesterday_meals",
+        description: "Marks the target day's meals as complete using the day before's completions, when both share a plan. Idempotent — already-completed meals are preserved. Pass `date` to copy onto a past day; defaults to today.",
+        inputSchema: {
+          type: "object",
+          properties: { "date" => DATE_PROP }
+        },
+        handler: :handle_copy_yesterday_meals
       },
       {
         name:        "log_food",
@@ -385,21 +400,6 @@ module Api
           }
         },
         handler: :handle_active_meals
-      },
-      {
-        name:        "get_weekly_summary",
-        description: "Rolling 7-day recap: avg habits adherence %, weight delta in kg (negative = weight loss), meal completion %, supplement adherence %. Any metric may be null when there's no data.",
-        inputSchema: { type: "object", properties: {} },
-        handler:     :handle_get_weekly_summary
-      },
-      {
-        name:        "copy_yesterday_meals",
-        description: "Marks the target day's meals as complete using the day-before's completions, when both share a plan. Idempotent — already-completed meals are preserved. Pass `date` to copy onto a past day; defaults to today.",
-        inputSchema: {
-          type: "object",
-          properties: { "date" => DATE_PROP }
-        },
-        handler: :handle_copy_yesterday_meals
       }
     ].freeze
   end

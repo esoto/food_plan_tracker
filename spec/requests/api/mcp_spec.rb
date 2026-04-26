@@ -185,6 +185,20 @@ RSpec.describe "POST /mcp", type: :request do
           expect(payload).to have_key("supplement_completion_pct")
         end
       end
+
+      it "returns null metrics when the window has no data" do
+        DailyLog.destroy_all
+        Supplement.destroy_all
+        weight_goal.biomarker_entries.destroy_all
+
+        result = rpc("tools/call", { name: "get_weekly_summary", arguments: {} })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+
+        expect(payload["adherence_pct"]).to be_nil
+        expect(payload["weight_delta_kg"]).to be_nil
+        expect(payload["meal_completion_pct"]).to be_nil
+        expect(payload["supplement_completion_pct"]).to be_nil
+      end
     end
 
     describe "copy_yesterday_meals" do
@@ -210,13 +224,32 @@ RSpec.describe "POST /mcp", type: :request do
         end
       end
 
+      it "is idempotent — re-invocation reports copied: 0 and preserves prior completions" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          plan = Plan.find_by(slug: "active")
+          yesterday = DailyLog.create!(date: Date.current - 1, plan: plan)
+          yesterday.meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
+
+          rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })
+          first_completion = DailyLog.today.meal_completions.find_by!(meal: breakfast)
+          first_timestamp = first_completion.completed_at
+
+          result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
+          payload = JSON.parse(result["content"].first["text"])
+
+          expect(payload["copied"]).to eq(0)
+          expect(DailyLog.today.meal_completions.count).to eq(1)
+          expect(first_completion.reload.completed_at).to eq(first_timestamp)
+        end
+      end
+
       it "is an error when there is no yesterday log" do
         travel_to Time.zone.local(2026, 4, 25, 12, 0) do
           DailyLog.where(date: Date.current - 1).destroy_all
 
           result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
           expect(result["isError"]).to be(true)
-          expect(result["content"].first["text"]).to match(/no log from yesterday/)
+          expect(result["content"].first["text"]).to match(/no_yesterday_log/)
         end
       end
 
@@ -229,7 +262,7 @@ RSpec.describe "POST /mcp", type: :request do
 
           result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
           expect(result["isError"]).to be(true)
-          expect(result["content"].first["text"]).to match(/doesn't match/)
+          expect(result["content"].first["text"]).to match(/plan_mismatch/)
         end
       end
 
