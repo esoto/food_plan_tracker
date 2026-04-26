@@ -200,6 +200,35 @@ module Api
       { plan: serialize_plan(plan), meals: meals.map { |m| serialize_meal(m) } }
     end
 
+    def handle_get_weekly_summary(_args)
+      summary = WeeklySummary.rolling_7_days
+      {
+        window_days: 7,
+        start_date:  summary.start_date.iso8601,
+        end_date:    summary.end_date.iso8601,
+        adherence_pct:             summary.adherence_pct,
+        weight_delta_kg:           summary.weight_delta_kg,
+        meal_completion_pct:       summary.meal_completion_pct,
+        supplement_completion_pct: summary.supplement_completion_pct
+      }
+    end
+
+    def handle_copy_yesterday_meals(args)
+      target_date = date_arg(args)
+      yesterday = DailyLog.find_by(date: target_date - 1)
+
+      raise ToolArgumentError, "no log from yesterday — nothing to copy" if yesterday.nil?
+
+      existing_today = DailyLog.find_by(date: target_date)
+      if existing_today && !existing_today.can_copy_from?(yesterday)
+        raise ToolArgumentError, "yesterday's plan (#{yesterday.plan.slug}) doesn't match today's (#{existing_today.plan.slug})"
+      end
+
+      today = existing_today || DailyLog.for(target_date, default_plan: yesterday.plan)
+      copied = today.copy_completions_from(yesterday)
+      { ok: true, copied: copied, day: serialize_day(today.reload) }
+    end
+
     def resolve_food(query)
       Food.where("LOWER(name) LIKE ?", "%#{query.downcase}%").first ||
         raise(ToolArgumentError, "no food matches \"#{query}\" — call search_foods to find the canonical name")
@@ -356,6 +385,21 @@ module Api
           }
         },
         handler: :handle_active_meals
+      },
+      {
+        name:        "get_weekly_summary",
+        description: "Rolling 7-day recap: avg habits adherence %, weight delta in kg (negative = weight loss), meal completion %, supplement adherence %. Any metric may be null when there's no data.",
+        inputSchema: { type: "object", properties: {} },
+        handler:     :handle_get_weekly_summary
+      },
+      {
+        name:        "copy_yesterday_meals",
+        description: "Marks the target day's meals as complete using the day-before's completions, when both share a plan. Idempotent — already-completed meals are preserved. Pass `date` to copy onto a past day; defaults to today.",
+        inputSchema: {
+          type: "object",
+          properties: { "date" => DATE_PROP }
+        },
+        handler: :handle_copy_yesterday_meals
       }
     ].freeze
   end
