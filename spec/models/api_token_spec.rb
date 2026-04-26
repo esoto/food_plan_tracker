@@ -44,14 +44,60 @@ RSpec.describe ApiToken, type: :model do
   end
 
   describe "#touch_used!" do
-    it "updates last_used_at without running validations or callbacks" do
+    it "updates last_used_at and updated_at" do
+      now = Time.zone.parse("2026-04-25 12:00:00")
       token = ApiToken.create!(name: "MCP")
       expect(token.last_used_at).to be_nil
-      freeze_time = Time.zone.parse("2026-04-25 12:00:00")
-      Time.stub(:current, freeze_time) if false # noop placeholder
-      token.touch_used!
+
+      travel_to(now) { token.touch_used! }
       token.reload
-      expect(token.last_used_at).to be_within(2.seconds).of(Time.current)
+
+      expect(token.last_used_at).to eq(now)
+      expect(token.updated_at).to eq(now)
+    end
+
+    it "bypasses validations (the bypass is what makes this safe to call on every request)" do
+      token = ApiToken.create!(name: "MCP")
+      token.name = nil # would block save! via uniqueness/presence validations
+
+      expect { token.touch_used! }.not_to raise_error
+      token.reload
+      expect(token.last_used_at).to be_present
+    end
+
+    it "throttles writes to once per ApiToken::TOUCH_INTERVAL" do
+      token = ApiToken.create!(name: "MCP")
+      first = Time.zone.parse("2026-04-25 12:00:00")
+      travel_to(first) { token.touch_used! }
+      token.reload
+
+      # 30s later: no write (still inside the throttle window)
+      travel_to(first + 30.seconds) { token.touch_used! }
+      expect(token.reload.last_used_at).to eq(first)
+
+      # 90s later: writes (window has passed)
+      travel_to(first + 90.seconds) { token.touch_used! }
+      expect(token.reload.last_used_at).to eq(first + 90.seconds)
+    end
+  end
+
+  describe "#inspect" do
+    it "redacts the token plaintext (defense against accidental log/inspect leakage)" do
+      token = ApiToken.create!(name: "MCP")
+
+      expect(token.token).to match(/\A[0-9a-f]{64}\z/)
+      expect(token.inspect).to include("[FILTERED]")
+      expect(token.inspect).not_to include(token.token)
+    end
+  end
+
+  describe "#serializable_hash / to_json" do
+    it "omits the token plaintext (defense against accidental render json:)" do
+      token = ApiToken.create!(name: "MCP")
+
+      expect(token.token).to match(/\A[0-9a-f]{64}\z/)
+      expect(token.serializable_hash.keys).not_to include("token")
+      expect(token.to_json).not_to include(token.token)
     end
   end
 end

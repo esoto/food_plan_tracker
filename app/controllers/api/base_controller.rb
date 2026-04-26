@@ -1,5 +1,13 @@
 module Api
   class BaseController < ActionController::API
+    # 60 attempts/min/IP — well above any legitimate MCP/PWA client traffic
+    # but bounds online brute-force noise and prevents an attacker from using
+    # the auth path as a write amplifier (every successful auth bumps
+    # api_tokens.last_used_at, so cheap write throttling matters too).
+    rate_limit to: 60, within: 1.minute,
+               by: -> { request.remote_ip },
+               with: -> { render json: { error: "rate_limited" }, status: :too_many_requests }
+
     before_action :authenticate_token!
 
     rescue_from ActiveRecord::RecordNotFound,    with: :not_found

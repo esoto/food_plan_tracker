@@ -67,6 +67,7 @@ RSpec.configure do |config|
 
   config.include FactoryBot::Syntax::Methods
   config.include AuthenticationHelper, type: :request
+  config.include ActiveSupport::Testing::TimeHelpers
 
   # Filter lines from Rails gems in backtraces.
   config.filter_rails_from_backtrace!

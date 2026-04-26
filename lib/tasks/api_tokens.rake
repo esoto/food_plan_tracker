@@ -12,7 +12,7 @@ namespace :api_tokens do
 
   desc "List all API tokens with last-used timestamps"
   task list: :environment do
-    if ApiToken.none?
+    unless ApiToken.exists?
       puts "(no API tokens — create one with bin/rails api_tokens:create NAME=...)"
       next
     end
