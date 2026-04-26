@@ -13,6 +13,15 @@
   </div>
 </header>
 
+<% if @target_log %>
+  <div class="px-4 mb-3">
+    <div class="rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-sm px-4 py-3 flex items-center justify-between gap-3">
+      <span>Logging to <strong><%= l(@target_log.date, format: "%a, %b %-d") %></strong>.</span>
+      <%= link_to "Cancel", day_path(@target_log.date), class: "text-xs font-semibold text-indigo-700 hover:text-indigo-900 underline" %>
+    </div>
+  </div>
+<% end %>
+
 <nav class="px-4 mb-4">
   <div class="grid grid-cols-4 gap-1.5 rounded-2xl bg-white border border-slate-100 p-1.5 shadow-sm text-xs font-medium">
     <% %w[protein carb fat vegetable].each do |cat| %>
@@ -36,6 +45,6 @@
     <p class="text-center text-sm text-slate-500 py-8">No foods found.</p>
   <% end %>
   <% @foods.each do |food| %>
-    <%= render "exchanges/food_row", food: food %>
+    <%= render "exchanges/food_row", food: food, target_log: @target_log %>
   <% end %>
 </section>

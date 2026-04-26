@@ -1,7 +1,10 @@
 <% if logged_foods.any? %>
+  <% target_date = local_assigns[:daily_log]&.date || Date.current %>
   <section class="px-4 mt-6">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Today's extras</h2>
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">
+        <%= target_date == Date.current ? "Today's extras" : "Logged foods" %>
+      </h2>
       <span class="text-xs text-slate-400"><%= logged_foods.size %> logged</span>
     </div>
     <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
@@ -10,10 +13,17 @@
           <span class="inline-block w-2 h-2 rounded-full <%= lf.food.category_colors[:dot] %>"></span>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-slate-900 truncate"><%= lf.food.name %></p>
-            <p class="text-xs text-slate-500">
-              <%= lf.quantity_grams.to_i %>g · <%= lf.kcal %> kcal ·
-              <span class="text-rose-600"><%= lf.protein_g.to_f.round(0) %>g P</span> ·
-              <span class="text-amber-600"><%= lf.carbs_g.to_f.round(0) %>g C</span> ·
+            <p class="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+              <%= form_with model: lf, url: logged_food_path(lf), method: :patch, class: "inline-flex items-center", data: { controller: "auto-submit" } do |f| %>
+                <%= f.number_field :quantity_grams, value: lf.quantity_grams.to_i, min: 1, step: 1,
+                      data: { action: "blur->auto-submit#submit" },
+                      aria: { label: "Quantity in grams for #{lf.food.name}" },
+                      class: "w-14 rounded-md border border-slate-200 text-xs text-slate-700 px-1.5 py-0.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" %>
+                <span class="ml-0.5">g</span>
+              <% end %>
+              <span>· <%= lf.kcal %> kcal ·</span>
+              <span class="text-rose-600"><%= lf.protein_g.to_f.round(0) %>g P</span><span>·</span>
+              <span class="text-amber-600"><%= lf.carbs_g.to_f.round(0) %>g C</span><span>·</span>
               <span class="text-emerald-600"><%= lf.fat_g.to_f.round(0) %>g F</span>
             </p>
           </div>
