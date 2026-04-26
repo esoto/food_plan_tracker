@@ -36,5 +36,23 @@ RSpec.describe SessionsController, type: :request do
       get root_path
       expect(response).to redirect_to(new_session_path)
     end
+
+    it "flashes 'Signed out.' on the resulting login page" do
+      post session_path, params: { email_address: user.email_address, password: "correcthorsebatterystaple" }
+      delete session_path
+
+      expect(flash[:notice]).to eq("Signed out.")
+    end
+  end
+
+  describe "GET /settings (Account section)" do
+    it "renders the Sign out button when authenticated" do
+      post session_path, params: { email_address: user.email_address, password: "correcthorsebatterystaple" }
+
+      get settings_path
+
+      expect(response.body).to include("Sign out")
+      expect(response.body).to include(user.email_address)
+    end
   end
 end
