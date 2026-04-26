@@ -1,0 +1,4 @@
+en:
+  doorkeeper:
+    scopes:
+      mcp: "Read and write your food log, weight, supplements, and goals"

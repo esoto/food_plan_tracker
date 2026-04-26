@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Authorize · Food Plan Tracker</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+  </head>
+
+  <body class="bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <% if flash[:notice].present? %>
+      <div class="max-w-md mx-auto mt-4 px-4">
+        <div class="rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-100 px-4 py-3 text-sm">
+          <%= flash[:notice] %>
+        </div>
+      </div>
+    <% end %>
+
+    <main class="min-h-screen flex items-center justify-center px-4">
+      <%= yield %>
+    </main>
+  </body>
+</html>
