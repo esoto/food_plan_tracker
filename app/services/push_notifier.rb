@@ -6,8 +6,6 @@
 class PushNotifier
   class NotConfiguredError < StandardError; end
 
-  EXPIRED_STATUSES = [ 404, 410 ].freeze
-
   def self.broadcast(title:, body:, url: "/")
     new(title: title, body: body, url: url).broadcast
   end
@@ -24,21 +22,18 @@ class PushNotifier
     sent = 0
     pruned = 0
 
+    payload = JSON.generate(title: @title, body: @body, url: @url)
+
     PushSubscription.find_each do |sub|
-      payload = JSON.generate(title: @title, body: @body, url: @url)
       WebPush.payload_send(message: payload, vapid: vapid, **sub.to_push_payload)
       sent += 1
     rescue WebPush::ExpiredSubscription, WebPush::InvalidSubscription
+      # web-push promotes 404 → InvalidSubscription and 410 →
+      # ExpiredSubscription, so a generic ResponseError fallback for
+      # those codes would never fire. Anything else (401, 429, 5xx)
+      # bubbles up.
       sub.destroy
       pruned += 1
-    rescue WebPush::ResponseError => e
-      # 404/410 also surfaced via ResponseError on some endpoints.
-      if EXPIRED_STATUSES.include?(e.response.code.to_i)
-        sub.destroy
-        pruned += 1
-      else
-        raise
-      end
     end
 
     { sent: sent, pruned: pruned }

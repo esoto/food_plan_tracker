@@ -16,7 +16,9 @@ export default class extends Controller {
   static targets = [ "status", "toggleButton" ]
 
   connect() {
-    this.refreshFromBrowser()
+    this.refreshFromBrowser().catch((err) => {
+      this.setStatus(`Couldn't read subscription state: ${err.message}`)
+    })
   }
 
   async enable() {

@@ -39,14 +39,14 @@ RSpec.describe PushSubscriptionsController, type: :request do
       expect(original.reload.p256dh_key).to eq("rotated")
     end
 
-    it "rejects a payload missing the keys hash with 4xx and writes nothing" do
+    it "rejects a payload missing the keys hash with 400 and writes nothing" do
       expect {
         post "/push_subscriptions",
              params: { endpoint: body[:endpoint] }.to_json,
              headers: { "Content-Type" => "application/json" }
       }.not_to change(PushSubscription, :count)
 
-      expect(response.status).to be_between(400, 499)
+      expect(response).to have_http_status(:bad_request)
     end
   end
 

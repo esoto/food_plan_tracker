@@ -52,13 +52,15 @@ self.addEventListener("push", (event) => {
 })
 
 // Tapping a notification opens (or focuses) the URL the server sent.
+// Defensive normalization so absolute and relative URLs both match.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close()
   const target = event.notification.data?.url || "/"
+  const targetPath = target.startsWith("http") ? new URL(target).pathname : target
 
   event.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true })
-    const same = all.find((c) => new URL(c.url).pathname === target)
+    const same = all.find((c) => new URL(c.url).pathname === targetPath)
     if (same) return same.focus()
     return self.clients.openWindow(target)
   })())
