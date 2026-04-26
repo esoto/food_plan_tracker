@@ -88,6 +88,7 @@ This stores the token in `~/.claude.json` in plaintext. Anyone running `claude m
 | `uncomplete_meal` | Reverse |
 | `log_food` | Look up a food by partial name + log a serving |
 | `delete_logged_food` | Remove a logged-food row by id |
+| `create_food` | Add a new food to the library (typed input schema) |
 | `set_plan_for_day` | Switch a day to exercise/active/rest |
 | `list_goals` | Goal progress (weight, body fat, HDL, ...) |
 | `search_foods` | Find canonical food names |
