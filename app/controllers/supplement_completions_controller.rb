@@ -33,7 +33,7 @@ class SupplementCompletionsController < ApplicationController
   def sync_related_habit(supplement, checked:, daily_log: @daily_log)
     return unless supplement.name.match?(/Fibrotina/i)
 
-    template = ChecklistTemplate.find_by("label LIKE ?", "%Fibrotina%")
+    template = ChecklistTemplate.find_by("label ILIKE ?", "%Fibrotina%")
     return unless template
 
     completion = daily_log.checklist_completions.find_or_initialize_by(checklist_template: template)

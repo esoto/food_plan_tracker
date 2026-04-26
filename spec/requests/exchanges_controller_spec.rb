@@ -33,5 +33,10 @@ RSpec.describe ExchangesController, type: :request do
       get exchanges_path, params: { category: "protein", q: "chicken" }
       expect(response.body).to include(@chicken.name)
     end
+
+    it "matches case-insensitively (ILIKE)" do
+      get exchanges_path, params: { category: "protein", q: "CHICKEN" }
+      expect(response.body).to include(@chicken.name)
+    end
   end
 end

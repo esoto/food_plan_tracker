@@ -35,7 +35,7 @@ class ApplicationController < ActionController::Base
   def fibrotina_due?
     return false unless authenticated?
 
-    fibrotina = Supplement.find_by("name LIKE ?", "Fibrotina%")
+    fibrotina = Supplement.find_by("name ILIKE ?", "Fibrotina%")
     return false unless fibrotina
 
     # If already taken today, never show the banner (covers both real window
