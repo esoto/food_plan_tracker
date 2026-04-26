@@ -17,7 +17,7 @@ RSpec.describe "MenuController#show", type: :request do
       yesterday.meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
 
       get menu_path
-      expect(response.body).to include("Log same as yesterday")
+      expect(Capybara.string(response.body)).to have_button("Log same as yesterday")
     end
 
     it "hides when yesterday's plan differs from today's" do
@@ -27,7 +27,7 @@ RSpec.describe "MenuController#show", type: :request do
       DailyLog.today
 
       get menu_path
-      expect(response.body).not_to include("Log same as yesterday")
+      expect(Capybara.string(response.body)).not_to have_button("Log same as yesterday")
     end
 
     it "hides when there is no yesterday log" do
@@ -35,14 +35,14 @@ RSpec.describe "MenuController#show", type: :request do
       DailyLog.where(date: Date.current - 1).destroy_all
 
       get menu_path
-      expect(response.body).not_to include("Log same as yesterday")
+      expect(Capybara.string(response.body)).not_to have_button("Log same as yesterday")
     end
 
     it "hides when yesterday has zero completions" do
       DailyLog.create!(date: Date.current - 1, plan: plan)
 
       get menu_path
-      expect(response.body).not_to include("Log same as yesterday")
+      expect(Capybara.string(response.body)).not_to have_button("Log same as yesterday")
     end
 
     it "hides when today already has equal-or-more completions than yesterday" do
@@ -51,7 +51,7 @@ RSpec.describe "MenuController#show", type: :request do
       DailyLog.today.meal_completions.create!(meal: breakfast, completed_at: Time.current)
 
       get menu_path
-      expect(response.body).not_to include("Log same as yesterday")
+      expect(Capybara.string(response.body)).not_to have_button("Log same as yesterday")
     end
   end
 end
