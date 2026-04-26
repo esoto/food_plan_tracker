@@ -7,10 +7,18 @@
 Doorkeeper.configure do
   orm :active_record
 
+  # Doorkeeper's controllers inherit from Doorkeeper::ApplicationController,
+  # which extends ActionController::Base directly — *not* this app's
+  # ApplicationController. So our Authentication concern's
+  # `before_action :require_authentication` never fires on /oauth/authorize,
+  # which means `Current.session` is never populated from the cookie.
+  # That left `Current.user` blank here, redirecting every authorize request
+  # back to login, looping forever after the user signed in.
+  #
+  # Resume the session manually before checking Current.user.
   resource_owner_authenticator do
-    if Current.user
-      Current.user
-    else
+    Current.session ||= Session.find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
+    Current.user || begin
       session[:return_to_after_authenticating] = request.fullpath
       redirect_to(new_session_path)
     end
