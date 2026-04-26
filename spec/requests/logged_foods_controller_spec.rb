@@ -51,12 +51,25 @@ RSpec.describe LoggedFoodsController, type: :request do
       expect(response).to redirect_to(day_path(past.date))
     end
 
-    it "does not silently accept an empty quantity_grams" do
+    it "redirects with an alert when quantity_grams is blank (no 500)" do
       log = DailyLog.today
       entry = log.logged_foods.create!(food: food, quantity_grams: 50, logged_at: Time.current)
 
-      patch logged_food_path(entry), params: { logged_food: { quantity_grams: "" } } rescue nil
+      patch logged_food_path(entry), params: { logged_food: { quantity_grams: "" } }
 
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to match(/Quantity/)
+      expect(entry.reload.quantity_grams.to_i).to eq(50)
+    end
+
+    it "redirects with an alert when quantity_grams is zero" do
+      log = DailyLog.today
+      entry = log.logged_foods.create!(food: food, quantity_grams: 50, logged_at: Time.current)
+
+      patch logged_food_path(entry), params: { logged_food: { quantity_grams: 0 } }
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to match(/Quantity/)
       expect(entry.reload.quantity_grams.to_i).to eq(50)
     end
   end
