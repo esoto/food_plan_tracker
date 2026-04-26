@@ -63,7 +63,10 @@ volumes:
 # Postgres host using the read-only `backup` role (see Hetzner VPS note).
 accessories:
   backups:
-    image: prodrigestivill/postgres-backup-local
+    # Pin to the postgres major matching the host DB (personal-blog-db is
+    # postgres:17). Avoids :latest-driven supply-chain drift on accessory
+    # restart.
+    image: prodrigestivill/postgres-backup-local:17
     host: 178.104.88.183
     volumes:
       - "food_plan_tracker-backups:/backups"
@@ -76,6 +79,10 @@ accessories:
         BACKUP_KEEP_DAYS: "30"
         BACKUP_KEEP_WEEKS: "4"
         BACKUP_KEEP_MONTHS: "6"
+        # Exposes /health on 8080 so `kamal accessory details backups`
+        # reflects whether the cron loop is actually alive, not just that
+        # the container is running.
+        HEALTHCHECK_PORT: "8080"
       secret:
         - POSTGRES_PASSWORD:BACKUP_POSTGRES_PASSWORD
 
