@@ -57,8 +57,11 @@ Rails.application.routes.draw do
       post   "/weight",                  to: "weight#create"
       post   "/meals/:meal_id/complete", to: "meal_completions#create"
       delete "/meals/:meal_id/complete", to: "meal_completions#destroy"
+      post   "/meal_completions/copy_yesterday", to: "meal_completions#copy_yesterday"
       post   "/foods/:food_id/log",      to: "logged_foods#create"
       delete "/logged_foods/:id",        to: "logged_foods#destroy"
+
+      resource :weekly_summary, only: :show, controller: "weekly_summary"
     end
   end
 
