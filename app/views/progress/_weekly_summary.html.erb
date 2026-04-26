@@ -1,0 +1,47 @@
+<% delta = summary.weight_delta_kg %>
+
+<section class="px-4 mt-4">
+  <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
+    <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Last 7 days</p>
+
+    <div class="grid grid-cols-2 gap-2">
+      <div class="rounded-xl bg-slate-50 p-3">
+        <p class="text-[11px] uppercase tracking-wider text-slate-500">Habits</p>
+        <p class="text-2xl font-bold text-slate-900 mt-1">
+          <%= summary.adherence_pct ? "#{summary.adherence_pct}%" : "—" %>
+        </p>
+        <p class="text-[11px] text-slate-500 mt-0.5">avg adherence</p>
+      </div>
+
+      <div class="rounded-xl bg-slate-50 p-3">
+        <p class="text-[11px] uppercase tracking-wider text-slate-500">Weight Δ</p>
+        <p class="text-2xl font-bold mt-1 <%= delta.nil? ? 'text-slate-900' : (delta > 0 ? 'text-rose-600' : 'text-emerald-600') %>">
+          <% if delta.nil? %>
+            —
+          <% elsif delta.zero? %>
+            0 kg
+          <% else %>
+            <%= delta.negative? ? "↓" : "↑" %> <%= delta.abs %> kg
+          <% end %>
+        </p>
+        <p class="text-[11px] text-slate-500 mt-0.5">vs 7 days ago</p>
+      </div>
+
+      <div class="rounded-xl bg-slate-50 p-3">
+        <p class="text-[11px] uppercase tracking-wider text-slate-500">Meals</p>
+        <p class="text-2xl font-bold text-slate-900 mt-1">
+          <%= summary.meal_completion_pct ? "#{summary.meal_completion_pct}%" : "—" %>
+        </p>
+        <p class="text-[11px] text-slate-500 mt-0.5">completed</p>
+      </div>
+
+      <div class="rounded-xl bg-slate-50 p-3">
+        <p class="text-[11px] uppercase tracking-wider text-slate-500">Supplements</p>
+        <p class="text-2xl font-bold text-slate-900 mt-1">
+          <%= summary.supplement_completion_pct ? "#{summary.supplement_completion_pct}%" : "—" %>
+        </p>
+        <p class="text-[11px] text-slate-500 mt-0.5">taken</p>
+      </div>
+    </div>
+  </div>
+</section>

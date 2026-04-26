@@ -32,9 +32,9 @@ Rails.application.configure do
     # applies to the *entire* navigation chain — every URL the browser is
     # told to load as a result of submitting the form, redirects included.
     # `:self` alone blocks the redirect to claude.ai and the dance never
-    # completes. The DCR whitelist already restricts redirect_uris to
-    # these two hosts (see oauth/registrations_controller.rb), so adding
-    # them here keeps the CSP tightly scoped.
-    policy.form_action     :self, "https://claude.ai", "https://claude.com"
+    # completes. The DCR whitelist (see oauth/registrations_controller.rb)
+    # already restricts `redirect_uris` to ClaudeOauth::ALLOWED_HOSTS, so
+    # mirroring that list here keeps the CSP tightly scoped.
+    policy.form_action     :self, *ClaudeOauth::ALLOWED_ORIGINS
   end
 end

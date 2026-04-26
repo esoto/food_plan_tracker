@@ -20,7 +20,10 @@ module Oauth
   # The endpoint itself is unauthenticated (clients have no creds yet at
   # registration time) and rate-limited 10/hour/IP.
   class RegistrationsController < ActionController::API
-    ALLOWED_REDIRECT_HOSTS = %w[claude.ai claude.com].freeze
+    # Shared with config/initializers/content_security_policy.rb so the
+    # CSP form-action whitelist and the DCR redirect_uris whitelist can't
+    # drift. Defined in config/initializers/00_claude_oauth_hosts.rb.
+    ALLOWED_REDIRECT_HOSTS = ClaudeOauth::ALLOWED_HOSTS
 
     rate_limit to: 10, within: 1.hour,
                by: -> { request.remote_ip },

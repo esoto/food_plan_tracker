@@ -1,0 +1,59 @@
+require "rails_helper"
+
+RSpec.describe "ProgressController#show", type: :request do
+  let!(:plan) { seed_plan(slug: "active") }
+  let!(:meal_a) { plan.meals.create!(position: 1, name: "A", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10) }
+  let!(:meal_b) { plan.meals.create!(position: 2, name: "B", scheduled_time: Time.utc(2000, 1, 1, 12, 0), target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20) }
+  let!(:weight_goal) do
+    Goal.find_or_create_by!(metric: :weight_kg) do |g|
+      g.display_name = "Weight"
+      g.unit = "kg"
+      g.direction = :down
+      g.starting_value = 88.0
+      g.target_value = 82.0
+    end
+  end
+
+  before { sign_in_as }
+
+  it "renders the Last 7 days summary card with all four metric labels" do
+    get progress_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Last 7 days")
+    expect(response.body).to include("Habits")
+    expect(response.body).to include("Weight Δ")
+    expect(response.body).to include("Meals")
+    expect(response.body).to include("Supplements")
+  end
+
+  it "renders em-dashes when the window has no data" do
+    DailyLog.destroy_all
+    Supplement.destroy_all
+
+    get progress_path
+
+    expect(response.body.scan("—").size).to be >= 4
+  end
+
+  it "renders computed weight delta with a downward arrow when weight is dropping" do
+    weight_goal.biomarker_entries.create!(recorded_on: Date.current - 6, value: 86.0)
+    weight_goal.biomarker_entries.create!(recorded_on: Date.current,     value: 85.4)
+
+    get progress_path
+
+    expect(response.body).to include("↓ 0.6 kg")
+  end
+
+  it "renders meal-completion percent over the last 7 days" do
+    log1 = DailyLog.create!(date: Date.current - 1, plan: plan)
+    log1.meal_completions.create!(meal: meal_a, completed_at: 1.day.ago)
+    log1.meal_completions.create!(meal: meal_b, completed_at: 1.day.ago)
+    log2 = DailyLog.create!(date: Date.current, plan: plan)
+    log2.meal_completions.create!(meal: meal_a, completed_at: Time.current)
+
+    get progress_path
+
+    expect(response.body).to include("75%")
+  end
+end
