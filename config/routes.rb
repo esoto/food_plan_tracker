@@ -31,7 +31,9 @@ Rails.application.routes.draw do
   resources :goals, only: :update
   resources :meals, only: :update
 
-  resources :meal_completions,       only: %i[create destroy]
+  resources :meal_completions,       only: %i[create destroy] do
+    collection { post :copy_yesterday }
+  end
   resources :supplement_completions, only: %i[create destroy]
   resources :checklist_completions,  only: :update
   resources :biomarker_entries,      only: %i[new create] do
