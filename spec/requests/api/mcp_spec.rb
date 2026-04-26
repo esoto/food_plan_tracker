@@ -71,7 +71,8 @@ RSpec.describe "POST /mcp", type: :request do
         "get_today_status", "get_day_status", "log_weight",
         "complete_meal", "uncomplete_meal", "log_food",
         "delete_logged_food", "set_plan_for_day", "list_goals",
-        "search_foods", "create_food", "list_meals"
+        "search_foods", "create_food", "list_meals",
+        "get_weekly_summary", "copy_yesterday_meals"
       )
       tools.each do |tool|
         expect(tool["inputSchema"]).to include("type" => "object")
@@ -155,6 +156,127 @@ RSpec.describe "POST /mcp", type: :request do
       expect(result).not_to include("isError" => true)
       payload = JSON.parse(result["content"].first["text"])
       expect(payload["day"]["logged_foods"].map { |lf| lf["id"] }).not_to include(entry.id)
+    end
+
+    describe "get_weekly_summary" do
+      let!(:weight_goal) do
+        Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg]) do |g|
+          g.display_name = "Weight"; g.unit = "kg"; g.direction = "down"
+          g.starting_value = 88; g.target_value = 82
+        end
+      end
+
+      it "returns the rolling 7-day metrics" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          weight_goal.biomarker_entries.create!(recorded_on: Date.current - 6, value: 86.0)
+          weight_goal.biomarker_entries.create!(recorded_on: Date.current,     value: 85.4)
+
+          result = rpc("tools/call", { name: "get_weekly_summary", arguments: {} })["result"]
+          payload = JSON.parse(result["content"].first["text"])
+
+          expect(payload).to include(
+            "window_days" => 7,
+            "start_date" => "2026-04-19",
+            "end_date" => "2026-04-25",
+            "weight_delta_kg" => -0.6
+          )
+          expect(payload).to have_key("adherence_pct")
+          expect(payload).to have_key("meal_completion_pct")
+          expect(payload).to have_key("supplement_completion_pct")
+        end
+      end
+
+      it "returns null metrics when the window has no data" do
+        DailyLog.destroy_all
+        Supplement.destroy_all
+        weight_goal.biomarker_entries.destroy_all
+
+        result = rpc("tools/call", { name: "get_weekly_summary", arguments: {} })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+
+        expect(payload["adherence_pct"]).to be_nil
+        expect(payload["weight_delta_kg"]).to be_nil
+        expect(payload["meal_completion_pct"]).to be_nil
+        expect(payload["supplement_completion_pct"]).to be_nil
+      end
+    end
+
+    describe "copy_yesterday_meals" do
+      let!(:breakfast) do
+        Plan.find_by(slug: "active").meals.create!(
+          position: 1, name: "Breakfast",
+          scheduled_time: Time.utc(2000, 1, 1, 7, 0),
+          target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10
+        )
+      end
+
+      it "copies yesterday's completions onto today and reports the count" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          plan = Plan.find_by(slug: "active")
+          yesterday = DailyLog.create!(date: Date.current - 1, plan: plan)
+          yesterday.meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
+
+          result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
+          payload = JSON.parse(result["content"].first["text"])
+
+          expect(payload["copied"]).to eq(1)
+          expect(DailyLog.today.meal_completions.count).to eq(1)
+        end
+      end
+
+      it "is idempotent — re-invocation reports copied: 0 and preserves prior completions" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          plan = Plan.find_by(slug: "active")
+          yesterday = DailyLog.create!(date: Date.current - 1, plan: plan)
+          yesterday.meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
+
+          rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })
+          first_completion = DailyLog.today.meal_completions.find_by!(meal: breakfast)
+          first_timestamp = first_completion.completed_at
+
+          result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
+          payload = JSON.parse(result["content"].first["text"])
+
+          expect(payload["copied"]).to eq(0)
+          expect(DailyLog.today.meal_completions.count).to eq(1)
+          expect(first_completion.reload.completed_at).to eq(first_timestamp)
+        end
+      end
+
+      it "is an error when there is no yesterday log" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          DailyLog.where(date: Date.current - 1).destroy_all
+
+          result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
+          expect(result["isError"]).to be(true)
+          expect(result["content"].first["text"]).to match(/no_yesterday_log/)
+        end
+      end
+
+      it "is an error when plans differ" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          other_plan = seed_plan(slug: "exercise", target_kcal: 2200)
+          DailyLog.create!(date: Date.current - 1, plan: other_plan)
+            .meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
+          DailyLog.today
+
+          result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
+          expect(result["isError"]).to be(true)
+          expect(result["content"].first["text"]).to match(/plan_mismatch/)
+        end
+      end
+
+      it "does not create a phantom DailyLog when the request fails" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          target_date = Date.current - 5
+          DailyLog.where(date: target_date - 1).destroy_all
+          DailyLog.where(date: target_date).destroy_all
+
+          expect {
+            rpc("tools/call", { name: "copy_yesterday_meals", arguments: { date: target_date.iso8601 } })
+          }.not_to change { DailyLog.where(date: target_date).count }
+        end
+      end
     end
 
     it "tools/call returns isError on unknown tool" do
