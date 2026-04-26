@@ -32,6 +32,22 @@ RSpec.describe "POST /mcp", type: :request do
       expect(response).to have_http_status(:unauthorized)
     end
 
+    it "rejects valid tokens that lack the mcp scope" do
+      other = Doorkeeper::AccessToken.create!(application: application, resource_owner_id: user.id, scopes: "profile")
+      post "/mcp",
+           params: { jsonrpc: "2.0", id: 1, method: "initialize" }.to_json,
+           headers: { "Authorization" => "Bearer #{other.plaintext_token}", "Content-Type" => "application/json" }
+      expect(response).to have_http_status(:forbidden).or have_http_status(:unauthorized)
+    end
+
+    it "still requires a live token for notifications (revoked tokens get 401)" do
+      token.revoke
+      post "/mcp",
+           params: { jsonrpc: "2.0", method: "notifications/initialized" }.to_json,
+           headers: auth
+      expect(response).to have_http_status(:unauthorized)
+    end
+
     it "returns 405 on GET (we don't support server-initiated streams)" do
       get "/mcp", headers: auth
       expect(response).to have_http_status(:method_not_allowed)
@@ -96,6 +112,49 @@ RSpec.describe "POST /mcp", type: :request do
       result = rpc("tools/call", { name: "complete_meal", arguments: { name: "Brunch" } })["result"]
       expect(result["isError"]).to be(true)
       expect(result["content"].first["text"]).to match(/no meal "Brunch"/)
+    end
+
+    it "log_weight records a biomarker entry and updates today's daily log" do
+      Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg]) do |g|
+        g.display_name = "Weight"; g.unit = "kg"; g.direction = "down"
+        g.starting_value = 80; g.target_value = 75
+      end
+
+      result = rpc("tools/call", { name: "log_weight", arguments: { value: 78.5 } })["result"]
+      expect(result).not_to include("isError" => true)
+      payload = JSON.parse(result["content"].first["text"])
+      expect(payload["entry"]["value"]).to eq(78.5)
+      expect(payload["day"]["weight_kg"]).to eq(78.5)
+    end
+
+    it "set_plan_for_day swaps the active plan and returns the new day shape" do
+      seed_plan(slug: "rest", target_kcal: 1700)
+
+      result = rpc("tools/call", { name: "set_plan_for_day", arguments: { slug: "rest" } })["result"]
+      expect(result).not_to include("isError" => true)
+      payload = JSON.parse(result["content"].first["text"])
+      expect(payload["plan"]["slug"]).to eq("rest")
+      expect(payload["targets"]["kcal"]).to eq(1700)
+    end
+
+    it "list_meals returns the 5 meals with per-item macros and totals for a plan" do
+      result = rpc("tools/call", { name: "list_meals", arguments: { plan_slug: "active" } })["result"]
+      expect(result).not_to include("isError" => true)
+      payload = JSON.parse(result["content"].first["text"])
+      expect(payload["plan"]["slug"]).to eq("active")
+      expect(payload["meals"]).to be_an(Array)
+      payload["meals"].each { |m| expect(m).to include("name", "totals", "items") }
+    end
+
+    it "delete_logged_food removes a previously logged food and returns the refreshed day" do
+      food = seed_food(name: "Plain rice", category: "carb", serving_grams: 100, kcal: 130)
+      log  = DailyLog.today
+      entry = log.logged_foods.create!(food: food, quantity_grams: 50, logged_at: Time.current)
+
+      result = rpc("tools/call", { name: "delete_logged_food", arguments: { id: entry.id } })["result"]
+      expect(result).not_to include("isError" => true)
+      payload = JSON.parse(result["content"].first["text"])
+      expect(payload["day"]["logged_foods"].map { |lf| lf["id"] }).not_to include(entry.id)
     end
 
     it "tools/call returns isError on unknown tool" do

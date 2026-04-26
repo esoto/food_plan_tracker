@@ -20,7 +20,10 @@ Doorkeeper.configure do
   access_token_expires_in 1.day
   use_refresh_token
 
-  # PKCE is mandatory — DCR-registered clients are public by nature.
+  # PKCE is mandatory. `force_pkce` is hard-coded to skip *confidential*
+  # clients (Doorkeeper 5.9), so the DCR endpoint registers public clients
+  # (`confidential: false`) instead — see app/controllers/oauth/
+  # registrations_controller.rb. That makes `force_pkce` actually engage.
   force_pkce
 
   # Single grant flow: authorization code (with PKCE).

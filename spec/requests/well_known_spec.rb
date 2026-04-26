@@ -14,6 +14,7 @@ RSpec.describe "Well-known discovery endpoints", type: :request do
       expect(body["grant_types_supported"]).to include("authorization_code", "refresh_token")
       expect(body["code_challenge_methods_supported"]).to include("S256")
       expect(body["scopes_supported"]).to include("mcp")
+      expect(body["token_endpoint_auth_methods_supported"]).to eq(%w[none])
     end
   end
 

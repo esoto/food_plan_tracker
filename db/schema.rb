@@ -158,7 +158,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_023314) do
     t.integer "expires_in"
     t.string "previous_refresh_token", default: "", null: false
     t.string "refresh_token"
-    t.integer "resource_owner_id"
+    t.integer "resource_owner_id", null: false
     t.datetime "revoked_at"
     t.string "scopes"
     t.string "token", null: false

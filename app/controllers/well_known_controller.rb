@@ -13,7 +13,7 @@ class WellKnownController < ActionController::API
       response_types_supported:                   %w[code],
       grant_types_supported:                      %w[authorization_code refresh_token],
       code_challenge_methods_supported:           %w[S256],
-      token_endpoint_auth_methods_supported:      %w[client_secret_basic client_secret_post],
+      token_endpoint_auth_methods_supported:      %w[none],
       scopes_supported:                           %w[mcp]
     }
   end

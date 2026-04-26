@@ -12,6 +12,15 @@ module Api
   class McpController < ActionController::API
     include Api::Concerns::DaySerializer
 
+    # Tool-input failures (bad date, missing food, missing required arg)
+    # bubble up to the user as `isError: true` with their message intact.
+    # Anything else is a bug — log with backtrace and return a generic
+    # "internal error" so we don't leak DB column names, file paths, or
+    # SQL fragments back to the client.
+    class ToolArgumentError < StandardError; end
+    USER_ERRORS = [ ToolArgumentError, ActiveRecord::RecordInvalid,
+                   ActiveRecord::RecordNotFound, ArgumentError, KeyError, Date::Error ].freeze
+
     PROTOCOL_VERSION = "2025-06-18".freeze
     SERVER_INFO      = { name: "food-tracker", version: "0.2.0" }.freeze
 
@@ -22,8 +31,9 @@ module Api
     before_action :doorkeeper_authorize!, only: :handle
 
     rescue_from StandardError do |error|
-      Rails.logger.error("[mcp] #{error.class}: #{error.message}")
-      render json: rpc_error(@rpc_id, -32603, error.message), status: :ok
+      Rails.logger.error("[mcp] #{error.class}: #{error.message}\n#{error.backtrace&.first(10)&.join("\n")}")
+      Rails.error.report(error, context: { rpc_id: @rpc_id, method: @parsed_message&.dig("method") })
+      render json: rpc_error(@rpc_id, -32603, "internal_error"), status: :ok
     end
 
     def handle
@@ -75,9 +85,9 @@ module Api
 
       return tool_error("unknown tool: #{name}") unless tool
 
-      payload = instance_exec(arguments, &tool[:handler])
+      payload = send(tool[:handler], arguments)
       { content: [ { type: "text", text: JSON.pretty_generate(payload) } ] }
-    rescue StandardError => e
+    rescue *USER_ERRORS => e
       tool_error(e.message)
     end
 
@@ -93,22 +103,39 @@ module Api
       { jsonrpc: "2.0", id: id, error: { code: code, message: message } }
     end
 
-    # ----- Tool handlers (called via instance_exec so they can use the
-    # ----- DaySerializer methods that are private to this class).
+    # ----- Tool handler shared helpers.
+
+    # Parse the optional "date" arg as YYYY-MM-DD, defaulting to today.
+    # Tolerates `nil` and the literal string "null" (which Date.parse
+    # would otherwise raise on).
+    def date_arg(args, key = "date", default: -> { Date.current })
+      raw = args[key]
+      raw.present? ? Date.parse(raw.to_s) : default.call
+    end
+
+    def log_for(args)
+      DailyLog.for(date_arg(args))
+    end
+
+    def plan_for(args)
+      args["plan_slug"].present? ? Plan.find_by!(slug: args["plan_slug"]) : log_for(args).plan
+    end
+
+    # ----- Tool handlers.
 
     def handle_get_today_status(_args)
       serialize_day(DailyLog.today)
     end
 
     def handle_get_day_status(args)
-      serialize_day(DailyLog.for(Date.parse(args.fetch("date"))))
+      serialize_day(DailyLog.for(date_arg(args, default: -> { raise ToolArgumentError, "date is required" })))
     end
 
     def handle_log_weight(args)
-      goal = Goal.find_by!(metric: Goal.metrics[:weight_kg])
-      date = args["date"].present? ? Date.parse(args["date"].to_s) : Date.current
+      goal  = Goal.find_by!(metric: Goal.metrics[:weight_kg])
+      date  = date_arg(args)
       entry = goal.biomarker_entries.create!(value: args.fetch("value"), recorded_on: date)
-      log = DailyLog.for(date)
+      log   = DailyLog.for(date)
       log.update!(weight_kg: entry.value) if log.date == entry.recorded_on
       { ok: true,
         entry: { id: entry.id, value: entry.value.to_f, recorded_on: entry.recorded_on.iso8601 },
@@ -117,22 +144,21 @@ module Api
 
     def handle_complete_meal(args)
       meal = resolve_meal(args)
-      log  = DailyLog.for(args["date"].present? ? Date.parse(args["date"]) : Date.current)
+      log  = log_for(args)
       log.meal_completions.find_or_create_by!(meal: meal) { |mc| mc.completed_at = Time.current }
       { ok: true, day: serialize_day(log.reload) }
     end
 
     def handle_uncomplete_meal(args)
       meal = resolve_meal(args)
-      log  = DailyLog.for(args["date"].present? ? Date.parse(args["date"]) : Date.current)
-      completion = log.meal_completions.find_by!(meal: meal)
-      completion.destroy!
+      log  = log_for(args)
+      log.meal_completions.find_by!(meal: meal).destroy!
       { ok: true, day: serialize_day(log.reload) }
     end
 
     def handle_log_food(args)
       food = resolve_food(args.fetch("name"))
-      log  = DailyLog.for(args["date"].present? ? Date.parse(args["date"]) : Date.current)
+      log  = log_for(args)
       qty  = args["quantity_grams"].presence&.to_d || food.serving_grams
       log.logged_foods.create!(food: food, quantity_grams: qty, logged_at: Time.current)
       { ok: true, day: serialize_day(log.reload) }
@@ -146,7 +172,7 @@ module Api
     end
 
     def handle_set_plan_for_day(args)
-      log  = DailyLog.for(args["date"].present? ? Date.parse(args["date"]) : Date.current)
+      log  = log_for(args)
       plan = Plan.find_by!(slug: args.fetch("slug"))
       log.update!(plan: plan)
       serialize_day(log.reload)
@@ -169,31 +195,20 @@ module Api
     end
 
     def handle_active_meals(args)
-      plan = if args["plan_slug"].present?
-               Plan.find_by!(slug: args["plan_slug"])
-      else
-               DailyLog.for(args["date"].present? ? Date.parse(args["date"]) : Date.current).plan
-      end
+      plan  = plan_for(args)
       meals = plan.meals.includes(meal_items: :food).ordered
       { plan: serialize_plan(plan), meals: meals.map { |m| serialize_meal(m) } }
     end
 
     def resolve_food(query)
-      food = Food.where("LOWER(name) LIKE ?", "%#{query.downcase}%").first
-      raise "no food matches \"#{query}\" — call search_foods to find the canonical name" unless food
-      food
+      Food.where("LOWER(name) LIKE ?", "%#{query.downcase}%").first ||
+        raise(ToolArgumentError, "no food matches \"#{query}\" — call search_foods to find the canonical name")
     end
 
     def resolve_meal(args)
-      slug = args["plan_slug"]
-      plan = if slug.present?
-               Plan.find_by!(slug: slug)
-      else
-               DailyLog.for(args["date"].present? ? Date.parse(args["date"]) : Date.current).plan
-      end
-      meal = plan.meals.find { |m| m.name.casecmp?(args.fetch("name")) }
-      raise "no meal \"#{args['name']}\" on plan \"#{plan.slug}\"" unless meal
-      meal
+      plan = plan_for(args)
+      plan.meals.find { |m| m.name.casecmp?(args.fetch("name")) } ||
+        raise(ToolArgumentError, "no meal \"#{args['name']}\" on plan \"#{plan.slug}\"")
     end
 
     # ----- Tool registry. Schemas mirror the Zod definitions in the
@@ -209,13 +224,13 @@ module Api
         name:        "get_today_status",
         description: "Today's plan, macro targets, consumed macros, weight, completed meals, now_meal, and logged foods.",
         inputSchema: { type: "object", properties: {} },
-        handler:     ->(args) { handle_get_today_status(args) }
+        handler:     :handle_get_today_status
       },
       {
         name:        "get_day_status",
         description: "Same shape as get_today_status, for a specific date (YYYY-MM-DD).",
         inputSchema: { type: "object", properties: { "date" => DATE_PROP }, required: %w[date] },
-        handler:     ->(args) { handle_get_day_status(args) }
+        handler:     :handle_get_day_status
       },
       {
         name:        "log_weight",
@@ -228,7 +243,7 @@ module Api
           },
           required: %w[value]
         },
-        handler: ->(args) { handle_log_weight(args) }
+        handler: :handle_log_weight
       },
       {
         name:        "complete_meal",
@@ -242,7 +257,7 @@ module Api
           },
           required: %w[name]
         },
-        handler: ->(args) { handle_complete_meal(args) }
+        handler: :handle_complete_meal
       },
       {
         name:        "uncomplete_meal",
@@ -256,7 +271,7 @@ module Api
           },
           required: %w[name]
         },
-        handler: ->(args) { handle_uncomplete_meal(args) }
+        handler: :handle_uncomplete_meal
       },
       {
         name:        "log_food",
@@ -270,7 +285,7 @@ module Api
           },
           required: %w[name]
         },
-        handler: ->(args) { handle_log_food(args) }
+        handler: :handle_log_food
       },
       {
         name:        "delete_logged_food",
@@ -280,7 +295,7 @@ module Api
           properties: { "id" => { type: "integer", exclusiveMinimum: 0 } },
           required: %w[id]
         },
-        handler: ->(args) { handle_delete_logged_food(args) }
+        handler: :handle_delete_logged_food
       },
       {
         name:        "set_plan_for_day",
@@ -293,13 +308,13 @@ module Api
           },
           required: %w[slug]
         },
-        handler: ->(args) { handle_set_plan_for_day(args) }
+        handler: :handle_set_plan_for_day
       },
       {
         name:        "list_goals",
         description: "All tracked goals (weight, body fat, HDL, etc.) with current value, target, and progress percent.",
         inputSchema: { type: "object", properties: {} },
-        handler:     ->(args) { handle_list_goals(args) }
+        handler:     :handle_list_goals
       },
       {
         name:        "search_foods",
@@ -309,7 +324,7 @@ module Api
           properties: { "q" => { type: "string" } },
           required: %w[q]
         },
-        handler: ->(args) { handle_search_foods(args) }
+        handler: :handle_search_foods
       },
       {
         name:        "create_food",
@@ -328,7 +343,7 @@ module Api
           },
           required: %w[name category serving_grams kcal protein_g carbs_g fat_g]
         },
-        handler: ->(args) { handle_create_food(args) }
+        handler: :handle_create_food
       },
       {
         name:        "list_meals",
@@ -340,7 +355,7 @@ module Api
             "date"      => DATE_PROP
           }
         },
-        handler: ->(args) { handle_active_meals(args) }
+        handler: :handle_active_meals
       }
     ].freeze
   end

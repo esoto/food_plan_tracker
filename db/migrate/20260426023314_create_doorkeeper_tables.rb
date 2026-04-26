@@ -38,7 +38,11 @@ class CreateDoorkeeperTables < ActiveRecord::Migration[8.1]
     )
 
     create_table :oauth_access_tokens do |t|
-      t.references :resource_owner, index: true
+      # Constrained NOT NULL: this app only enables the authorization_code
+      # grant (see config/initializers/doorkeeper.rb), which always issues
+      # tokens to a logged-in user. Doorkeeper's default schema leaves this
+      # nullable to support client_credentials, which we don't use.
+      t.references :resource_owner, index: true, null: false
 
       # Remove `null: false` if you are planning to use Password
       # Credentials Grant flow that doesn't require an application.
