@@ -66,7 +66,7 @@ RSpec.describe "MealCompletionsController#copy_yesterday", type: :request do
       post copy_yesterday_meal_completions_path
     }.not_to change { DailyLog.today.meal_completions.count }
 
-    expect(flash[:notice]).to match(/Copied 0 meals/)
+    expect(flash[:notice]).to match(/Already up to date/)
   end
 
   it "redirects with alert when plans differ" do

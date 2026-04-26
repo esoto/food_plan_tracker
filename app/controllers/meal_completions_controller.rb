@@ -27,13 +27,13 @@ class MealCompletionsController < ApplicationController
       return redirect_to(menu_path, status: :see_other, alert: "No log from yesterday yet — nothing to copy.")
     end
 
-    if yesterday.plan_id != today.plan_id
+    unless today.can_copy_from?(yesterday)
       return redirect_to(menu_path, status: :see_other, alert: "Yesterday's plan doesn't match today — nothing to copy.")
     end
 
     copied = today.copy_completions_from(yesterday)
-    redirect_to menu_path, status: :see_other,
-                notice: "Copied #{copied} #{'meal'.pluralize(copied)} from yesterday."
+    notice = copied.zero? ? "Already up to date." : "Copied #{copied} #{'meal'.pluralize(copied)} from yesterday."
+    redirect_to menu_path, status: :see_other, notice: notice
   end
 
   private

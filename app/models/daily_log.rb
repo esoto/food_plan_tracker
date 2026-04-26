@@ -22,14 +22,18 @@ class DailyLog < ApplicationRecord
   end
 
   def self.yesterday
-    find_by(date: Date.current - 1)
+    find_by(date: Date.yesterday)
   end
 
-  # True when `other` has completions worth copying onto self: same plan,
-  # has at least one completion, and self has fewer than other.
+  # Authorization: copying across plans is meaningless because meal_ids differ.
   def can_copy_from?(other)
-    return false if other.nil?
-    return false unless other.plan_id == plan_id
+    other.present? && other.plan_id == plan_id
+  end
+
+  # Presentation: is there anything worth copying? Used to decide whether
+  # the menu surfaces the "Log same as yesterday" button.
+  def has_uncopied_completions_from?(other)
+    return false unless can_copy_from?(other)
 
     other_count = other.meal_completions.size
     other_count.positive? && other_count > meal_completions.size
@@ -38,11 +42,11 @@ class DailyLog < ApplicationRecord
   # Copies completions from `other` onto self, skipping meals already
   # marked complete here. Returns the number actually inserted. Atomic.
   def copy_completions_from(other)
-    existing = meal_completions.pluck(:meal_id).to_set
-    to_copy = other.meal_completions.where.not(meal_id: existing.to_a)
+    existing = meal_completions.pluck(:meal_id)
+    to_copy = other.meal_completions.where.not(meal_id: existing).pluck(:meal_id)
 
     transaction do
-      to_copy.each { |mc| meal_completions.create!(meal_id: mc.meal_id, completed_at: Time.current) }
+      to_copy.each { |meal_id| meal_completions.create!(meal_id: meal_id, completed_at: Time.current) }
     end
 
     to_copy.size
