@@ -1,0 +1,8 @@
+<%# Mirrors doorkeeper-5.9/app/views/doorkeeper/authorizations/new.html.erb. %>
+<%# Re-sync this list if Doorkeeper bumps add a new pre-auth field — the %>
+<%# fields are not auto-derived, and dropping one silently breaks PKCE / %>
+<%# state validation on the OAuth callback. %>
+<%= hidden_field_tag :client_id, pre_auth.client.uid, id: nil %>
+<% %i[redirect_uri state response_type response_mode scope code_challenge code_challenge_method].each do |field| %>
+  <%= hidden_field_tag field, pre_auth.public_send(field), id: nil %>
+<% end %>

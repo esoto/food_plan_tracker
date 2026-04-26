@@ -41,5 +41,18 @@ RSpec.describe "GET /oauth/authorize", type: :request do
     # Custom view picked up + scope label from oauth.en.yml (would be "Mcp" if locale missing)
     expect(response.body).to include("Authorize Claude")
     expect(response.body).to include("Read and write your food log")
+
+    # Both forms must round-trip every PKCE/state field. Dropping one would
+    # break the OAuth callback silently (Doorkeeper rejects with a generic
+    # error) so we lock the contract at the rendered HTML.
+    %w[client_id redirect_uri state response_type scope code_challenge code_challenge_method].each do |field|
+      expect(response.body).to include(%(name="#{field}")),
+                              "expected hidden form field `#{field}` in the consent HTML"
+    end
+
+    # Both authorize (POST) and deny (DELETE) forms must be present.
+    expect(response.body).to include(I18n.t("doorkeeper.authorizations.buttons.authorize"))
+    expect(response.body).to include(I18n.t("doorkeeper.authorizations.buttons.deny"))
+    expect(response.body).to match(%r{<input[^>]+name="_method"[^>]+value="delete"}i)
   end
 end

@@ -1,0 +1,14 @@
+<% error = (local_assigns[:error_response] ? error_response : @pre_auth.error_response).body[:error_description] %>
+
+<div class="w-full max-w-sm">
+  <div class="text-center mb-6">
+    <div class="w-14 h-14 rounded-2xl bg-rose-500 shadow-md mx-auto flex items-center justify-center text-white text-2xl">!</div>
+    <h1 class="font-bold text-2xl text-slate-900 dark:text-slate-100 mt-4"><%= t("doorkeeper.authorizations.error.title") %></h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">The OAuth client made a request the server can't honor.</p>
+  </div>
+
+  <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-sm ring-1 ring-slate-200 dark:ring-slate-800 p-5">
+    <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">What went wrong</p>
+    <p class="text-sm text-slate-800 dark:text-slate-200 break-words"><%= error %></p>
+  </div>
+</div>

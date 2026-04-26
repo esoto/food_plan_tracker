@@ -22,19 +22,13 @@
 
     <div class="space-y-2 pt-2">
       <%= form_tag oauth_authorization_path, method: :post do %>
-        <%= hidden_field_tag :client_id, @pre_auth.client.uid, id: nil %>
-        <% %i[redirect_uri state response_type response_mode scope code_challenge code_challenge_method].each do |field| %>
-          <%= hidden_field_tag field, @pre_auth.public_send(field), id: nil %>
-        <% end %>
+        <%= render "hidden_fields", pre_auth: @pre_auth %>
         <%= submit_tag t("doorkeeper.authorizations.buttons.authorize"),
               class: "w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 shadow-sm cursor-pointer" %>
       <% end %>
 
       <%= form_tag oauth_authorization_path, method: :delete do %>
-        <%= hidden_field_tag :client_id, @pre_auth.client.uid, id: nil %>
-        <% %i[redirect_uri state response_type response_mode scope code_challenge code_challenge_method].each do |field| %>
-          <%= hidden_field_tag field, @pre_auth.public_send(field), id: nil %>
-        <% end %>
+        <%= render "hidden_fields", pre_auth: @pre_auth %>
         <%= submit_tag t("doorkeeper.authorizations.buttons.deny"),
               class: "w-full rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium py-3 cursor-pointer" %>
       <% end %>
