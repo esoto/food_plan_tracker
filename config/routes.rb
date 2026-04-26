@@ -41,6 +41,14 @@ Rails.application.routes.draw do
   end
   resources :daily_logs,             only: :update
   resources :logged_foods,           only: %i[create update destroy]
+  # destroy lives on the collection because the client knows the endpoint
+  # URL but not our internal id.
+  resources :push_subscriptions, only: :create do
+    collection do
+      delete :destroy
+      post :test
+    end
+  end
 
   namespace :api do
     namespace :v1 do

@@ -52,6 +52,8 @@ env:
     - POSTGRES_PASSWORD
     - ADMIN_EMAIL
     - ADMIN_PASSWORD
+    - VAPID_PUBLIC_KEY
+    - VAPID_PRIVATE_KEY
 
 # Active Storage uploads survive deploys via a named volume. SQLite files
 # previously lived here too — no longer needed since the move to Postgres.
