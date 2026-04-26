@@ -45,3 +45,4 @@
 # MCP server local installs
 /mcp/node_modules
 /mcp/.env
+.claude/pr-review-*
