@@ -36,7 +36,12 @@ RSpec.describe WeeklySummary, type: :model do
   let!(:supp_a) { Supplement.create!(name: "A", dose: "1g") }
   let!(:supp_b) { Supplement.create!(name: "B", dose: "1g") }
 
-  before { ChecklistTemplate.delete_all }
+  before do
+    ChecklistTemplate.delete_all
+    travel_to Time.zone.local(2026, 4, 25, 12, 0)
+  end
+
+  after { travel_back }
 
   describe ".rolling_7_days" do
     it "returns an instance covering the last 7 days inclusive" do
@@ -65,6 +70,36 @@ RSpec.describe WeeklySummary, type: :model do
     it "is nil when no logs exist in the window" do
       DailyLog.destroy_all
       expect(WeeklySummary.rolling_7_days.adherence_pct).to be_nil
+    end
+
+    it "averages logs that have zero completions as 0% in the mean" do
+      ChecklistTemplate.create!(label: "X", position: 1)
+      ChecklistTemplate.create!(label: "Y", position: 2)
+
+      log1 = DailyLog.create!(date: Date.current - 1, plan: plan)
+      log1.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
+      log1.checklist_completions.create!(checklist_template: ChecklistTemplate.last, checked: true)
+
+      DailyLog.create!(date: Date.current, plan: plan) # zero completions
+
+      summary = WeeklySummary.rolling_7_days
+      expect(summary.adherence_pct).to eq(50)
+    end
+
+    it "excludes logs from the day before the window" do
+      ChecklistTemplate.create!(label: "X", position: 1)
+      out_of_window = DailyLog.create!(date: Date.current - 7, plan: plan)
+      out_of_window.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
+
+      expect(WeeklySummary.rolling_7_days.adherence_pct).to be_nil
+    end
+
+    it "includes logs from exactly 6 days ago (window boundary)" do
+      ChecklistTemplate.create!(label: "X", position: 1)
+      log = DailyLog.create!(date: Date.current - 6, plan: plan)
+      log.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
+
+      expect(WeeklySummary.rolling_7_days.adherence_pct).to eq(100)
     end
   end
 

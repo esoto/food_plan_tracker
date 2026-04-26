@@ -33,7 +33,7 @@ RSpec.describe "ProgressController#show", type: :request do
 
     get progress_path
 
-    expect(response.body.scan("—").size).to be >= 4
+    expect(response.body.scan(/—\s*<\/p>/).size).to eq(4)
   end
 
   it "renders computed weight delta with a downward arrow when weight is dropping" do
@@ -43,6 +43,26 @@ RSpec.describe "ProgressController#show", type: :request do
     get progress_path
 
     expect(response.body).to include("↓ 0.6 kg")
+    expect(response.body).to include("text-emerald-600")
+  end
+
+  it "renders an upward arrow with rose color when weight is increasing" do
+    weight_goal.biomarker_entries.create!(recorded_on: Date.current - 6, value: 85.0)
+    weight_goal.biomarker_entries.create!(recorded_on: Date.current,     value: 85.8)
+
+    get progress_path
+
+    expect(response.body).to include("↑ 0.8 kg")
+    expect(response.body).to include("text-rose-600")
+  end
+
+  it "renders 0 kg with neutral color when weight is unchanged" do
+    weight_goal.biomarker_entries.create!(recorded_on: Date.current - 6, value: 85.0)
+    weight_goal.biomarker_entries.create!(recorded_on: Date.current,     value: 85.0)
+
+    get progress_path
+
+    expect(response.body).to include("0 kg")
   end
 
   it "renders meal-completion percent over the last 7 days" do

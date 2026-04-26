@@ -14,7 +14,12 @@ class WeeklySummary
   def adherence_pct
     return nil if logs.empty?
 
-    (logs.sum(&:checklist_adherence_pct).to_f / logs.size).round
+    template_count = ChecklistTemplate.count
+    return 0 if template_count.zero?
+
+    checked_per_log = ChecklistCompletion.where(daily_log: logs, checked: true).group(:daily_log_id).count
+    avg_pct = logs.sum { |l| checked_per_log.fetch(l.id, 0) * 100.0 / template_count } / logs.size
+    avg_pct.round
   end
 
   def weight_delta_kg
@@ -27,7 +32,7 @@ class WeeklySummary
     expected = logs.sum { |l| l.plan.meals.count }
     return nil if expected.zero?
 
-    completed = logs.sum { |l| l.meal_completions.count }
+    completed = MealCompletion.where(daily_log: logs).count
     ((completed.to_f / expected) * 100).round
   end
 
