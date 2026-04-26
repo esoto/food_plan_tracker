@@ -106,4 +106,22 @@ RSpec.describe ReminderTickerJob, type: :job do
       described_class.perform_now(now: Time.zone.local(2026, 4, 26, 7, 0))
     end
   end
+
+  describe "dual fire (meal + supplement at the same minute)" do
+    it "broadcasts both the meal and the supplement-slot push" do
+      # pre_lunch slot fires at 11:45; add a supplement to that slot
+      # AND create a meal at the same minute.
+      SupplementSchedule.create!(supplement: supp_a, time_slot: :pre_lunch, position: 1)
+      plan.meals.create!(position: 99, name: "Pre-lunch snack",
+                         scheduled_time: Time.utc(2000, 1, 1, 11, 45),
+                         target_kcal: 200, target_protein_g: 10, target_carbs_g: 20, target_fat_g: 5)
+      DailyLog.today
+
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(title: "🍱 Pre-lunch snack time"))
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(title: "💊 Pre Lunch supplements"))
+
+      described_class.perform_now(now: Time.zone.local(2026, 4, 26, 11, 45))
+    end
+  end
+
 end

@@ -12,20 +12,17 @@
 class ReminderTickerJob < ApplicationJob
   queue_as :default
 
-  # SupplementSchedule#TIME_SLOT_LABELS holds the prose ("7:00 AM") but we
-  # need a parseable HH:MM here. Keep this map in sync with that one if
-  # you ever rename the slots.
-  SUPPLEMENT_SLOT_TIMES = {
-    "morning"   => [ 7,  0 ],
-    "pre_lunch" => [ 11, 45 ],
-    "dinner"    => [ 19, 30 ],
-    "pre_sleep" => [ 22, 0 ]
-  }.freeze
+  # Cap the meal name in the push payload. Meals are admin/seed-managed
+  # today, but defense-in-depth before that surface ever opens up — push
+  # services reject payloads above ~4KB, and an emoji-bombed name would
+  # waste budget on the wrong axis.
+  MEAL_NAME_LIMIT = 50
 
   def perform(now: Time.current)
     return unless PushNotifier.configured?
 
     today = DailyLog.today
+    return unless today&.plan # no-op if seed data isn't ready (fresh install, etc.)
 
     fire_meal_reminders(today, now)
     fire_supplement_reminders(today, now)
@@ -45,19 +42,26 @@ class ReminderTickerJob < ApplicationJob
       next unless meal.scheduled_time.utc.hour == now.hour && meal.scheduled_time.utc.min == now.min
       next if completed_ids.include?(meal.id)
 
+      meal_name = meal.name.to_s.truncate(MEAL_NAME_LIMIT)
       PushNotifier.broadcast(
-        title: "🍱 #{meal.name} time",
-        body:  "Time to log #{meal.name} (~#{meal.target_kcal} kcal).",
+        title: "🍱 #{meal_name} time",
+        body:  "Time to log #{meal_name} (~#{meal.target_kcal} kcal).",
         url:   "/menu"
       )
     end
   end
 
   def fire_supplement_reminders(today, now)
-    SUPPLEMENT_SLOT_TIMES.each do |slot, (h, m)|
+    # Pluck once outside the loop — the per-slot guard means at most
+    # one slot fires per tick, but doing the read up-front mirrors the
+    # meal_reminders pattern and is robust if two slots ever share a
+    # minute.
+    taken_ids = today.supplement_completions.pluck(:supplement_id).to_set
+
+    SupplementSchedule::SLOT_TIMES.each do |slot, (h, m)|
       next unless h == now.hour && m == now.min
 
-      pending = supplements_in_slot(slot) - today.supplement_completions.pluck(:supplement_id)
+      pending = supplements_in_slot(slot).reject { |id| taken_ids.include?(id) }
       next if pending.empty?
 
       PushNotifier.broadcast(
@@ -69,6 +73,6 @@ class ReminderTickerJob < ApplicationJob
   end
 
   def supplements_in_slot(slot)
-    SupplementSchedule.where(time_slot: SupplementSchedule.time_slots[slot]).pluck(:supplement_id)
+    SupplementSchedule.where(time_slot: slot).pluck(:supplement_id)
   end
 end
