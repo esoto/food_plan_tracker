@@ -40,7 +40,7 @@ Rails.application.routes.draw do
     collection { post :bulk }
   end
   resources :daily_logs,             only: :update
-  resources :logged_foods,           only: %i[create destroy]
+  resources :logged_foods,           only: %i[create update destroy]
 
   namespace :api do
     namespace :v1 do

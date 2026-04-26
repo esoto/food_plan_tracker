@@ -37,6 +37,9 @@
     <%= form_with url: logged_foods_path, class: "shrink-0" do |f| %>
       <%= f.hidden_field :food_id, value: food.id %>
       <%= f.hidden_field :quantity_grams, value: food.serving_grams, data: { food_calc_target: "quantityInput" } %>
+      <% if local_assigns[:target_log] %>
+        <%= f.hidden_field :daily_log_id, value: target_log.id %>
+      <% end %>
       <%= f.submit "+ Log", class: "rounded-lg bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 hover:bg-indigo-700 cursor-pointer h-full" %>
     <% end %>
   </div>
