@@ -17,22 +17,23 @@ class MealCompletionsController < ApplicationController
 
   # Copies yesterday's meal completions onto today. Only operates when both
   # days share a plan (different plans have different meal_ids and copying
-  # across them would mean nothing). find_or_create_by makes the operation
-  # idempotent — partial completes today are preserved, missing ones added.
+  # across them would mean nothing). Idempotent — partial completes today
+  # are preserved.
   def copy_yesterday
     today = today_log
-    yesterday = DailyLog.find_by(date: Date.current - 1)
+    yesterday = DailyLog.yesterday
 
-    if yesterday.nil? || yesterday.plan_id != today.plan_id
-      redirect_to(menu_path, alert: "Yesterday's plan doesn't match today — nothing to copy.") and return
+    if yesterday.nil?
+      return redirect_to(menu_path, status: :see_other, alert: "No log from yesterday yet — nothing to copy.")
     end
 
-    yesterday.meal_completions.each do |mc|
-      today.meal_completions.find_or_create_by!(meal_id: mc.meal_id) { |new_mc| new_mc.completed_at = Time.current }
+    if yesterday.plan_id != today.plan_id
+      return redirect_to(menu_path, status: :see_other, alert: "Yesterday's plan doesn't match today — nothing to copy.")
     end
 
+    copied = today.copy_completions_from(yesterday)
     redirect_to menu_path, status: :see_other,
-                notice: "Copied #{yesterday.meal_completions.size} meals from yesterday."
+                notice: "Copied #{copied} #{'meal'.pluralize(copied)} from yesterday."
   end
 
   private

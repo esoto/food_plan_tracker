@@ -21,6 +21,33 @@ class DailyLog < ApplicationRecord
     self.for(Date.current)
   end
 
+  def self.yesterday
+    find_by(date: Date.current - 1)
+  end
+
+  # True when `other` has completions worth copying onto self: same plan,
+  # has at least one completion, and self has fewer than other.
+  def can_copy_from?(other)
+    return false if other.nil?
+    return false unless other.plan_id == plan_id
+
+    other_count = other.meal_completions.size
+    other_count.positive? && other_count > meal_completions.size
+  end
+
+  # Copies completions from `other` onto self, skipping meals already
+  # marked complete here. Returns the number actually inserted. Atomic.
+  def copy_completions_from(other)
+    existing = meal_completions.pluck(:meal_id).to_set
+    to_copy = other.meal_completions.where.not(meal_id: existing.to_a)
+
+    transaction do
+      to_copy.each { |mc| meal_completions.create!(meal_id: mc.meal_id, completed_at: Time.current) }
+    end
+
+    to_copy.size
+  end
+
   def consumed_kcal
     (completed_meals.sum(:target_kcal) + logged_foods.sum(&:kcal)).to_i
   end
