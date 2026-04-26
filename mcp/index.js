@@ -67,6 +67,16 @@ server.registerTool(
 );
 
 server.registerTool(
+  "get_weekly_summary",
+  {
+    title: "Get last-7-days summary",
+    description: "Rolling 7-day recap: avg habits adherence %, weight delta in kg (negative = weight loss), meal completion %, supplement adherence %. Any metric may be null when there's no data to compute it.",
+    inputSchema: {}
+  },
+  async () => jsonResult(await api("GET", "/api/v1/weekly_summary"))
+);
+
+server.registerTool(
   "get_day_status",
   {
     title: "Get a past day's status",
@@ -121,6 +131,18 @@ server.registerTool(
     const meal = await resolveMealId({ name, plan_slug, date });
     return jsonResult(await api("DELETE", `/api/v1/meals/${meal.id}/complete?date=${date || ""}`));
   }
+);
+
+server.registerTool(
+  "copy_yesterday_meals",
+  {
+    title: "Copy yesterday's meal completions onto today",
+    description: "Marks today's meals as complete using yesterday's completions, when both days share a plan. Idempotent — meals already completed today are preserved. Pass `date` to copy onto a different target day (the day before that date is the source).",
+    inputSchema: {
+      date: ISO_DATE.optional().describe("target day; defaults to today")
+    }
+  },
+  async ({ date }) => jsonResult(await api("POST", "/api/v1/meal_completions/copy_yesterday", { date }))
 );
 
 server.registerTool(
@@ -184,28 +206,6 @@ server.registerTool(
     inputSchema: { q: z.string() }
   },
   async ({ q }) => jsonResult(await api("GET", `/api/v1/foods?q=${encodeURIComponent(q)}`))
-);
-
-server.registerTool(
-  "get_weekly_summary",
-  {
-    title: "Get last-7-days summary",
-    description: "Rolling 7-day recap: avg habits adherence %, weight delta in kg (negative = weight loss), meal completion %, supplement adherence %. Any metric may be null when there's no data to compute it.",
-    inputSchema: {}
-  },
-  async () => jsonResult(await api("GET", "/api/v1/weekly_summary"))
-);
-
-server.registerTool(
-  "copy_yesterday_meals",
-  {
-    title: "Copy yesterday's meal completions onto today",
-    description: "Marks today's meals as complete using yesterday's completions, when both days share a plan. Idempotent — meals already completed today are preserved. Pass `date` to copy onto a different target day (the day_before that date is the source).",
-    inputSchema: {
-      date: ISO_DATE.optional().describe("target day; defaults to today")
-    }
-  },
-  async ({ date }) => jsonResult(await api("POST", "/api/v1/meal_completions/copy_yesterday", { date }))
 );
 
 server.registerTool(

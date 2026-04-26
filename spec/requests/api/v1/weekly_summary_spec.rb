@@ -41,11 +41,13 @@ RSpec.describe "GET /api/v1/weekly_summary", type: :request do
   it "serializes nil metrics as null" do
     DailyLog.destroy_all
     Supplement.destroy_all
+    weight_goal.biomarker_entries.destroy_all
 
     get "/api/v1/weekly_summary", headers: auth_headers
 
     body = response.parsed_body
     expect(body["adherence_pct"]).to be_nil
+    expect(body["weight_delta_kg"]).to be_nil
     expect(body["meal_completion_pct"]).to be_nil
     expect(body["supplement_completion_pct"]).to be_nil
   end
