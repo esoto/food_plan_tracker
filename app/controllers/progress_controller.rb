@@ -4,5 +4,6 @@ class ProgressController < ApplicationController
     @weight_entries = @weight_goal&.biomarker_entries&.where("recorded_on >= ?", 90.days.ago)&.chronological || []
     @goals = Goal.all.includes(:biomarker_entries)
     @recent_logs = DailyLog.where(date: 13.days.ago.to_date..Date.current).order(:date)
+    @weekly_summary = WeeklySummary.rolling_7_days
   end
 end
