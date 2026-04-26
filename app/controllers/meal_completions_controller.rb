@@ -15,6 +15,27 @@ class MealCompletionsController < ApplicationController
     render partial: "menu/meal_card", locals: { meal: meal, completed: false, daily_log: daily_log }
   end
 
+  # Copies yesterday's meal completions onto today. Only operates when both
+  # days share a plan (different plans have different meal_ids and copying
+  # across them would mean nothing). Idempotent — partial completes today
+  # are preserved.
+  def copy_yesterday
+    today = today_log
+    yesterday = DailyLog.yesterday
+
+    if yesterday.nil?
+      return redirect_to(menu_path, status: :see_other, alert: "No log from yesterday yet — nothing to copy.")
+    end
+
+    unless today.can_copy_from?(yesterday)
+      return redirect_to(menu_path, status: :see_other, alert: "Yesterday's plan doesn't match today — nothing to copy.")
+    end
+
+    copied = today.copy_completions_from(yesterday)
+    notice = copied.zero? ? "Already up to date." : "Copied #{copied} #{'meal'.pluralize(copied)} from yesterday."
+    redirect_to menu_path, status: :see_other, notice: notice
+  end
+
   private
 
   def set_daily_log
