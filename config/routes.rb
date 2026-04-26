@@ -84,6 +84,13 @@ Rails.application.routes.draw do
       delete "/logged_foods/:id",        to: "logged_foods#destroy"
 
       resource :weekly_summary, only: :show, controller: "weekly_summary"
+
+      resources :supplements, only: %i[index create update destroy] do
+        member { patch :restore }
+      end
+      resources :habits, only: %i[index create update destroy] do
+        member { patch :restore }
+      end
     end
   end
 

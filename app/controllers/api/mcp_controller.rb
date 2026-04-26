@@ -213,6 +213,85 @@ module Api
       }
     end
 
+    def handle_list_supplements(args)
+      scope = args["archived"] ? Supplement.discarded : Supplement.kept
+      scope = scope.includes(:supplement_schedules).order(critical: :desc, name: :asc)
+      { supplements: scope.map { |s| serialize_supplement(s) } }
+    end
+
+    def handle_create_supplement(args)
+      attrs = args.slice("name", "dose", "critical", "notes", "contraindications")
+      supplement = Supplement.create!(attrs)
+      sync_supplement_schedules(supplement, args["time_slots"])
+      { supplement: serialize_supplement(supplement.reload) }
+    end
+
+    def handle_update_supplement(args)
+      supplement = Supplement.find(args.fetch("id"))
+      attrs = args.slice("name", "dose", "critical", "notes", "contraindications").compact
+      supplement.update!(attrs) if attrs.any?
+      sync_supplement_schedules(supplement, args["time_slots"]) if args.key?("time_slots")
+      { supplement: serialize_supplement(supplement.reload) }
+    end
+
+    def handle_archive_supplement(args)
+      supplement = Supplement.find(args.fetch("id"))
+      supplement.discard!
+      { supplement: serialize_supplement(supplement.reload) }
+    end
+
+    def handle_restore_supplement(args)
+      supplement = Supplement.find(args.fetch("id"))
+      supplement.restore!
+      { supplement: serialize_supplement(supplement.reload) }
+    end
+
+    def handle_list_habits(args)
+      scope = args["archived"] ? ChecklistTemplate.discarded.order(:label) : ChecklistTemplate.kept.ordered
+      { habits: scope.map { |t| serialize_habit(t) } }
+    end
+
+    def handle_create_habit(args)
+      attrs = args.slice("label", "description", "icon")
+      template = ChecklistTemplate.new(attrs)
+      template.position = (ChecklistTemplate.kept.maximum(:position) || -1) + 1
+      template.save!
+      { habit: serialize_habit(template) }
+    end
+
+    def handle_update_habit(args)
+      template = ChecklistTemplate.find(args.fetch("id"))
+      attrs = args.slice("label", "description", "icon", "position").compact
+      template.update!(attrs) if attrs.any?
+      { habit: serialize_habit(template.reload) }
+    end
+
+    def handle_archive_habit(args)
+      template = ChecklistTemplate.find(args.fetch("id"))
+      template.discard!
+      { habit: serialize_habit(template.reload) }
+    end
+
+    def handle_restore_habit(args)
+      template = ChecklistTemplate.find(args.fetch("id"))
+      next_position = (ChecklistTemplate.kept.maximum(:position) || -1) + 1
+      template.update!(discarded_at: nil, position: next_position)
+      { habit: serialize_habit(template.reload) }
+    end
+
+    def sync_supplement_schedules(supplement, requested)
+      requested = Array(requested).map(&:to_s).to_set & SupplementSchedule::TIME_SLOTS.keys.map(&:to_s)
+      existing  = supplement.supplement_schedules.index_by(&:time_slot)
+
+      (requested - existing.keys).each do |slot|
+        next_position = (SupplementSchedule.where(time_slot: slot).maximum(:position) || -1) + 1
+        supplement.supplement_schedules.create!(time_slot: slot, position: next_position)
+      end
+      (existing.keys - requested.to_a).each do |slot|
+        existing[slot].destroy!
+      end
+    end
+
     def handle_copy_yesterday_meals(args)
       target_date = date_arg(args)
       yesterday = DailyLog.find_by(date: target_date - 1)
@@ -400,6 +479,133 @@ module Api
           }
         },
         handler: :handle_active_meals
+      },
+
+      # ----- Supplements (templates, not completions) -----
+      {
+        name:        "list_supplements",
+        description: "List supplements. Default returns active (non-archived) sorted by critical first then name. Pass archived=true for the archived list.",
+        inputSchema: {
+          type: "object",
+          properties: { "archived" => { type: "boolean", default: false } }
+        },
+        handler: :handle_list_supplements
+      },
+      {
+        name:        "create_supplement",
+        description: "Add a supplement. time_slots is an optional list of slot keys (morning, pre_lunch, dinner, pre_sleep) — each becomes a row on /supplements at that time.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "name"              => { type: "string" },
+            "dose"              => { type: "string", description: "e.g. '1 capsule' or '5 g'" },
+            "critical"          => { type: "boolean", default: false },
+            "notes"             => { type: "string" },
+            "contraindications" => { type: "string" },
+            "time_slots"        => { type: "array", items: { type: "string", enum: %w[morning pre_lunch dinner pre_sleep] } }
+          },
+          required: %w[name dose]
+        },
+        handler: :handle_create_supplement
+      },
+      {
+        name:        "update_supplement",
+        description: "Edit a supplement by id. Any provided field is updated; omitted fields are unchanged. Pass time_slots to fully replace the slot assignments (omit to leave them alone).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "id"                => { type: "integer", exclusiveMinimum: 0 },
+            "name"              => { type: "string" },
+            "dose"              => { type: "string" },
+            "critical"          => { type: "boolean" },
+            "notes"             => { type: "string" },
+            "contraindications" => { type: "string" },
+            "time_slots"        => { type: "array", items: { type: "string", enum: %w[morning pre_lunch dinner pre_sleep] } }
+          },
+          required: %w[id]
+        },
+        handler: :handle_update_supplement
+      },
+      {
+        name:        "archive_supplement",
+        description: "Soft-delete a supplement: it disappears from /supplements and the rolling adherence calc, but past completion records remain.",
+        inputSchema: {
+          type: "object",
+          properties: { "id" => { type: "integer", exclusiveMinimum: 0 } },
+          required: %w[id]
+        },
+        handler: :handle_archive_supplement
+      },
+      {
+        name:        "restore_supplement",
+        description: "Un-archive a supplement (clears discarded_at).",
+        inputSchema: {
+          type: "object",
+          properties: { "id" => { type: "integer", exclusiveMinimum: 0 } },
+          required: %w[id]
+        },
+        handler: :handle_restore_supplement
+      },
+
+      # ----- Habits (ChecklistTemplate) -----
+      {
+        name:        "list_habits",
+        description: "List habit templates. Default returns active (non-archived) in display order. Pass archived=true for the archived list.",
+        inputSchema: {
+          type: "object",
+          properties: { "archived" => { type: "boolean", default: false } }
+        },
+        handler: :handle_list_habits
+      },
+      {
+        name:        "create_habit",
+        description: "Add a habit. New habits get appended at the bottom of the order.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "label"       => { type: "string" },
+            "description" => { type: "string" },
+            "icon"        => { type: "string", description: "single emoji, optional" }
+          },
+          required: %w[label]
+        },
+        handler: :handle_create_habit
+      },
+      {
+        name:        "update_habit",
+        description: "Edit a habit by id. Pass an integer position to reorder (lower = earlier on /checklist).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "id"          => { type: "integer", exclusiveMinimum: 0 },
+            "label"       => { type: "string" },
+            "description" => { type: "string" },
+            "icon"        => { type: "string" },
+            "position"    => { type: "integer", minimum: 0 }
+          },
+          required: %w[id]
+        },
+        handler: :handle_update_habit
+      },
+      {
+        name:        "archive_habit",
+        description: "Soft-delete a habit: it disappears from /checklist and the adherence calc, but past completion records remain.",
+        inputSchema: {
+          type: "object",
+          properties: { "id" => { type: "integer", exclusiveMinimum: 0 } },
+          required: %w[id]
+        },
+        handler: :handle_archive_habit
+      },
+      {
+        name:        "restore_habit",
+        description: "Un-archive a habit; it's appended at the bottom of the order.",
+        inputSchema: {
+          type: "object",
+          properties: { "id" => { type: "integer", exclusiveMinimum: 0 } },
+          required: %w[id]
+        },
+        handler: :handle_restore_habit
       }
     ].freeze
   end

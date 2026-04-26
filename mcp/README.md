@@ -92,6 +92,8 @@ This stores the token in `~/.claude.json` in plaintext. Anyone running `claude m
 | `set_plan_for_day` | Switch a day to exercise/active/rest |
 | `list_goals` | Goal progress (weight, body fat, HDL, ...) |
 | `search_foods` | Find canonical food names |
+| `list_supplements` / `create_supplement` / `update_supplement` / `archive_supplement` / `restore_supplement` | Manage the supplement library that drives `/supplements`. Soft-delete preserves past completion records. |
+| `list_habits` / `create_habit` / `update_habit` / `archive_habit` / `restore_habit` | Manage the habit templates that drive `/checklist`. Soft-delete preserves past completion records. |
 
 All write tools accept an optional `date` (YYYY-MM-DD) for backfilling past days.
 
@@ -109,6 +111,6 @@ security add-generic-password -a "$USER" -s food_plan_tracker_mcp_token -w '<new
 
 ## Out of scope
 
-- Editing plan macro targets, goal targets, supplements (use the `/settings` page in the browser)
+- Editing plan macro targets, goal targets (use the `/settings` page in the browser)
 - CLI tool (only MCP for now)
 - Multi-user (single-tenant; tokens are not user-scoped)
