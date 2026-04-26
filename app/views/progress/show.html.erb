@@ -5,7 +5,9 @@
   <p class="text-sm text-slate-500 mt-1">Trends and projections.</p>
 </header>
 
-<section class="px-4">
+<%= render "progress/weekly_summary", summary: @weekly_summary %>
+
+<section class="px-4 mt-4">
   <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
     <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Weight (last 90 days)</p>
     <% if @weight_entries.any? %>
