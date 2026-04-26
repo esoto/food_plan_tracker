@@ -9,39 +9,73 @@ cd mcp
 npm install
 ```
 
-The Rails app needs an API token in its `.env`:
+## Issue an API token
 
+API tokens are stored in the database (`api_tokens` table — name + SHA-256 digest, plaintext is never persisted). Each client (MCP, phone shortcut, future apps) gets its own token; revoke any one without touching the others.
+
+**Production (against the running container):**
+
+```bash
+kamal app exec --reuse "bin/rails api_tokens:create NAME=mcp"
+# → "Token (copy now — only shown once): <64-char hex>"
 ```
-API_TOKEN=<long-random-string>
+
+**Development:**
+
+```bash
+bin/rails api_tokens:create NAME=mcp-dev
 ```
 
-Restart the Rails server after editing `.env` (dotenv loads at boot).
+The plaintext is printed once. Copy it immediately. There is no way to retrieve it later — only revoke and re-issue.
 
-Use the same token as `FOOD_API_TOKEN` for the MCP server.
+List or revoke:
+
+```bash
+kamal api-token-list                                       # production
+kamal app exec --reuse "bin/rails api_tokens:revoke NAME=mcp"
+```
 
 ## Smoke test (before connecting Claude)
 
-With the Rails server running on `:3000`:
-
 ```bash
-curl -H "Authorization: Bearer $API_TOKEN" http://localhost:3000/api/v1/today
+TOKEN='<paste-once>'
+curl -s -o /dev/null -w "with token: %{http_code}\n" \
+  -H "Authorization: Bearer $TOKEN" \
+  https://food.estebansoto.dev/api/v1/today
+# → 200
 
-curl -X POST -H "Authorization: Bearer $API_TOKEN" -H "Content-Type: application/json" \
-  -d '{"value": 86.4}' http://localhost:3000/api/v1/weight
-
-# auth gate
-curl -i http://localhost:3000/api/v1/today        # → 401
+curl -s -o /dev/null -w "no token: %{http_code}\n" https://food.estebansoto.dev/api/v1/today
+# → 401
 ```
 
-## Add to Claude Code
+## Add to Claude Code (recommended: macOS Keychain)
+
+The token must NOT live as an env var in `~/.claude.json` — `claude mcp get` would print it. Use the keychain wrapper instead:
 
 ```bash
-claude mcp add food-tracker -- node /Users/esoto/food_plan_tracker/mcp/index.js \
-  -e FOOD_API_BASE_URL=http://localhost:3000 \
-  -e FOOD_API_TOKEN=<the-same-token>
+# Store the token in macOS Keychain (encrypted at rest, no plaintext file).
+security add-generic-password -a "$USER" -s food_plan_tracker_mcp_token -w '<paste-token-once>'
+
+# Register the MCP server pointing at the wrapper script.
+claude mcp add food-tracker --scope user \
+  -e FOOD_API_BASE_URL=https://food.estebansoto.dev \
+  -- /Users/esoto/food_plan_tracker/mcp/bin/run-keychain
 ```
 
-Then in any Claude Code session: "what did I eat today?" or "log my weight at 86.4 kg" and Claude will call the right tool.
+The wrapper reads the token from Keychain at spawn time, exports `FOOD_API_TOKEN` only inside the spawned Node process, and never echoes it. `claude mcp get food-tracker` will show only `FOOD_API_BASE_URL`.
+
+## Add to Claude Code (alternative: env var, less safe)
+
+If you don't want the keychain dependency, you can pass the token directly:
+
+```bash
+claude mcp add food-tracker --scope user \
+  -e FOOD_API_BASE_URL=https://food.estebansoto.dev \
+  -e FOOD_API_TOKEN='<token>' \
+  -- node /Users/esoto/food_plan_tracker/mcp/index.js
+```
+
+This stores the token in `~/.claude.json` in plaintext. Anyone running `claude mcp get food-tracker` (including any AI assistant in any Claude Code session) can read it.
 
 ## Tools
 
@@ -60,8 +94,20 @@ Then in any Claude Code session: "what did I eat today?" or "log my weight at 86
 
 All write tools accept an optional `date` (YYYY-MM-DD) for backfilling past days.
 
+## Rotating a leaked token
+
+If a token is ever exposed (e.g. printed to a chat transcript, committed by mistake), revoke and reissue without disrupting other clients:
+
+```bash
+kamal app exec --reuse "bin/rails api_tokens:revoke NAME=mcp"
+kamal app exec --reuse "bin/rails api_tokens:create NAME=mcp"
+# update keychain:
+security delete-generic-password -s food_plan_tracker_mcp_token
+security add-generic-password -a "$USER" -s food_plan_tracker_mcp_token -w '<new-token>'
+```
+
 ## Out of scope
 
-- Editing plan macro targets, goal targets, supplements (use the [/settings](http://localhost:3000/settings) page in the browser)
+- Editing plan macro targets, goal targets, supplements (use the `/settings` page in the browser)
 - CLI tool (only MCP for now)
-- Multi-user (token is global)
+- Multi-user (single-tenant; tokens are not user-scoped)

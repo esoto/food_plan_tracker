@@ -11,14 +11,13 @@ module Api
 
     def authenticate_token!
       provided = request.headers["Authorization"].to_s.sub(/^Bearer /, "")
-      expected = expected_token
-      if expected.blank? || !ActiveSupport::SecurityUtils.secure_compare(provided, expected)
+      token = ApiToken.authenticate(provided)
+      if token
+        token.touch_used!
+        @current_api_token = token
+      else
         render json: { error: "unauthorized" }, status: :unauthorized
       end
-    end
-
-    def expected_token
-      ENV["API_TOKEN"].presence || Rails.application.credentials.api_token.to_s
     end
 
     def daily_log_for(date_param)
