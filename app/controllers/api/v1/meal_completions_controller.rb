@@ -16,6 +16,22 @@ module Api
         completion.destroy!
         render json: { ok: true, day: serialize_day(log.reload) }
       end
+
+      def copy_yesterday
+        today = daily_log_for(params[:date])
+        yesterday = DailyLog.find_by(date: today.date - 1)
+
+        if yesterday.nil?
+          return render json: { error: "no_yesterday_log" }, status: :unprocessable_entity
+        end
+
+        unless today.can_copy_from?(yesterday)
+          return render json: { error: "plan_mismatch", today_plan: today.plan.slug, yesterday_plan: yesterday.plan.slug }, status: :unprocessable_entity
+        end
+
+        copied = today.copy_completions_from(yesterday)
+        render json: { ok: true, copied: copied, day: serialize_day(today.reload) }
+      end
     end
   end
 end
