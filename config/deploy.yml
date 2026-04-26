@@ -35,12 +35,26 @@ env:
     RAILS_LOG_TO_STDOUT: "1"
     SOLID_QUEUE_IN_PUMA: "true"
     TZ: America/Costa_Rica
+    # Postgres connection — shared `personal-blog-db` container (Kamal network).
+    POSTGRES_USER: food_plan_tracker
+    POSTGRES_HOST: personal-blog-db
+    POSTGRES_PORT: "5432"
+    # Primary DB pool per process. Same math as expense_tracker (PER-494):
+    # Puma + SQ supervisor + dispatcher + workers ≈ 6 procs × 10 = 60 conns,
+    # safely under the shared host's max_connections=100.
+    DB_POOL: "10"
+    # Web threads + queue/cache/cable pool size. SQ critical worker needs
+    # 5 threads + supervisor + dispatcher = 7; expense_tracker hit
+    # "configured to use 7 threads but pool is 6" with 6 here.
+    RAILS_MAX_THREADS: "8"
   secret:
     - RAILS_MASTER_KEY
+    - POSTGRES_PASSWORD
     - ADMIN_EMAIL
     - ADMIN_PASSWORD
 
-# SQLite database + Active Storage survive deploys via a named volume.
+# Active Storage uploads survive deploys via a named volume. SQLite files
+# previously lived here too — no longer needed since the move to Postgres.
 volumes:
   - "food_plan_tracker_storage:/rails/storage"
 

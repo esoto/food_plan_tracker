@@ -4,7 +4,7 @@ class ExchangesController < ApplicationController
     @category = "protein" unless Food.categories.key?(@category)
     @query = params[:q].to_s.strip
     scope = Food.where(category: @category).alphabetical
-    scope = scope.where("name LIKE ?", "%#{@query}%") if @query.present?
+    scope = scope.where("name ILIKE ?", "%#{@query}%") if @query.present?
     @foods = scope
   end
 end
