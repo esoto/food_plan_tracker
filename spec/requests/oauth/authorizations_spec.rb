@@ -29,7 +29,7 @@ RSpec.describe "GET /oauth/authorize", type: :request do
     expect(response).to redirect_to(new_session_path)
   end
 
-  it "renders the consent screen for callers who just signed in" do
+  it "renders the styled consent screen for callers who just signed in" do
     user.update!(password: "secret-pw-123")
     post "/session", params: { email_address: user.email_address, password: "secret-pw-123" }
     expect(response).to have_http_status(:redirect) # follows root_url after login
@@ -38,5 +38,8 @@ RSpec.describe "GET /oauth/authorize", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response).not_to redirect_to(new_session_path)
+    # Custom view picked up + scope label from oauth.en.yml (would be "Mcp" if locale missing)
+    expect(response.body).to include("Authorize Claude")
+    expect(response.body).to include("Read and write your food log")
   end
 end

@@ -1,0 +1,47 @@
+<div class="w-full max-w-sm">
+  <div class="text-center mb-6">
+    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-500 shadow-md mx-auto flex items-center justify-center text-white text-2xl">🥗</div>
+    <h1 class="font-bold text-2xl text-slate-900 dark:text-slate-100 mt-4">Authorize <%= @pre_auth.client.name %></h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Connect this app to your food tracker.</p>
+  </div>
+
+  <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-sm ring-1 ring-slate-200 dark:ring-slate-800 p-5 space-y-4">
+    <% if @pre_auth.scopes.count > 0 %>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">It will be able to</p>
+        <ul class="space-y-2">
+          <% @pre_auth.scopes.each do |scope| %>
+            <li class="flex items-start gap-2 text-sm text-slate-800 dark:text-slate-200">
+              <svg class="w-4 h-4 mt-0.5 text-indigo-600 dark:text-indigo-400 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span><%= t scope, scope: [ :doorkeeper, :scopes ] %></span>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="space-y-2 pt-2">
+      <%= form_tag oauth_authorization_path, method: :post do %>
+        <%= hidden_field_tag :client_id, @pre_auth.client.uid, id: nil %>
+        <% %i[redirect_uri state response_type response_mode scope code_challenge code_challenge_method].each do |field| %>
+          <%= hidden_field_tag field, @pre_auth.public_send(field), id: nil %>
+        <% end %>
+        <%= submit_tag t("doorkeeper.authorizations.buttons.authorize"),
+              class: "w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 shadow-sm cursor-pointer" %>
+      <% end %>
+
+      <%= form_tag oauth_authorization_path, method: :delete do %>
+        <%= hidden_field_tag :client_id, @pre_auth.client.uid, id: nil %>
+        <% %i[redirect_uri state response_type response_mode scope code_challenge code_challenge_method].each do |field| %>
+          <%= hidden_field_tag field, @pre_auth.public_send(field), id: nil %>
+        <% end %>
+        <%= submit_tag t("doorkeeper.authorizations.buttons.deny"),
+              class: "w-full rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium py-3 cursor-pointer" %>
+      <% end %>
+    </div>
+  </div>
+
+  <p class="text-xs text-slate-400 dark:text-slate-500 text-center mt-4">
+    You can revoke this connection any time by removing it from <%= @pre_auth.client.name %>.
+  </p>
+</div>
