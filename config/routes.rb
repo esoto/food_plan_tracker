@@ -43,6 +43,11 @@ Rails.application.routes.draw do
   resources :logged_foods,           only: %i[create update destroy]
   # destroy lives on the collection because the client knows the endpoint
   # URL but not our internal id.
+  resource  :notifications, only: :show, controller: "notifications"
+  # Single PATCH targeting one preference; identified by composite
+  # (reminder_type, key) sent as params, not a URL id.
+  patch     "/reminder_preferences", to: "reminder_preferences#update", as: :reminder_preferences
+
   resources :push_subscriptions, only: :create do
     collection do
       delete :destroy

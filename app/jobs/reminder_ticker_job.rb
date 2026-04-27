@@ -41,6 +41,7 @@ class ReminderTickerJob < ApplicationJob
       # user typed in /settings.
       next unless meal.scheduled_time.utc.hour == now.hour && meal.scheduled_time.utc.min == now.min
       next if completed_ids.include?(meal.id)
+      next unless ReminderPreference.enabled?(reminder_type: "meal", key: meal.name)
 
       meal_name = meal.name.to_s.truncate(MEAL_NAME_LIMIT)
       PushNotifier.broadcast(
@@ -60,6 +61,7 @@ class ReminderTickerJob < ApplicationJob
 
     SupplementSchedule::SLOT_TIMES.each do |slot, (h, m)|
       next unless h == now.hour && m == now.min
+      next unless ReminderPreference.enabled?(reminder_type: "supplement_slot", key: slot)
 
       pending = supplements_in_slot(slot).reject { |id| taken_ids.include?(id) }
       next if pending.empty?

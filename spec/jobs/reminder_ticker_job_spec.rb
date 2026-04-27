@@ -107,6 +107,24 @@ RSpec.describe ReminderTickerJob, type: :job do
     end
   end
 
+  describe "preference gate" do
+    it "skips a meal reminder when its preference is disabled" do
+      DailyLog.today
+      ReminderPreference.set(reminder_type: "meal", key: "Breakfast", enabled: false)
+
+      expect(PushNotifier).not_to receive(:broadcast)
+      described_class.perform_now(now: Time.zone.local(2026, 4, 26, 7, 30))
+    end
+
+    it "skips a supplement-slot reminder when its preference is disabled" do
+      DailyLog.today
+      ReminderPreference.set(reminder_type: "supplement_slot", key: "morning", enabled: false)
+
+      expect(PushNotifier).not_to receive(:broadcast)
+      described_class.perform_now(now: Time.zone.local(2026, 4, 26, 7, 0))
+    end
+  end
+
   describe "dual fire (meal + supplement at the same minute)" do
     it "broadcasts both the meal and the supplement-slot push" do
       # pre_lunch slot fires at 11:45; add a supplement to that slot

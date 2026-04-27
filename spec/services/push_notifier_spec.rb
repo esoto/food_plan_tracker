@@ -54,6 +54,22 @@ RSpec.describe PushNotifier do
       expect(result).to eq(sent: 2, pruned: 0)
     end
 
+    it "writes a NotificationDelivery row recording the broadcast" do
+      allow(WebPush).to receive(:payload_send).and_return(true)
+
+      expect {
+        described_class.broadcast(title: "Test", body: "Body", url: "/menu")
+      }.to change(NotificationDelivery, :count).by(1)
+
+      delivery = NotificationDelivery.last
+      expect(delivery.title).to eq("Test")
+      expect(delivery.body).to eq("Body")
+      expect(delivery.url).to eq("/menu")
+      expect(delivery.sent_count).to eq(2)
+      expect(delivery.pruned_count).to eq(0)
+      expect(delivery.fired_at).to be_within(2.seconds).of(Time.current)
+    end
+
     it "prunes subscriptions whose endpoint has expired (410)" do
       response = double("HTTP response", code: "410", body: "Gone", inspect: "<410>")
       expect(WebPush).to receive(:payload_send).with(hash_including(endpoint: sub_a.endpoint))
