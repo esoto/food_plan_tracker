@@ -362,5 +362,89 @@ server.registerTool(
   async ({ id }) => jsonResult(await api("PATCH", `/api/v1/habits/${id}/restore`))
 );
 
+// ----- Settings: macro targets (plan/meal/goal) -----
+
+const PLAN_SLUG = z.enum(["exercise", "active", "rest"]);
+const HHMM      = z.string().regex(/^\d{1,2}:\d{2}$/, "expected HH:MM in 24-hour clock");
+const GOAL_METRIC = z.enum([
+  "weight_kg", "body_fat_pct", "hdl", "hs_crp", "visceral_fat", "muscle_mass_kg"
+]);
+
+async function resolvePlanIdBySlug(slug) {
+  const res = await api("GET", "/api/v1/plans");
+  const plan = (res.plans || []).find(p => p.slug === slug);
+  if (!plan) throw new Error(`No plan with slug "${slug}". Valid: exercise, active, rest`);
+  return plan.id;
+}
+
+async function resolveGoalIdByMetric(metric) {
+  const res = await api("GET", "/api/v1/goals");
+  const goal = (res.goals || []).find(g => g.metric === metric);
+  if (!goal) throw new Error(`No goal exists for metric "${metric}".`);
+  return goal.id;
+}
+
+server.registerTool(
+  "update_plan",
+  {
+    title: "Update plan macro targets",
+    description: "Update macro targets for one of the three day types. Pass any subset of target_kcal, target_protein_g, target_carbs_g, target_fat_g.",
+    inputSchema: {
+      slug:             PLAN_SLUG,
+      target_kcal:      z.number().int().positive().optional(),
+      target_protein_g: z.number().positive().optional(),
+      target_carbs_g:   z.number().positive().optional(),
+      target_fat_g:     z.number().positive().optional()
+    }
+  },
+  async ({ slug, ...rest }) => {
+    if (Object.keys(rest).length === 0) {
+      throw new Error("no updatable fields provided");
+    }
+    const id = await resolvePlanIdBySlug(slug);
+    return jsonResult(await api("PATCH", `/api/v1/plans/${id}`, { plan: rest }));
+  }
+);
+
+server.registerTool(
+  "update_meal",
+  {
+    title: "Update a meal",
+    description: "Rename a meal, reschedule it (HH:MM), or change per-meal macro targets. Looks up the meal by name on the given plan (defaults to today's plan if plan_slug omitted).",
+    inputSchema: {
+      plan_slug:        PLAN_SLUG.optional(),
+      name:             z.string().describe("current meal name, e.g. 'Breakfast'"),
+      scheduled_time:   HHMM.optional(),
+      target_kcal:      z.number().int().positive().optional(),
+      target_protein_g: z.number().positive().optional(),
+      target_carbs_g:   z.number().positive().optional(),
+      target_fat_g:     z.number().positive().optional()
+    }
+  },
+  async ({ plan_slug, name, ...rest }) => {
+    if (Object.keys(rest).length === 0) {
+      throw new Error("no updatable fields provided");
+    }
+    const meal = await resolveMealId({ name, plan_slug });
+    return jsonResult(await api("PATCH", `/api/v1/meals/${meal.id}`, { meal: rest }));
+  }
+);
+
+server.registerTool(
+  "update_goal",
+  {
+    title: "Update a goal target",
+    description: "Update target_value for a tracked goal, looked up by metric.",
+    inputSchema: {
+      metric:       GOAL_METRIC,
+      target_value: z.number()
+    }
+  },
+  async ({ metric, target_value }) => {
+    const id = await resolveGoalIdByMetric(metric);
+    return jsonResult(await api("PATCH", `/api/v1/goals/${id}`, { goal: { target_value } }));
+  }
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);

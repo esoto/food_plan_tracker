@@ -76,10 +76,10 @@ Rails.application.routes.draw do
       get "/days/:date", to: "days#show",        constraints: { date: /\d{4}-\d{2}-\d{2}/ }
       patch "/days/:date/plan", to: "days#update_plan", constraints: { date: /\d{4}-\d{2}-\d{2}/ }
 
-      resources :plans, only: :index
-      resources :goals, only: :index
+      resources :plans, only: %i[index update]
+      resources :goals, only: %i[index update]
       resources :foods, only: %i[index create]
-      resources :meals, only: :index
+      resources :meals, only: %i[index update]
 
       post   "/weight",                  to: "weight#create"
       post   "/meals/:meal_id/complete", to: "meal_completions#create"

@@ -96,6 +96,7 @@ This stores the token in `~/.claude.json` in plaintext. Anyone running `claude m
 | `copy_yesterday_meals` | Copy yesterday's meal completions onto today (or a target date) when the plans match |
 | `list_supplements` / `create_supplement` / `update_supplement` / `archive_supplement` / `restore_supplement` | Manage the supplement library that drives `/supplements`. Soft-delete preserves past completion records. |
 | `list_habits` / `create_habit` / `update_habit` / `archive_habit` / `restore_habit` | Manage the habit templates that drive `/checklist`. Soft-delete preserves past completion records. |
+| `update_plan` / `update_meal` / `update_goal` | Edit the macro targets the `/settings` page exposes — per-day plan macros, per-meal macros (and rename / reschedule), and goal target values. |
 
 All write tools accept an optional `date` (YYYY-MM-DD) for backfilling past days.
 

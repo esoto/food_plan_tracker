@@ -1,4 +1,13 @@
 class Meal < ApplicationRecord
+  # Raised when a string assigned to scheduled_time can't be parsed as HH:MM
+  # in the 0-23 / 0-59 range. Catchers: Api::V1::MealsController and
+  # Api::McpController (in USER_ERRORS) surface it as 422 / isError. The
+  # HTML controller leaves it uncaught (a malformed POST is a programming
+  # error there since the form is a structured input).
+  class InvalidScheduledTime < StandardError; end
+
+  HHMM_FORMAT = /\A\d{1,2}:\d{2}\z/.freeze
+
   belongs_to :plan, inverse_of: :meals
 
   has_many :meal_items, -> { order(:display_order, :id) }, dependent: :destroy, inverse_of: :meal
@@ -42,5 +51,25 @@ class Meal < ApplicationRecord
 
   def icon
     ICONS[name] || "🍴"
+  end
+
+  # Override the AR setter so all callers (HTML form, REST API, MCP) can pass
+  # an "HH:MM" string and have it stored as the project's UTC sentinel Time
+  # (Time.utc(2000,1,1,h,m) — see Architecture note). Real Time objects pass
+  # through. Bad input raises InvalidScheduledTime rather than silently
+  # overflowing the way Ruby's Time.utc(2000,1,1,99,99) does.
+  def scheduled_time=(value)
+    if value.is_a?(String)
+      raise InvalidScheduledTime, "scheduled_time must be HH:MM" unless value.match?(HHMM_FORMAT)
+
+      h, m = value.split(":").map(&:to_i)
+      unless (0..23).cover?(h) && (0..59).cover?(m)
+        raise InvalidScheduledTime, "scheduled_time must be HH:MM (0-23 hour, 0-59 minute)"
+      end
+
+      super(Time.utc(2000, 1, 1, h, m))
+    else
+      super
+    end
   end
 end

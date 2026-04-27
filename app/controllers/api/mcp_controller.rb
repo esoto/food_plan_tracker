@@ -19,7 +19,8 @@ module Api
     # SQL fragments back to the client.
     class ToolArgumentError < StandardError; end
     USER_ERRORS = [ ToolArgumentError, ActiveRecord::RecordInvalid,
-                   ActiveRecord::RecordNotFound, ArgumentError, KeyError, Date::Error ].freeze
+                   ActiveRecord::RecordNotFound, ArgumentError, KeyError, Date::Error,
+                   Meal::InvalidScheduledTime ].freeze
 
     PROTOCOL_VERSION = "2025-06-18".freeze
     SERVER_INFO      = { name: "food-tracker", version: "0.2.0" }.freeze
@@ -282,6 +283,42 @@ module Api
       { habit: serialize_habit(template) }
     end
 
+    # ----- Settings: macro targets -----
+
+    def handle_update_plan(args)
+      plan = Plan.find_by(slug: args.fetch("slug")) ||
+        raise(ToolArgumentError, "no plan with slug \"#{args['slug']}\"; valid slugs: exercise, active, rest")
+
+      attrs = args.slice("target_kcal", "target_protein_g", "target_carbs_g", "target_fat_g").compact
+      raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
+
+      plan.update!(attrs)
+      { plan: serialize_plan(plan) }
+    end
+
+    def handle_update_meal(args)
+      meal = resolve_meal(args)
+      # `name` is the lookup key, not an updatable field via this tool; use the
+      # REST PATCH /api/v1/meals/:id directly if you need to rename a meal.
+      attrs = args.slice("scheduled_time", "target_kcal", "target_protein_g",
+                          "target_carbs_g", "target_fat_g").compact
+      raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
+
+      meal.update!(attrs)
+      { meal: serialize_meal(meal.reload) }
+    end
+
+    def handle_update_goal(args)
+      metric = args.fetch("metric").to_s
+      raise ToolArgumentError, "unknown metric \"#{metric}\"; valid: #{Goal.metrics.keys.join(', ')}" unless Goal.metrics.key?(metric)
+
+      goal = Goal.find_by(metric: Goal.metrics[metric]) ||
+        raise(ToolArgumentError, "no goal exists for metric \"#{metric}\"")
+
+      goal.update!(target_value: args.fetch("target_value"))
+      { goal: serialize_goal(goal) }
+    end
+
     def handle_copy_yesterday_meals(args)
       target_date = date_arg(args)
       yesterday = DailyLog.find_by(date: target_date - 1)
@@ -306,7 +343,7 @@ module Api
     def resolve_meal(args)
       plan = plan_for(args)
       plan.meals.find { |m| m.name.casecmp?(args.fetch("name")) } ||
-        raise(ToolArgumentError, "no meal \"#{args['name']}\" on plan \"#{plan.slug}\"")
+        raise(ToolArgumentError, "no meal \"#{args['name']}\" on plan \"#{plan.slug}\"; available: #{plan.meals.pluck(:name).join(', ')}")
     end
 
     # ----- Tool registry. Schemas mirror the Zod definitions in the
@@ -314,7 +351,7 @@ module Api
     # ----- prose descriptions of each parameter's intent.
 
     ISO_DATE_PATTERN = '^\\d{4}-\\d{2}-\\d{2}$'.freeze
-    PLAN_SLUGS       = %w[exercise active rest].freeze
+    PLAN_SLUGS       = [ Plan::EXERCISE_SLUG, Plan::ACTIVE_SLUG, Plan::REST_SLUG ].freeze
     DATE_PROP        = { type: "string", pattern: ISO_DATE_PATTERN, description: "YYYY-MM-DD; defaults to today when omitted" }.freeze
 
     TOOLS = [
@@ -596,6 +633,55 @@ module Api
           required: %w[id]
         },
         handler: :handle_restore_habit
+      },
+
+      # ----- Settings: macro targets (plan/meal/goal) -----
+      {
+        name:        "update_plan",
+        description: "Update macro targets for one of the three day types (exercise/active/rest). Pass any subset of target_kcal, target_protein_g, target_carbs_g, target_fat_g — omitted fields are unchanged.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "slug"             => { type: "string", enum: PLAN_SLUGS },
+            "target_kcal"      => { type: "integer", exclusiveMinimum: 0 },
+            "target_protein_g" => { type: "number",  exclusiveMinimum: 0 },
+            "target_carbs_g"   => { type: "number",  exclusiveMinimum: 0 },
+            "target_fat_g"     => { type: "number",  exclusiveMinimum: 0 }
+          },
+          required: %w[slug]
+        },
+        handler: :handle_update_plan
+      },
+      {
+        name:        "update_meal",
+        description: "Update one meal on a plan: reschedule (HH:MM in 24-hour) or change per-meal macro targets. Looks up the meal by name on the given plan (defaults to today's plan if plan_slug omitted). To rename a meal, use the REST API directly (PATCH /api/v1/meals/:id).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "plan_slug"        => { type: "string", enum: PLAN_SLUGS },
+            "name"             => { type: "string", description: "meal name to look up, e.g. 'Breakfast' (not renamed by this tool)" },
+            "scheduled_time"   => { type: "string", pattern: '^\\d{1,2}:\\d{2}$', description: "HH:MM in 24-hour clock" },
+            "target_kcal"      => { type: "integer", exclusiveMinimum: 0 },
+            "target_protein_g" => { type: "number",  exclusiveMinimum: 0 },
+            "target_carbs_g"   => { type: "number",  exclusiveMinimum: 0 },
+            "target_fat_g"     => { type: "number",  exclusiveMinimum: 0 }
+          },
+          required: %w[name]
+        },
+        handler: :handle_update_meal
+      },
+      {
+        name:        "update_goal",
+        description: "Update the target_value for a tracked goal. Lookup is by metric (weight_kg, body_fat_pct, hdl, hs_crp, visceral_fat, muscle_mass_kg).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "metric"       => { type: "string", enum: Goal.metrics.keys },
+            "target_value" => { type: "number" }
+          },
+          required: %w[metric target_value]
+        },
+        handler: :handle_update_goal
       }
     ].freeze
   end
