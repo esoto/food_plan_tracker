@@ -45,6 +45,19 @@ RSpec.describe "Api::V1::MealItems", type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
     end
 
+    it "is idempotent on duplicate (meal_id, food_id) — updates the existing item's quantity instead of creating a second row" do
+      existing = create(:meal_item, meal: meal, food: eggs, quantity_grams: 50)
+
+      expect {
+        post "/api/v1/meals/#{meal.id}/items",
+             params: { meal_item: { food_id: eggs.id, quantity_grams: 150 } }.to_json,
+             headers: auth_headers
+      }.not_to change(MealItem, :count)
+
+      expect(response).to have_http_status(:ok)
+      expect(existing.reload.quantity_grams.to_f).to eq(150.0)
+    end
+
     it "404s when the meal id doesn't exist" do
       post "/api/v1/meals/999999/items",
            params: { meal_item: { food_id: eggs.id, quantity_grams: 100 } }.to_json,

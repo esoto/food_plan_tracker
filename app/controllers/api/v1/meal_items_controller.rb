@@ -10,8 +10,17 @@ module Api
 
       def create
         meal = Meal.find(params[:meal_id])
-        item = meal.meal_items.create!(meal_item_params)
-        render json: { meal_item: serialize_meal_item(item) }, status: :created
+        attrs = meal_item_params
+        # Idempotent: if the meal already has a row for this food, update its
+        # quantity instead of creating a duplicate (which would fail the
+        # unique index and confuse the first-match-wins lookups in update /
+        # remove).
+        item = meal.meal_items.find_or_initialize_by(food_id: attrs[:food_id])
+        new_record = item.new_record?
+        item.assign_attributes(attrs)
+        item.save!
+        render json: { meal_item: serialize_meal_item(item) },
+               status: new_record ? :created : :ok
       end
 
       def update

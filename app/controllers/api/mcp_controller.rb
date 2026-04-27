@@ -350,7 +350,11 @@ module Api
     def handle_add_meal_item(args)
       meal = resolve_meal_for_items(args)
       food = resolve_food(args.fetch("food_name"))
-      item = meal.meal_items.create!(food: food, quantity_grams: args.fetch("quantity_grams"))
+      # Idempotent: same upsert semantics as the REST endpoint — see
+      # Api::V1::MealItemsController#create for the reasoning.
+      item = meal.meal_items.find_or_initialize_by(food: food)
+      item.quantity_grams = args.fetch("quantity_grams")
+      item.save!
       { meal_item: serialize_meal_item(item) }
     end
 

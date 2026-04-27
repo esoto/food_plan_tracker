@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_27_002826) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -125,6 +125,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_002826) do
     t.decimal "quantity_grams", precision: 7, scale: 2, null: false
     t.datetime "updated_at", null: false
     t.index ["food_id"], name: "index_meal_items_on_food_id"
+    t.index ["meal_id", "food_id"], name: "index_meal_items_on_meal_and_food", unique: true
     t.index ["meal_id"], name: "index_meal_items_on_meal_id"
   end
 
