@@ -6,12 +6,12 @@
 </header>
 
 <% SupplementSchedule::TIME_SLOT_LABELS.each do |slot_key, meta| %>
-  <section class="px-4 mb-5">
-    <div class="flex items-center justify-between mb-2">
-      <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold"><%= meta[:label] %></h2>
-      <span class="text-xs text-slate-400"><%= meta[:time] %></span>
-    </div>
-    <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
+  <section class="px-4 mb-4">
+    <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100 overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-2.5 bg-slate-50/70">
+        <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold"><%= meta[:label] %></h2>
+        <span class="text-xs text-slate-400"><%= meta[:time] %></span>
+      </div>
       <% (@grouped[slot_key] || []).each do |schedule| %>
         <% supplement = schedule.supplement %>
         <% taken = @taken_ids.include?(supplement.id) %>
