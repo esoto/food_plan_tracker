@@ -55,8 +55,17 @@
 </section>
 
 <section class="px-4 mt-8">
-  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Push reminders</h2>
-  <%= render "settings/push_reminders" %>
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Notifications</h2>
+  <%= link_to notifications_path,
+        class: "block rounded-2xl bg-white border border-slate-100 shadow-sm p-4 hover:bg-slate-50 transition" do %>
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm font-medium text-slate-900">🔔 Push reminders</p>
+        <p class="text-xs text-slate-500 mt-0.5">Manage subscribed devices, per-reminder toggles, and recent deliveries.</p>
+      </div>
+      <span class="text-slate-400">›</span>
+    </div>
+  <% end %>
 </section>
 
 <section class="px-4 mt-8">

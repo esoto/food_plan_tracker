@@ -36,6 +36,15 @@ class PushNotifier
       pruned += 1
     end
 
+    NotificationDelivery.create!(
+      title:        @title,
+      body:         @body,
+      url:          @url,
+      sent_count:   sent,
+      pruned_count: pruned,
+      fired_at:     Time.current
+    )
+
     { sent: sent, pruned: pruned }
   end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_26_195139) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_26_235736) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -48,10 +48,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_195139) do
   create_table "checklist_templates", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "description"
+    t.datetime "discarded_at"
     t.string "icon"
     t.string "label", null: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.index ["discarded_at"], name: "index_checklist_templates_on_discarded_at"
     t.index ["position"], name: "index_checklist_templates_on_position"
   end
 
@@ -141,6 +143,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_195139) do
     t.index ["plan_id"], name: "index_meals_on_plan_id"
   end
 
+  create_table "notification_deliveries", force: :cascade do |t|
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.datetime "fired_at", null: false
+    t.integer "pruned_count", default: 0, null: false
+    t.integer "sent_count", default: 0, null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.index ["fired_at"], name: "index_notification_deliveries_on_fired_at"
+  end
+
   create_table "oauth_access_grants", force: :cascade do |t|
     t.integer "application_id", null: false
     t.datetime "created_at", null: false
@@ -205,6 +219,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_195139) do
     t.index "md5(endpoint)", name: "index_push_subscriptions_on_endpoint_md5", unique: true
   end
 
+  create_table "reminder_preferences", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
+    t.string "key", null: false
+    t.string "reminder_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["reminder_type", "key"], name: "index_reminder_preferences_on_reminder_type_and_key", unique: true
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "ip_address"
@@ -239,10 +262,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_195139) do
     t.string "contraindications"
     t.datetime "created_at", null: false
     t.boolean "critical", default: false, null: false
+    t.datetime "discarded_at"
     t.string "dose", null: false
     t.string "name", null: false
     t.string "notes"
     t.datetime "updated_at", null: false
+    t.index ["discarded_at"], name: "index_supplements_on_discarded_at"
   end
 
   create_table "users", force: :cascade do |t|

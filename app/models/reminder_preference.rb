@@ -1,0 +1,22 @@
+class ReminderPreference < ApplicationRecord
+  REMINDER_TYPES = %w[meal supplement_slot].freeze
+
+  validates :reminder_type, presence: true, inclusion: { in: REMINDER_TYPES }
+  validates :key, presence: true, uniqueness: { scope: :reminder_type }
+
+  # Default behavior: a reminder with no row in the table is enabled.
+  # Rows only exist once the user has explicitly toggled at least once.
+  def self.enabled?(reminder_type:, key:)
+    record = find_by(reminder_type: reminder_type, key: key)
+    record.nil? || record.enabled
+  end
+
+  # Idempotent — find or create the row, then flip enabled to the given
+  # value.
+  def self.set(reminder_type:, key:, enabled:)
+    pref = find_or_initialize_by(reminder_type: reminder_type, key: key)
+    pref.enabled = enabled
+    pref.save!
+    pref
+  end
+end

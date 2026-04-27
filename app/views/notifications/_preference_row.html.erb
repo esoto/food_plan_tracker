@@ -1,0 +1,19 @@
+<div class="flex items-center justify-between gap-3 px-4 py-3">
+  <div class="min-w-0">
+    <p class="text-sm font-medium text-slate-900 truncate"><%= label %></p>
+    <p class="text-xs text-slate-500 mt-0.5"><%= time %></p>
+  </div>
+  <%= form_with url: reminder_preferences_path, method: :patch, class: "shrink-0", data: { controller: "auto-submit" } do |f| %>
+    <%= f.hidden_field :reminder_type, value: reminder_type %>
+    <%= f.hidden_field :key, value: key %>
+    <%= f.hidden_field :enabled, value: false %>
+    <label class="inline-flex items-center cursor-pointer">
+      <input type="checkbox" name="enabled" value="true"
+             <%= "checked" if enabled %>
+             data-action="change->auto-submit#submit"
+             aria-label="Toggle <%= label %> reminder"
+             class="sr-only peer">
+      <span class="w-10 h-6 bg-slate-200 peer-checked:bg-indigo-600 rounded-full relative transition before:absolute before:left-0.5 before:top-0.5 before:w-5 before:h-5 before:bg-white before:rounded-full before:transition peer-checked:before:translate-x-4"></span>
+    </label>
+  <% end %>
+</div>
