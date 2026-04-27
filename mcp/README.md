@@ -92,6 +92,8 @@ This stores the token in `~/.claude.json` in plaintext. Anyone running `claude m
 | `set_plan_for_day` | Switch a day to exercise/active/rest |
 | `list_goals` | Goal progress (weight, body fat, HDL, ...) |
 | `search_foods` | Find canonical food names |
+| `get_weekly_summary` | Rolling 7-day recap: adherence %, weight delta, meal completion %, supplement adherence % |
+| `copy_yesterday_meals` | Copy yesterday's meal completions onto today (or a target date) when the plans match |
 | `list_supplements` / `create_supplement` / `update_supplement` / `archive_supplement` / `restore_supplement` | Manage the supplement library that drives `/supplements`. Soft-delete preserves past completion records. |
 | `list_habits` / `create_habit` / `update_habit` / `archive_habit` / `restore_habit` | Manage the habit templates that drive `/checklist`. Soft-delete preserves past completion records. |
 
