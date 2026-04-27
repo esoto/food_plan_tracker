@@ -14,12 +14,16 @@ class WeeklySummary
   def adherence_pct
     return nil if logs.empty?
 
-    template_count = ChecklistTemplate.count
-    return 0 if template_count.zero?
-
+    # Per-day denominator from templates that were active on that date — so
+    # archiving a habit today doesn't retroactively shift past percentages.
     checked_per_log = ChecklistCompletion.where(daily_log: logs, checked: true).group(:daily_log_id).count
-    avg_pct = logs.sum { |l| checked_per_log.fetch(l.id, 0) * 100.0 / template_count } / logs.size
-    avg_pct.round
+    pcts = logs.map do |l|
+      total = ChecklistTemplate.kept_on(l.date).count
+      next 0 if total.zero?
+
+      checked_per_log.fetch(l.id, 0) * 100.0 / total
+    end
+    (pcts.sum / pcts.size).round
   end
 
   def weight_delta_kg
@@ -37,10 +41,11 @@ class WeeklySummary
   end
 
   def supplement_completion_pct
-    supplement_count = Supplement.count
-    return nil if supplement_count.zero?
+    # Per-day expected from supplements active on that date — same rationale
+    # as adherence_pct: don't rewrite history when one is archived.
+    expected = @range.sum { |d| Supplement.kept_on(d).count }
+    return nil if expected.zero?
 
-    expected = supplement_count * @range.count
     completed = SupplementCompletion.where(daily_log: logs).count
     ((completed.to_f / expected) * 100).round
   end

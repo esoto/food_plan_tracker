@@ -72,7 +72,11 @@ RSpec.describe "POST /mcp", type: :request do
         "complete_meal", "uncomplete_meal", "log_food",
         "delete_logged_food", "set_plan_for_day", "list_goals",
         "search_foods", "create_food", "list_meals",
-        "get_weekly_summary", "copy_yesterday_meals"
+        "get_weekly_summary", "copy_yesterday_meals",
+        "list_supplements", "create_supplement", "update_supplement",
+        "archive_supplement", "restore_supplement",
+        "list_habits", "create_habit", "update_habit",
+        "archive_habit", "restore_habit"
       )
       tools.each do |tool|
         expect(tool["inputSchema"]).to include("type" => "object")
@@ -276,6 +280,73 @@ RSpec.describe "POST /mcp", type: :request do
             rpc("tools/call", { name: "copy_yesterday_meals", arguments: { date: target_date.iso8601 } })
           }.not_to change { DailyLog.where(date: target_date).count }
         end
+      end
+    end
+
+    describe "supplements management" do
+      it "list_supplements returns kept supplements with their time slots" do
+        sup = create(:supplement, name: "Magnesium")
+        sup.supplement_schedules.create!(time_slot: "pre_sleep", position: 0)
+        create(:supplement, name: "Archived stack", discarded_at: 1.day.ago)
+
+        result = rpc("tools/call", { name: "list_supplements", arguments: {} })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        names = payload["supplements"].map { |s| s["name"] }
+        expect(names).to include("Magnesium")
+        expect(names).not_to include("Archived stack")
+      end
+
+      it "create_supplement with time_slots assigns the schedule rows" do
+        result = rpc("tools/call", { name: "create_supplement",
+                                     arguments: { name: "Vitamin D", dose: "5000 IU",
+                                                  time_slots: [ "morning" ] } })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["supplement"]["time_slots"]).to eq([ "morning" ])
+      end
+
+      it "update_supplement is an error when no updatable field or time_slots sent" do
+        sup = create(:supplement)
+        result = rpc("tools/call", { name: "update_supplement", arguments: { id: sup.id } })["result"]
+        expect(result["isError"]).to be(true)
+      end
+
+      it "archive_supplement and restore_supplement round-trip" do
+        sup = create(:supplement)
+
+        rpc("tools/call", { name: "archive_supplement", arguments: { id: sup.id } })
+        expect(sup.reload.discarded_at).to be_present
+
+        rpc("tools/call", { name: "restore_supplement", arguments: { id: sup.id } })
+        expect(sup.reload.discarded_at).to be_nil
+      end
+    end
+
+    describe "habits management" do
+      before { ChecklistTemplate.delete_all }
+
+      it "create_habit appends at the end of the position list" do
+        create(:checklist_template, label: "First", position: 0)
+
+        result = rpc("tools/call", { name: "create_habit", arguments: { label: "Second" } })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["habit"]["position"]).to eq(1)
+      end
+
+      it "update_habit is an error when no updatable field sent" do
+        template = create(:checklist_template, position: 0)
+        result = rpc("tools/call", { name: "update_habit", arguments: { id: template.id } })["result"]
+        expect(result["isError"]).to be(true)
+      end
+
+      it "archive_habit hides from list_habits" do
+        kept = create(:checklist_template, label: "Drink water", position: 0)
+        old  = create(:checklist_template, label: "Old", position: 1)
+
+        rpc("tools/call", { name: "archive_habit", arguments: { id: old.id } })
+
+        result = rpc("tools/call", { name: "list_habits", arguments: {} })["result"]
+        labels = JSON.parse(result["content"].first["text"])["habits"].map { |h| h["label"] }
+        expect(labels).to contain_exactly("Drink water")
       end
     end
 

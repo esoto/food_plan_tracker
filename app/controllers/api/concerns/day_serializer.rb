@@ -114,6 +114,30 @@ module Api
         }
       end
 
+      def serialize_supplement(supplement)
+        {
+          id:                supplement.id,
+          name:              supplement.name,
+          dose:              supplement.dose,
+          critical:          supplement.critical,
+          notes:             supplement.notes,
+          contraindications: supplement.contraindications,
+          time_slots:        supplement.supplement_schedules.map(&:time_slot).uniq,
+          discarded_at:      supplement.discarded_at&.iso8601
+        }
+      end
+
+      def serialize_habit(template)
+        {
+          id:           template.id,
+          label:        template.label,
+          description:  template.description,
+          icon:         template.icon,
+          position:     template.position,
+          discarded_at: template.discarded_at&.iso8601
+        }
+      end
+
       def serialize_goal(goal)
         {
           id:             goal.id,

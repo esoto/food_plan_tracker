@@ -1,6 +1,6 @@
 class ChecklistCompletionsController < ApplicationController
   def update
-    template = ChecklistTemplate.find(params[:id])
+    template = ChecklistTemplate.kept.find(params[:id])
     log = daily_log_from_params
     completion = log.checklist_completions.find_or_initialize_by(checklist_template: template)
     completion.checked = params[:checked] == "1" || params[:checked] == "true"

@@ -69,7 +69,7 @@ class DailyLog < ApplicationRecord
   end
 
   def checklist_adherence_pct
-    total = ChecklistTemplate.count
+    total = ChecklistTemplate.kept_on(date).count
     return 0 if total.zero?
 
     checked = checklist_completions.where(checked: true).count

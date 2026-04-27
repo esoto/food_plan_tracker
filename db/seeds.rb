@@ -369,9 +369,11 @@ SUPPLEMENTS = [
   { name: "L-Theanine",                dose: "200 mg",            notes: "skip if already in Mind Lab Pro",        critical: false, slot: :pre_sleep, position: 2 }
 ].freeze
 
-# Remove any supplements left over from a previous Spanish seed.
+# Remove any supplements left over from a previous Spanish seed. Scoped to
+# kept (non-archived) records so user-archived custom supplements aren't
+# obliterated on re-seed — their completion history would go with them.
 allowed_names = SUPPLEMENTS.map { |s| s[:name] }
-Supplement.where.not(name: allowed_names).destroy_all
+Supplement.kept.where.not(name: allowed_names).destroy_all
 
 SUPPLEMENTS.each do |attrs|
   supplement = Supplement.find_or_initialize_by(name: attrs[:name])
@@ -412,8 +414,10 @@ CHECKLIST = [
   { label: "Psyllium 10g",                          description: "Soluble fiber — 15 min pre-lunch",        icon: "🌾" }
 ].freeze
 
-# Remove stale Spanish-labeled templates if present.
-ChecklistTemplate.where.not(label: CHECKLIST.map { |c| c[:label] }).destroy_all
+# Remove stale Spanish-labeled templates if present. Scoped to kept rows so
+# user-archived custom habits aren't obliterated on re-seed (their completion
+# history would go with them).
+ChecklistTemplate.kept.where.not(label: CHECKLIST.map { |c| c[:label] }).destroy_all
 
 CHECKLIST.each_with_index do |attrs, idx|
   template = ChecklistTemplate.find_or_initialize_by(label: attrs[:label])

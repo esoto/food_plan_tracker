@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_26_235736) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_27_002826) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -53,7 +53,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_235736) do
     t.string "label", null: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
-    t.index ["discarded_at"], name: "index_checklist_templates_on_discarded_at"
+    t.index ["discarded_at"], name: "index_checklist_templates_kept", where: "(discarded_at IS NULL)"
     t.index ["position"], name: "index_checklist_templates_on_position"
   end
 
@@ -267,7 +267,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_26_235736) do
     t.string "name", null: false
     t.string "notes"
     t.datetime "updated_at", null: false
-    t.index ["discarded_at"], name: "index_supplements_on_discarded_at"
+    t.index ["discarded_at"], name: "index_supplements_kept", where: "(discarded_at IS NULL)"
   end
 
   create_table "users", force: :cascade do |t|

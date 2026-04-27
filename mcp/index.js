@@ -227,5 +227,140 @@ server.registerTool(
   async (food) => jsonResult(await api("POST", "/api/v1/foods", { food }))
 );
 
+// ----- Supplement template management -----
+
+const TIME_SLOT = z.enum(["morning", "pre_lunch", "dinner", "pre_sleep"]);
+
+server.registerTool(
+  "list_supplements",
+  {
+    title: "List supplements",
+    description: "List supplement templates. Default returns active; pass archived=true for the archived list.",
+    inputSchema: { archived: z.boolean().optional() }
+  },
+  async ({ archived }) => jsonResult(await api("GET", `/api/v1/supplements${archived ? "?archived=true" : ""}`))
+);
+
+server.registerTool(
+  "create_supplement",
+  {
+    title: "Create a supplement",
+    description: "Add a supplement. time_slots is optional; each slot becomes a row on /supplements at that time.",
+    inputSchema: {
+      name:              z.string(),
+      dose:              z.string().describe("e.g. '1 capsule' or '5 g'"),
+      critical:          z.boolean().optional(),
+      notes:             z.string().optional(),
+      contraindications: z.string().optional(),
+      time_slots:        z.array(TIME_SLOT).optional()
+    }
+  },
+  async ({ time_slots, ...supplement }) => jsonResult(await api("POST", "/api/v1/supplements", { supplement, time_slots }))
+);
+
+server.registerTool(
+  "update_supplement",
+  {
+    title: "Update a supplement",
+    description: "Edit a supplement by id. Omitted fields are unchanged. Pass time_slots to fully replace the slot assignments (omit to leave them alone).",
+    inputSchema: {
+      id:                z.number().int().positive(),
+      name:              z.string().optional(),
+      dose:              z.string().optional(),
+      critical:          z.boolean().optional(),
+      notes:             z.string().optional(),
+      contraindications: z.string().optional(),
+      time_slots:        z.array(TIME_SLOT).optional()
+    }
+  },
+  async ({ id, time_slots, ...rest }) => {
+    const body = { supplement: rest };
+    if (time_slots !== undefined) body.time_slots = time_slots;
+    return jsonResult(await api("PATCH", `/api/v1/supplements/${id}`, body));
+  }
+);
+
+server.registerTool(
+  "archive_supplement",
+  {
+    title: "Archive a supplement",
+    description: "Soft-delete a supplement: it disappears from /supplements and adherence calc, but past completion records remain.",
+    inputSchema: { id: z.number().int().positive() }
+  },
+  async ({ id }) => jsonResult(await api("DELETE", `/api/v1/supplements/${id}`))
+);
+
+server.registerTool(
+  "restore_supplement",
+  {
+    title: "Restore a supplement",
+    description: "Un-archive a supplement.",
+    inputSchema: { id: z.number().int().positive() }
+  },
+  async ({ id }) => jsonResult(await api("PATCH", `/api/v1/supplements/${id}/restore`))
+);
+
+// ----- Habit (ChecklistTemplate) management -----
+
+server.registerTool(
+  "list_habits",
+  {
+    title: "List habits",
+    description: "List habit templates. Default returns active in display order; pass archived=true for the archived list.",
+    inputSchema: { archived: z.boolean().optional() }
+  },
+  async ({ archived }) => jsonResult(await api("GET", `/api/v1/habits${archived ? "?archived=true" : ""}`))
+);
+
+server.registerTool(
+  "create_habit",
+  {
+    title: "Create a habit",
+    description: "Add a habit. New habits get appended at the bottom of the order.",
+    inputSchema: {
+      label:       z.string(),
+      description: z.string().optional(),
+      icon:        z.string().optional().describe("single emoji")
+    }
+  },
+  async (habit) => jsonResult(await api("POST", "/api/v1/habits", { habit }))
+);
+
+server.registerTool(
+  "update_habit",
+  {
+    title: "Update a habit",
+    description: "Edit a habit by id. Pass an integer position to reorder (lower = earlier on /checklist).",
+    inputSchema: {
+      id:          z.number().int().positive(),
+      label:       z.string().optional(),
+      description: z.string().optional(),
+      icon:        z.string().optional(),
+      position:    z.number().int().nonnegative().optional()
+    }
+  },
+  async ({ id, ...habit }) => jsonResult(await api("PATCH", `/api/v1/habits/${id}`, { habit }))
+);
+
+server.registerTool(
+  "archive_habit",
+  {
+    title: "Archive a habit",
+    description: "Soft-delete a habit: it disappears from /checklist and adherence calc, but past completion records remain.",
+    inputSchema: { id: z.number().int().positive() }
+  },
+  async ({ id }) => jsonResult(await api("DELETE", `/api/v1/habits/${id}`))
+);
+
+server.registerTool(
+  "restore_habit",
+  {
+    title: "Restore a habit",
+    description: "Un-archive a habit; it's appended at the bottom of the order.",
+    inputSchema: { id: z.number().int().positive() }
+  },
+  async ({ id }) => jsonResult(await api("PATCH", `/api/v1/habits/${id}/restore`))
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
