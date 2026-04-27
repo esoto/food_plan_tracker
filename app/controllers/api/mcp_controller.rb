@@ -340,6 +340,51 @@ module Api
         raise(ToolArgumentError, "no food matches \"#{query}\" — call search_foods to find the canonical name")
     end
 
+    # ----- Meal-item management (food items inside a planned meal) -----
+
+    def handle_list_meal_items(args)
+      meal = resolve_meal_for_items(args)
+      { meal_items: meal.meal_items.includes(:food).map { |i| serialize_meal_item(i) } }
+    end
+
+    def handle_add_meal_item(args)
+      meal = resolve_meal_for_items(args)
+      food = resolve_food(args.fetch("food_name"))
+      # Idempotent: same upsert semantics as the REST endpoint — see
+      # Api::V1::MealItemsController#create for the reasoning.
+      item = meal.meal_items.find_or_initialize_by(food: food)
+      item.quantity_grams = args.fetch("quantity_grams")
+      item.save!
+      { meal_item: serialize_meal_item(item) }
+    end
+
+    def handle_update_meal_item(args)
+      item = resolve_meal_item(args)
+      item.update!(quantity_grams: args.fetch("quantity_grams"))
+      { meal_item: serialize_meal_item(item.reload) }
+    end
+
+    def handle_remove_meal_item(args)
+      item = resolve_meal_item(args)
+      id = item.id
+      item.destroy!
+      { removed: true, id: id }
+    end
+
+    # `name` from resolve_meal collides with our meal_name arg, so wrap with a
+    # shim that maps meal_name → name before delegating.
+    def resolve_meal_for_items(args)
+      resolve_meal(args.merge("name" => args.fetch("meal_name")))
+    end
+
+    def resolve_meal_item(args)
+      meal = resolve_meal_for_items(args)
+      food_name = args.fetch("food_name").to_s.downcase
+      meal.meal_items.includes(:food).find { |i| i.food.name.downcase == food_name } ||
+        raise(ToolArgumentError,
+              "no food matching \"#{args['food_name']}\" in meal \"#{meal.name}\"; current items: #{meal.meal_items.includes(:food).map { |i| i.food.name }.join(', ')}")
+    end
+
     def resolve_meal(args)
       plan = plan_for(args)
       plan.meals.find { |m| m.name.casecmp?(args.fetch("name")) } ||
@@ -682,6 +727,65 @@ module Api
           required: %w[metric target_value]
         },
         handler: :handle_update_goal
+      },
+
+      # ----- Meal-item CRUD (food items inside a planned meal) -----
+      {
+        name:        "list_meal_items",
+        description: "List the food items inside one meal on a plan, with computed kcal and macros per item.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "plan_slug" => { type: "string", enum: PLAN_SLUGS },
+            "meal_name" => { type: "string", description: "meal name, e.g. 'Breakfast'" }
+          },
+          required: %w[meal_name]
+        },
+        handler: :handle_list_meal_items
+      },
+      {
+        name:        "add_meal_item",
+        description: "Add a food to a meal at a given gram quantity. Resolves the food by partial-name match (call search_foods if unsure).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "plan_slug"      => { type: "string", enum: PLAN_SLUGS },
+            "meal_name"      => { type: "string" },
+            "food_name"      => { type: "string" },
+            "quantity_grams" => { type: "number", exclusiveMinimum: 0 }
+          },
+          required: %w[meal_name food_name quantity_grams]
+        },
+        handler: :handle_add_meal_item
+      },
+      {
+        name:        "update_meal_item",
+        description: "Change the gram quantity of an existing food item in a meal. Highest-leverage portion-correction tool.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "plan_slug"      => { type: "string", enum: PLAN_SLUGS },
+            "meal_name"      => { type: "string" },
+            "food_name"      => { type: "string", description: "name of the food currently in the meal" },
+            "quantity_grams" => { type: "number", exclusiveMinimum: 0 }
+          },
+          required: %w[meal_name food_name quantity_grams]
+        },
+        handler: :handle_update_meal_item
+      },
+      {
+        name:        "remove_meal_item",
+        description: "Remove a food from a meal entirely (e.g., dropping a stacked fat source like walnuts when the meal already has EVOO + avocado).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "plan_slug" => { type: "string", enum: PLAN_SLUGS },
+            "meal_name" => { type: "string" },
+            "food_name" => { type: "string" }
+          },
+          required: %w[meal_name food_name]
+        },
+        handler: :handle_remove_meal_item
       }
     ].freeze
   end

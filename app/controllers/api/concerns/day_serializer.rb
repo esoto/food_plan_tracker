@@ -114,6 +114,20 @@ module Api
         }
       end
 
+      def serialize_meal_item(item)
+        {
+          id:             item.id,
+          food_id:        item.food_id,
+          food_name:      item.food.name,
+          category:       item.food.category,
+          quantity_grams: item.quantity_grams.to_f,
+          kcal:           item.kcal,
+          protein_g:      item.protein_g.to_f,
+          carbs_g:        item.carbs_g.to_f,
+          fat_g:          item.fat_g.to_f
+        }
+      end
+
       def serialize_supplement(supplement)
         {
           id:                supplement.id,

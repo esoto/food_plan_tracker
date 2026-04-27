@@ -446,5 +446,90 @@ server.registerTool(
   }
 );
 
+// ----- Meal-item CRUD (food items inside a planned meal) -----
+
+async function resolveMealItemId({ plan_slug, meal_name, food_name }) {
+  const meal = await resolveMealId({ name: meal_name, plan_slug });
+  const items = await api("GET", `/api/v1/meals/${meal.id}/items`);
+  const found = (items.meal_items || []).find(i => i.food_name.toLowerCase() === food_name.toLowerCase());
+  if (!found) {
+    const available = (items.meal_items || []).map(i => i.food_name).join(", ");
+    throw new Error(`No food matching "${food_name}" in meal "${meal_name}". Current items: ${available}`);
+  }
+  return { mealId: meal.id, itemId: found.id };
+}
+
+server.registerTool(
+  "list_meal_items",
+  {
+    title: "List meal items",
+    description: "List the food items inside one meal on a plan, with computed kcal and macros per item.",
+    inputSchema: {
+      plan_slug: PLAN_SLUG.optional(),
+      meal_name: z.string().describe("meal name, e.g. 'Breakfast'")
+    }
+  },
+  async ({ plan_slug, meal_name }) => {
+    const meal = await resolveMealId({ name: meal_name, plan_slug });
+    return jsonResult(await api("GET", `/api/v1/meals/${meal.id}/items`));
+  }
+);
+
+server.registerTool(
+  "add_meal_item",
+  {
+    title: "Add a food to a meal",
+    description: "Attach a food (by name) to a meal at a given gram quantity.",
+    inputSchema: {
+      plan_slug:      PLAN_SLUG.optional(),
+      meal_name:      z.string(),
+      food_name:      z.string(),
+      quantity_grams: z.number().positive()
+    }
+  },
+  async ({ plan_slug, meal_name, food_name, quantity_grams }) => {
+    const meal = await resolveMealId({ name: meal_name, plan_slug });
+    const food = await resolveFoodId(food_name);
+    return jsonResult(await api("POST", `/api/v1/meals/${meal.id}/items`,
+      { meal_item: { food_id: food.id, quantity_grams } }));
+  }
+);
+
+server.registerTool(
+  "update_meal_item",
+  {
+    title: "Update a meal item's quantity",
+    description: "Change the gram quantity of an existing food item in a meal. Highest-leverage portion-correction tool.",
+    inputSchema: {
+      plan_slug:      PLAN_SLUG.optional(),
+      meal_name:      z.string(),
+      food_name:      z.string().describe("name of the food currently in the meal"),
+      quantity_grams: z.number().positive()
+    }
+  },
+  async ({ plan_slug, meal_name, food_name, quantity_grams }) => {
+    const { itemId } = await resolveMealItemId({ plan_slug, meal_name, food_name });
+    return jsonResult(await api("PATCH", `/api/v1/meal_items/${itemId}`,
+      { meal_item: { quantity_grams } }));
+  }
+);
+
+server.registerTool(
+  "remove_meal_item",
+  {
+    title: "Remove a food from a meal",
+    description: "Drop a food from a meal entirely (e.g., remove a stacked fat source).",
+    inputSchema: {
+      plan_slug: PLAN_SLUG.optional(),
+      meal_name: z.string(),
+      food_name: z.string()
+    }
+  },
+  async ({ plan_slug, meal_name, food_name }) => {
+    const { itemId } = await resolveMealItemId({ plan_slug, meal_name, food_name });
+    return jsonResult(await api("DELETE", `/api/v1/meal_items/${itemId}`));
+  }
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
