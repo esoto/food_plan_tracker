@@ -282,6 +282,56 @@ module Api
       { habit: serialize_habit(template) }
     end
 
+    # ----- Settings: macro targets -----
+
+    def handle_update_plan(args)
+      plan = Plan.find_by(slug: args.fetch("slug")) ||
+        raise(ToolArgumentError, "no plan with slug \"#{args['slug']}\"; valid slugs: exercise, active, rest")
+
+      attrs = args.slice("target_kcal", "target_protein_g", "target_carbs_g", "target_fat_g").compact
+      raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
+
+      plan.update!(attrs)
+      { plan: serialize_plan(plan) }
+    end
+
+    def handle_update_meal(args)
+      plan = if args["plan_slug"].present?
+        Plan.find_by!(slug: args["plan_slug"])
+      else
+        log_for(args).plan
+      end
+      meal = plan.meals.find { |m| m.name.casecmp?(args.fetch("name")) } ||
+        raise(ToolArgumentError, "no meal \"#{args['name']}\" on plan \"#{plan.slug}\"; available: #{plan.meals.pluck(:name).join(', ')}")
+
+      attrs = args.slice("name", "target_kcal", "target_protein_g",
+                          "target_carbs_g", "target_fat_g").compact
+      if args["scheduled_time"].present?
+        st = args["scheduled_time"].to_s
+        raise ToolArgumentError, "scheduled_time must be HH:MM" unless st.match?(/\A\d{1,2}:\d{2}\z/)
+
+        h, m = st.split(":").map(&:to_i)
+        raise ToolArgumentError, "scheduled_time must be HH:MM (0-23 hour, 0-59 minute)" unless (0..23).cover?(h) && (0..59).cover?(m)
+
+        attrs["scheduled_time"] = Time.utc(2000, 1, 1, h, m)
+      end
+      raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
+
+      meal.update!(attrs)
+      { meal: serialize_meal(meal.reload) }
+    end
+
+    def handle_update_goal(args)
+      metric = args.fetch("metric").to_s
+      raise ToolArgumentError, "unknown metric \"#{metric}\"; valid: #{Goal.metrics.keys.join(', ')}" unless Goal.metrics.key?(metric)
+
+      goal = Goal.find_by(metric: Goal.metrics[metric]) ||
+        raise(ToolArgumentError, "no goal exists for metric \"#{metric}\"")
+
+      goal.update!(target_value: args.fetch("target_value"))
+      { goal: serialize_goal(goal) }
+    end
+
     def handle_copy_yesterday_meals(args)
       target_date = date_arg(args)
       yesterday = DailyLog.find_by(date: target_date - 1)
@@ -596,6 +646,55 @@ module Api
           required: %w[id]
         },
         handler: :handle_restore_habit
+      },
+
+      # ----- Settings: macro targets (plan/meal/goal) -----
+      {
+        name:        "update_plan",
+        description: "Update macro targets for one of the three day types (exercise/active/rest). Pass any subset of target_kcal, target_protein_g, target_carbs_g, target_fat_g — omitted fields are unchanged.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "slug"             => { type: "string", enum: PLAN_SLUGS },
+            "target_kcal"      => { type: "integer", exclusiveMinimum: 0 },
+            "target_protein_g" => { type: "number",  exclusiveMinimum: 0 },
+            "target_carbs_g"   => { type: "number",  exclusiveMinimum: 0 },
+            "target_fat_g"     => { type: "number",  exclusiveMinimum: 0 }
+          },
+          required: %w[slug]
+        },
+        handler: :handle_update_plan
+      },
+      {
+        name:        "update_meal",
+        description: "Update one meal on a plan: rename, reschedule (HH:MM in 24-hour), or change per-meal macro targets. Looks up the meal by name on the given plan (defaults to today's plan if plan_slug omitted).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "plan_slug"        => { type: "string", enum: PLAN_SLUGS },
+            "name"             => { type: "string", description: "current meal name, e.g. 'Breakfast'" },
+            "scheduled_time"   => { type: "string", pattern: '^\\d{1,2}:\\d{2}$', description: "HH:MM in 24-hour clock" },
+            "target_kcal"      => { type: "integer", exclusiveMinimum: 0 },
+            "target_protein_g" => { type: "number",  exclusiveMinimum: 0 },
+            "target_carbs_g"   => { type: "number",  exclusiveMinimum: 0 },
+            "target_fat_g"     => { type: "number",  exclusiveMinimum: 0 }
+          },
+          required: %w[name]
+        },
+        handler: :handle_update_meal
+      },
+      {
+        name:        "update_goal",
+        description: "Update the target_value for a tracked goal. Lookup is by metric (weight_kg, body_fat_pct, hdl, hs_crp, visceral_fat, muscle_mass_kg).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            "metric"       => { type: "string", enum: Goal.metrics.keys },
+            "target_value" => { type: "number" }
+          },
+          required: %w[metric target_value]
+        },
+        handler: :handle_update_goal
       }
     ].freeze
   end

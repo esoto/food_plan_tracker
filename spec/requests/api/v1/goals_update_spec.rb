@@ -1,0 +1,43 @@
+require "rails_helper"
+
+RSpec.describe "Api::V1::GoalsController#update", type: :request do
+  before { stub_api_token }
+
+  let(:goal) { create(:goal, :weight, target_value: 80) }
+
+  describe "PATCH /api/v1/goals/:id" do
+    it "updates target_value" do
+      patch "/api/v1/goals/#{goal.id}",
+            params: { goal: { target_value: 78.5 } }.to_json,
+            headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["goal"]["target_value"]).to eq(78.5)
+      expect(goal.reload.target_value.to_f).to eq(78.5)
+    end
+
+    it "rejects non-numeric target_value with 422" do
+      patch "/api/v1/goals/#{goal.id}",
+            params: { goal: { target_value: "not-a-number" } }.to_json,
+            headers: auth_headers
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "ignores fields outside the target_value whitelist" do
+      original_metric = goal.metric
+      patch "/api/v1/goals/#{goal.id}",
+            params: { goal: { metric: "hdl", target_value: 79 } }.to_json,
+            headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(goal.reload.metric).to eq(original_metric)
+      expect(goal.target_value.to_f).to eq(79)
+    end
+
+    it "404s when the goal id doesn't exist" do
+      patch "/api/v1/goals/999999", params: { goal: { target_value: 78 } }.to_json, headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+end

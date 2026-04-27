@@ -76,7 +76,8 @@ RSpec.describe "POST /mcp", type: :request do
         "list_supplements", "create_supplement", "update_supplement",
         "archive_supplement", "restore_supplement",
         "list_habits", "create_habit", "update_habit",
-        "archive_habit", "restore_habit"
+        "archive_habit", "restore_habit",
+        "update_plan", "update_meal", "update_goal"
       )
       tools.each do |tool|
         expect(tool["inputSchema"]).to include("type" => "object")
@@ -347,6 +348,72 @@ RSpec.describe "POST /mcp", type: :request do
         result = rpc("tools/call", { name: "list_habits", arguments: {} })["result"]
         labels = JSON.parse(result["content"].first["text"])["habits"].map { |h| h["label"] }
         expect(labels).to contain_exactly("Drink water")
+      end
+    end
+
+    describe "settings management" do
+      it "update_plan updates macro targets by slug" do
+        plan = create(:plan, slug: "exercise-test", target_kcal: 2000)
+        result = rpc("tools/call", {
+          name: "update_plan",
+          arguments: { slug: "exercise-test", target_kcal: 2300 }
+        })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["plan"]["target_kcal"]).to eq(2300)
+        expect(plan.reload.target_kcal).to eq(2300)
+      end
+
+      it "update_plan returns isError on unknown slug" do
+        result = rpc("tools/call", {
+          name: "update_plan",
+          arguments: { slug: "nope", target_kcal: 2300 }
+        })["result"]
+        expect(result["isError"]).to be(true)
+      end
+
+      it "update_meal updates macros and scheduled_time by plan_slug + name" do
+        plan = create(:plan, slug: "active-test")
+        meal = create(:meal, plan: plan, name: "Lunch", target_kcal: 500,
+                      scheduled_time: Time.utc(2000, 1, 1, 12, 0))
+        result = rpc("tools/call", {
+          name: "update_meal",
+          arguments: { plan_slug: "active-test", name: "Lunch",
+                       target_kcal: 600, scheduled_time: "13:30" }
+        })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["meal"]["target_kcal"]).to eq(600)
+
+        meal.reload
+        expect(meal.target_kcal).to eq(600)
+        expect(meal.scheduled_time.utc.strftime("%H:%M")).to eq("13:30")
+      end
+
+      it "update_meal returns isError when the meal name is unknown on the plan" do
+        create(:plan, slug: "active-test2")
+        result = rpc("tools/call", {
+          name: "update_meal",
+          arguments: { plan_slug: "active-test2", name: "Brunch", target_kcal: 100 }
+        })["result"]
+        expect(result["isError"]).to be(true)
+      end
+
+      it "update_goal updates target_value by metric" do
+        goal = create(:goal, :weight, target_value: 80)
+        result = rpc("tools/call", {
+          name: "update_goal",
+          arguments: { metric: "weight_kg", target_value: 78 }
+        })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["goal"]["target_value"]).to eq(78.0)
+        expect(goal.reload.target_value.to_f).to eq(78.0)
+      end
+
+      it "update_goal returns isError on unknown metric" do
+        result = rpc("tools/call", {
+          name: "update_goal",
+          arguments: { metric: "bogus_metric", target_value: 78 }
+        })["result"]
+        expect(result["isError"]).to be(true)
       end
     end
 
