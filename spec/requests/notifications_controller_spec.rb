@@ -44,5 +44,17 @@ RSpec.describe NotificationsController, type: :request do
       expect(response.body).to include("🍱 Breakfast time")
       expect(response.body).to include("1 sent")
     end
+
+    it "renders without a 500 when today's plan can't be resolved" do
+      # Force the today_log lookup to return one without a plan. We can't
+      # set plan_id to nil (NOT NULL constraint), so stub the helper.
+      allow_any_instance_of(NotificationsController).to receive(:today_log).and_return(double(plan: nil))
+
+      get notifications_path
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Meal reminders")
+      expect(response.body).to include("Supplement reminders") # still rendered
+    end
   end
 end

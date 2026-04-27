@@ -36,19 +36,21 @@
   <% end %>
 </section>
 
-<section class="px-4 mt-8">
-  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Meal reminders <span class="text-[11px] text-slate-400 normal-case font-normal">(today's plan: <%= @plan.name %>)</span></h2>
-  <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
-    <% @meal_reminders.each do |entry| %>
-      <%= render "notifications/preference_row",
-            reminder_type: "meal",
-            key: entry[:meal].name,
-            label: "#{entry[:meal].icon} #{entry[:meal].name}",
-            time:  entry[:meal].time_of_day,
-            enabled: entry[:enabled] %>
-    <% end %>
-  </div>
-</section>
+<% if @plan %>
+  <section class="px-4 mt-8">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Meal reminders <span class="text-[11px] text-slate-400 normal-case font-normal">(today's plan: <%= @plan.name %>)</span></h2>
+    <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
+      <% @meal_reminders.each do |entry| %>
+        <%= render "notifications/preference_row",
+              reminder_type: "meal",
+              key: entry[:meal].name,
+              label: "#{entry[:meal].icon} #{entry[:meal].name}",
+              time:  entry[:meal].time_of_day,
+              enabled: entry[:enabled] %>
+      <% end %>
+    </div>
+  </section>
+<% end %>
 
 <section class="px-4 mt-8">
   <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Supplement reminders</h2>

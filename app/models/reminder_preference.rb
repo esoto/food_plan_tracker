@@ -1,4 +1,10 @@
 class ReminderPreference < ApplicationRecord
+  # Keys are intentionally domain-stable (meal NAME, slot SYMBOL) rather
+  # than DB ids. That way a "Breakfast" preference applies across all
+  # plans (active/exercise/rest) since they all share the meal name —
+  # the user's intent is "remind me about breakfast" not "remind me
+  # about meal #17 on plan #2". Trade-off: renaming a meal in /settings
+  # silently re-enables a disabled preference.
   REMINDER_TYPES = %w[meal supplement_slot].freeze
 
   validates :reminder_type, presence: true, inclusion: { in: REMINDER_TYPES }

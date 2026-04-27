@@ -9,6 +9,6 @@ class ReminderPreferencesController < ApplicationController
       enabled:       ActiveModel::Type::Boolean.new.cast(params[:enabled])
     )
 
-    redirect_to notifications_path, status: :see_other
+    redirect_to notifications_path, status: :see_other, notice: "Reminder preference updated."
   end
 end
