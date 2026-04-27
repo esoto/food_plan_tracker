@@ -10,7 +10,7 @@ module Api
 
       def create
         template = ChecklistTemplate.new(habit_params)
-        template.position = (ChecklistTemplate.kept.maximum(:position) || -1) + 1
+        template.position = ChecklistTemplate.next_position
         template.save!
         render json: { habit: serialize_habit(template) }, status: :created
       end
@@ -18,20 +18,19 @@ module Api
       def update
         template = ChecklistTemplate.find(params[:id])
         template.update!(habit_params)
-        render json: { habit: serialize_habit(template.reload) }
+        render json: { habit: serialize_habit(template) }
       end
 
       def destroy
         template = ChecklistTemplate.find(params[:id])
         template.discard!
-        render json: { habit: serialize_habit(template.reload) }
+        render json: { habit: serialize_habit(template) }
       end
 
       def restore
         template = ChecklistTemplate.find(params[:id])
-        next_position = (ChecklistTemplate.kept.maximum(:position) || -1) + 1
-        template.update!(discarded_at: nil, position: next_position)
-        render json: { habit: serialize_habit(template.reload) }
+        template.restore_at_end!
+        render json: { habit: serialize_habit(template) }
       end
 
       private

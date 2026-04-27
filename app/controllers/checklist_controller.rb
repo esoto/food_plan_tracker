@@ -9,10 +9,16 @@ class ChecklistController < ApplicationController
 
   private
 
+  STREAK_MAX_DAYS = 365
+
+  # Walks back from today counting consecutive days at >=80% adherence.
+  # Capped at STREAK_MAX_DAYS to bound the per-day find_by + adherence calc
+  # (each iteration is one query + one count). One year of streak is plenty
+  # for the UI; nobody will notice a longer one.
   def compute_streak
     count = 0
     date = Date.current
-    loop do
+    STREAK_MAX_DAYS.times do
       log = DailyLog.find_by(date: date)
       break unless log && log.checklist_adherence_pct >= 80
 

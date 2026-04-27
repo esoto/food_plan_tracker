@@ -26,6 +26,11 @@
 
   <fieldset class="grid gap-2">
     <legend class="text-xs uppercase tracking-wider text-slate-500">Time slots</legend>
+    <%# Sentinel ensures the form always submits a time_slots[] param even
+        when no boxes are checked — controllers treat missing-key as
+        "leave alone" and empty array as "remove all". The empty string is
+        filtered out by the model's slot whitelist. %>
+    <%= hidden_field_tag "time_slots[]", "" %>
     <% existing_slots = supplement.supplement_schedules.pluck(:time_slot) %>
     <% SupplementSchedule::TIME_SLOT_LABELS.each do |slot, info| %>
       <label class="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 hover:bg-slate-50">

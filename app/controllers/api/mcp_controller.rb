@@ -214,7 +214,7 @@ module Api
     end
 
     def handle_list_supplements(args)
-      scope = args["archived"] ? Supplement.discarded : Supplement.kept
+      scope = args["archived"].to_s == "true" ? Supplement.discarded : Supplement.kept
       scope = scope.includes(:supplement_schedules).order(critical: :desc, name: :asc)
       { supplements: scope.map { |s| serialize_supplement(s) } }
     end
@@ -222,39 +222,41 @@ module Api
     def handle_create_supplement(args)
       attrs = args.slice("name", "dose", "critical", "notes", "contraindications")
       supplement = Supplement.create!(attrs)
-      sync_supplement_schedules(supplement, args["time_slots"])
+      supplement.sync_time_slots!(args["time_slots"]) if args.key?("time_slots")
       { supplement: serialize_supplement(supplement.reload) }
     end
 
     def handle_update_supplement(args)
       supplement = Supplement.find(args.fetch("id"))
       attrs = args.slice("name", "dose", "critical", "notes", "contraindications").compact
+      raise ToolArgumentError, "no updatable fields provided" if attrs.empty? && !args.key?("time_slots")
+
       supplement.update!(attrs) if attrs.any?
-      sync_supplement_schedules(supplement, args["time_slots"]) if args.key?("time_slots")
+      supplement.sync_time_slots!(args["time_slots"]) if args.key?("time_slots")
       { supplement: serialize_supplement(supplement.reload) }
     end
 
     def handle_archive_supplement(args)
       supplement = Supplement.find(args.fetch("id"))
       supplement.discard!
-      { supplement: serialize_supplement(supplement.reload) }
+      { supplement: serialize_supplement(supplement) }
     end
 
     def handle_restore_supplement(args)
       supplement = Supplement.find(args.fetch("id"))
       supplement.restore!
-      { supplement: serialize_supplement(supplement.reload) }
+      { supplement: serialize_supplement(supplement) }
     end
 
     def handle_list_habits(args)
-      scope = args["archived"] ? ChecklistTemplate.discarded.order(:label) : ChecklistTemplate.kept.ordered
+      scope = args["archived"].to_s == "true" ? ChecklistTemplate.discarded.order(:label) : ChecklistTemplate.kept.ordered
       { habits: scope.map { |t| serialize_habit(t) } }
     end
 
     def handle_create_habit(args)
       attrs = args.slice("label", "description", "icon")
       template = ChecklistTemplate.new(attrs)
-      template.position = (ChecklistTemplate.kept.maximum(:position) || -1) + 1
+      template.position = ChecklistTemplate.next_position
       template.save!
       { habit: serialize_habit(template) }
     end
@@ -262,34 +264,22 @@ module Api
     def handle_update_habit(args)
       template = ChecklistTemplate.find(args.fetch("id"))
       attrs = args.slice("label", "description", "icon", "position").compact
-      template.update!(attrs) if attrs.any?
-      { habit: serialize_habit(template.reload) }
+      raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
+
+      template.update!(attrs)
+      { habit: serialize_habit(template) }
     end
 
     def handle_archive_habit(args)
       template = ChecklistTemplate.find(args.fetch("id"))
       template.discard!
-      { habit: serialize_habit(template.reload) }
+      { habit: serialize_habit(template) }
     end
 
     def handle_restore_habit(args)
       template = ChecklistTemplate.find(args.fetch("id"))
-      next_position = (ChecklistTemplate.kept.maximum(:position) || -1) + 1
-      template.update!(discarded_at: nil, position: next_position)
-      { habit: serialize_habit(template.reload) }
-    end
-
-    def sync_supplement_schedules(supplement, requested)
-      requested = Array(requested).map(&:to_s).to_set & SupplementSchedule::TIME_SLOTS.keys.map(&:to_s)
-      existing  = supplement.supplement_schedules.index_by(&:time_slot)
-
-      (requested - existing.keys).each do |slot|
-        next_position = (SupplementSchedule.where(time_slot: slot).maximum(:position) || -1) + 1
-        supplement.supplement_schedules.create!(time_slot: slot, position: next_position)
-      end
-      (existing.keys - requested.to_a).each do |slot|
-        existing[slot].destroy!
-      end
+      template.restore_at_end!
+      { habit: serialize_habit(template) }
     end
 
     def handle_copy_yesterday_meals(args)

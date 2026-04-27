@@ -10,12 +10,12 @@ class Settings::ChecklistTemplatesController < ApplicationController
   end
 
   def new
-    @template = ChecklistTemplate.new(position: next_position)
+    @template = ChecklistTemplate.new(position: ChecklistTemplate.next_position)
   end
 
   def create
     @template = ChecklistTemplate.new(template_params)
-    @template.position = next_position
+    @template.position = ChecklistTemplate.next_position
     if @template.save
       redirect_to settings_habits_path, notice: "Added \"#{@template.label}\""
     else
@@ -40,7 +40,7 @@ class Settings::ChecklistTemplatesController < ApplicationController
   end
 
   def restore
-    @template.update!(discarded_at: nil, position: next_position)
+    @template.restore_at_end!
     redirect_to settings_habits_path, notice: "Restored \"#{@template.label}\""
   end
 
@@ -62,10 +62,6 @@ class Settings::ChecklistTemplatesController < ApplicationController
 
   def template_params
     params.require(:checklist_template).permit(:label, :description, :icon)
-  end
-
-  def next_position
-    (ChecklistTemplate.kept.maximum(:position) || -1) + 1
   end
 
   # Swap the `position` value with the adjacent kept template. Position is the

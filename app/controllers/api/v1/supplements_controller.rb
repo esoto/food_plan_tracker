@@ -11,48 +11,33 @@ module Api
 
       def create
         supplement = Supplement.create!(supplement_params)
-        sync_schedules(supplement, params[:time_slots])
+        supplement.sync_time_slots!(params[:time_slots]) if params.key?(:time_slots)
         render json: { supplement: serialize_supplement(supplement.reload) }, status: :created
       end
 
       def update
         supplement = Supplement.find(params[:id])
         supplement.update!(supplement_params)
-        sync_schedules(supplement, params[:time_slots]) if params.key?(:time_slots)
+        supplement.sync_time_slots!(params[:time_slots]) if params.key?(:time_slots)
         render json: { supplement: serialize_supplement(supplement.reload) }
       end
 
       def destroy
         supplement = Supplement.find(params[:id])
         supplement.discard!
-        render json: { supplement: serialize_supplement(supplement.reload) }
+        render json: { supplement: serialize_supplement(supplement) }
       end
 
       def restore
         supplement = Supplement.find(params[:id])
         supplement.restore!
-        render json: { supplement: serialize_supplement(supplement.reload) }
+        render json: { supplement: serialize_supplement(supplement) }
       end
 
       private
 
       def supplement_params
         params.require(:supplement).permit(:name, :dose, :critical, :notes, :contraindications)
-      end
-
-      # See Settings::SupplementsController#sync_schedules — same reconcile.
-      def sync_schedules(supplement, requested)
-        requested = Array(requested).map(&:to_s).to_set & SupplementSchedule::TIME_SLOTS.keys.map(&:to_s)
-        existing = supplement.supplement_schedules.index_by(&:time_slot)
-
-        (requested - existing.keys).each do |slot|
-          next_position = (SupplementSchedule.where(time_slot: slot).maximum(:position) || -1) + 1
-          supplement.supplement_schedules.create!(time_slot: slot, position: next_position)
-        end
-
-        (existing.keys - requested.to_a).each do |slot|
-          existing[slot].destroy!
-        end
       end
     end
   end

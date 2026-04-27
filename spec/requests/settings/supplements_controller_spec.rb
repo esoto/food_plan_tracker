@@ -97,11 +97,21 @@ RSpec.describe Settings::SupplementsController, type: :request do
       expect(sup.reload.supplement_schedules.pluck(:time_slot)).to contain_exactly("dinner", "pre_sleep")
     end
 
-    it "removes all schedules when no time_slots param is sent" do
+    it "leaves schedules untouched when time_slots key is omitted" do
       sup = create(:supplement)
       sup.supplement_schedules.create!(time_slot: "morning", position: 0)
 
       patch settings_supplement_path(sup), params: { supplement: { name: sup.name, dose: sup.dose } }
+
+      expect(sup.reload.supplement_schedules.pluck(:time_slot)).to contain_exactly("morning")
+    end
+
+    it "removes all schedules when an empty time_slots array is sent" do
+      sup = create(:supplement)
+      sup.supplement_schedules.create!(time_slot: "morning", position: 0)
+
+      patch settings_supplement_path(sup),
+            params: { supplement: { name: sup.name, dose: sup.dose }, time_slots: [] }
 
       expect(sup.reload.supplement_schedules).to be_empty
     end

@@ -50,6 +50,29 @@ RSpec.describe Discardable do
     end
   end
 
+  describe ".kept_on(date)" do
+    it "includes records still kept (no discarded_at)" do
+      kept = create(:supplement)
+      expect(Supplement.kept_on(Date.current)).to include(kept)
+    end
+
+    it "includes records discarded after the given day ended" do
+      sup = create(:supplement, discarded_at: Date.current.end_of_day + 1.minute)
+      expect(Supplement.kept_on(Date.current)).to include(sup)
+    end
+
+    it "excludes records discarded before the given day ended" do
+      sup = create(:supplement, discarded_at: Date.current.beginning_of_day)
+      expect(Supplement.kept_on(Date.current)).not_to include(sup)
+    end
+
+    it "for a past date, includes a record discarded after that date" do
+      sup = create(:supplement, discarded_at: 1.day.ago.end_of_day + 1.minute)
+      expect(Supplement.kept_on(2.days.ago.to_date)).to include(sup)
+      expect(Supplement.kept_on(Date.current)).not_to include(sup)
+    end
+  end
+
   describe "predicates" do
     it "discarded? reflects state" do
       expect(record.discarded?).to be false

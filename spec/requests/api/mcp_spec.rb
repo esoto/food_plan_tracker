@@ -304,6 +304,12 @@ RSpec.describe "POST /mcp", type: :request do
         expect(payload["supplement"]["time_slots"]).to eq([ "morning" ])
       end
 
+      it "update_supplement is an error when no updatable field or time_slots sent" do
+        sup = create(:supplement)
+        result = rpc("tools/call", { name: "update_supplement", arguments: { id: sup.id } })["result"]
+        expect(result["isError"]).to be(true)
+      end
+
       it "archive_supplement and restore_supplement round-trip" do
         sup = create(:supplement)
 
@@ -324,6 +330,12 @@ RSpec.describe "POST /mcp", type: :request do
         result = rpc("tools/call", { name: "create_habit", arguments: { label: "Second" } })["result"]
         payload = JSON.parse(result["content"].first["text"])
         expect(payload["habit"]["position"]).to eq(1)
+      end
+
+      it "update_habit is an error when no updatable field sent" do
+        template = create(:checklist_template, position: 0)
+        result = rpc("tools/call", { name: "update_habit", arguments: { id: template.id } })["result"]
+        expect(result["isError"]).to be(true)
       end
 
       it "archive_habit hides from list_habits" do
