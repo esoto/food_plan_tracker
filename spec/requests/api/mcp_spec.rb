@@ -77,7 +77,8 @@ RSpec.describe "POST /mcp", type: :request do
         "archive_supplement", "restore_supplement",
         "list_habits", "create_habit", "update_habit",
         "archive_habit", "restore_habit",
-        "update_plan", "update_meal", "update_goal"
+        "update_plan", "update_meal", "update_goal",
+        "list_meal_items", "add_meal_item", "update_meal_item", "remove_meal_item"
       )
       tools.each do |tool|
         expect(tool["inputSchema"]).to include("type" => "object")
@@ -427,6 +428,62 @@ RSpec.describe "POST /mcp", type: :request do
           name: "update_goal",
           arguments: { metric: "bogus_metric", target_value: 78 }
         })["result"]
+        expect(result["isError"]).to be(true)
+      end
+    end
+
+    describe "meal item management" do
+      let(:plan2) { create(:plan, slug: "exercise-mi") }
+      let(:meal2) { create(:meal, plan: plan2, name: "Breakfast") }
+      let(:eggs2) { create(:food, name: "Eggs", category: "protein", serving_grams: 50, kcal: 78, protein_g: 6, carbs_g: 0.5, fat_g: 5) }
+      let(:oats2) { create(:food, name: "Oats", category: "carb",    serving_grams: 40, kcal: 150, protein_g: 5, carbs_g: 27, fat_g: 3) }
+
+      it "list_meal_items returns items with computed macros" do
+        create(:meal_item, meal: meal2, food: eggs2, quantity_grams: 100)
+
+        result = rpc("tools/call", { name: "list_meal_items",
+                                     arguments: { plan_slug: "exercise-mi", meal_name: "Breakfast" } })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["meal_items"].size).to eq(1)
+        expect(payload["meal_items"].first["food_name"]).to eq("Eggs")
+        expect(payload["meal_items"].first["kcal"]).to eq(156)
+      end
+
+      it "update_meal_item changes quantity by meal+food name and returns recomputed macros" do
+        item = create(:meal_item, meal: meal2, food: eggs2, quantity_grams: 150)
+
+        result = rpc("tools/call", { name: "update_meal_item",
+                                     arguments: { plan_slug: "exercise-mi", meal_name: "Breakfast",
+                                                  food_name: "Eggs", quantity_grams: 100 } })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["meal_item"]["quantity_grams"]).to eq(100.0)
+        expect(item.reload.quantity_grams.to_f).to eq(100.0)
+      end
+
+      it "add_meal_item attaches a food to a meal" do
+        oats2 # ensure factory created
+        expect {
+          rpc("tools/call", { name: "add_meal_item",
+                               arguments: { plan_slug: "exercise-mi", meal_name: "Breakfast",
+                                            food_name: "Oats", quantity_grams: 40 } })
+        }.to change { meal2.meal_items.count }.by(1)
+      end
+
+      it "remove_meal_item drops a food from a meal" do
+        item = create(:meal_item, meal: meal2, food: eggs2, quantity_grams: 100)
+
+        rpc("tools/call", { name: "remove_meal_item",
+                             arguments: { plan_slug: "exercise-mi", meal_name: "Breakfast",
+                                          food_name: "Eggs" } })
+
+        expect(MealItem.exists?(item.id)).to be(false)
+      end
+
+      it "remove_meal_item returns isError when the food is not in the meal" do
+        meal2  # ensure exists
+        result = rpc("tools/call", { name: "remove_meal_item",
+                                     arguments: { plan_slug: "exercise-mi", meal_name: "Breakfast",
+                                                  food_name: "NotInMeal" } })["result"]
         expect(result["isError"]).to be(true)
       end
     end

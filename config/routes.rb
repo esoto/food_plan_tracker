@@ -79,7 +79,10 @@ Rails.application.routes.draw do
       resources :plans, only: %i[index update]
       resources :goals, only: %i[index update]
       resources :foods, only: %i[index create]
-      resources :meals, only: %i[index update]
+      resources :meals, only: %i[index update] do
+        resources :meal_items, only: %i[index create], path: "items"
+      end
+      resources :meal_items, only: %i[update destroy]
 
       post   "/weight",                  to: "weight#create"
       post   "/meals/:meal_id/complete", to: "meal_completions#create"
