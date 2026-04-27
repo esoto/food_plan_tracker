@@ -363,6 +363,20 @@ RSpec.describe "POST /mcp", type: :request do
         expect(plan.reload.target_kcal).to eq(2300)
       end
 
+      it "update_plan returns isError when no updatable fields are sent" do
+        create(:plan, slug: "active-only-slug")
+        result = rpc("tools/call", { name: "update_plan", arguments: { slug: "active-only-slug" } })["result"]
+        expect(result["isError"]).to be(true)
+      end
+
+      it "update_meal returns isError when no updatable fields are sent" do
+        plan = create(:plan, slug: "exercise-only-slug")
+        create(:meal, plan: plan, name: "OnlyMeal")
+        result = rpc("tools/call", { name: "update_meal",
+                                     arguments: { plan_slug: "exercise-only-slug", name: "OnlyMeal" } })["result"]
+        expect(result["isError"]).to be(true)
+      end
+
       it "update_plan returns isError on unknown slug" do
         result = rpc("tools/call", {
           name: "update_plan",

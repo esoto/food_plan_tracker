@@ -39,6 +39,11 @@ RSpec.describe "Api::V1::PlansController#update", type: :request do
       expect(plan.target_kcal).to eq(2100)
     end
 
+    it "400s when the :plan key is omitted from the body" do
+      patch "/api/v1/plans/#{plan.id}", params: {}.to_json, headers: auth_headers
+      expect(response).to have_http_status(:bad_request)
+    end
+
     it "404s when the plan id doesn't exist" do
       patch "/api/v1/plans/999999", params: { plan: { target_kcal: 2100 } }.to_json, headers: auth_headers
       expect(response).to have_http_status(:not_found)

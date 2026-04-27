@@ -377,18 +377,6 @@ async function resolvePlanIdBySlug(slug) {
   return plan.id;
 }
 
-async function resolveMealId({ plan_slug, name }) {
-  let plan = plan_slug;
-  if (!plan) {
-    const today = await api("GET", "/api/v1/today");
-    plan = today.plan.slug;
-  }
-  const res = await api("GET", `/api/v1/meals?plan=${encodeURIComponent(plan)}`);
-  const meal = (res.meals || []).find(m => m.name.toLowerCase() === name.toLowerCase());
-  if (!meal) throw new Error(`No meal "${name}" on plan "${plan}". Available: ${(res.meals || []).map(m => m.name).join(", ")}`);
-  return meal.id;
-}
-
 async function resolveGoalIdByMetric(metric) {
   const res = await api("GET", "/api/v1/goals");
   const goal = (res.goals || []).find(g => g.metric === metric);
@@ -410,6 +398,9 @@ server.registerTool(
     }
   },
   async ({ slug, ...rest }) => {
+    if (Object.keys(rest).length === 0) {
+      throw new Error("no updatable fields provided");
+    }
     const id = await resolvePlanIdBySlug(slug);
     return jsonResult(await api("PATCH", `/api/v1/plans/${id}`, { plan: rest }));
   }
@@ -431,8 +422,11 @@ server.registerTool(
     }
   },
   async ({ plan_slug, name, ...rest }) => {
-    const id = await resolveMealId({ plan_slug, name });
-    return jsonResult(await api("PATCH", `/api/v1/meals/${id}`, { meal: rest }));
+    if (Object.keys(rest).length === 0) {
+      throw new Error("no updatable fields provided");
+    }
+    const meal = await resolveMealId({ name, plan_slug });
+    return jsonResult(await api("PATCH", `/api/v1/meals/${meal.id}`, { meal: rest }));
   }
 );
 

@@ -6,20 +6,17 @@ class MealsController < ApplicationController
     else
       redirect_to settings_path, alert: meal.errors.full_messages.to_sentence, status: :see_other
     end
+  rescue Meal::InvalidScheduledTime => e
+    redirect_to settings_path, alert: e.message, status: :see_other
   end
 
   private
 
-  # The form posts scheduled_time as "HH:MM"; coerce to the UTC-sentinel Time
-  # the model stores so display via .utc.strftime stays correct (see Architecture
-  # doc — meals are stored as Time.utc(2000, 1, 1, h, m) to dodge SQLite tz drift).
+  # scheduled_time arrives as "HH:MM"; coercion to the UTC-sentinel Time is
+  # owned by Meal#scheduled_time= (model-level), so this just whitelists
+  # params. Bad input raises Meal::InvalidScheduledTime, caught above.
   def meal_params
-    raw = params.require(:meal).permit(:name, :scheduled_time, :target_kcal,
-                                       :target_protein_g, :target_carbs_g, :target_fat_g)
-    if raw[:scheduled_time].present? && raw[:scheduled_time].is_a?(String)
-      h, m = raw[:scheduled_time].split(":").map(&:to_i)
-      raw[:scheduled_time] = Time.utc(2000, 1, 1, h, m)
-    end
-    raw
+    params.require(:meal).permit(:name, :scheduled_time, :target_kcal,
+                                 :target_protein_g, :target_carbs_g, :target_fat_g)
   end
 end

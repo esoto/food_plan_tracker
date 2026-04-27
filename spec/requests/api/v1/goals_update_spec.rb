@@ -35,6 +35,11 @@ RSpec.describe "Api::V1::GoalsController#update", type: :request do
       expect(goal.target_value.to_f).to eq(79)
     end
 
+    it "400s when the :goal key is omitted from the body" do
+      patch "/api/v1/goals/#{goal.id}", params: {}.to_json, headers: auth_headers
+      expect(response).to have_http_status(:bad_request)
+    end
+
     it "404s when the goal id doesn't exist" do
       patch "/api/v1/goals/999999", params: { goal: { target_value: 78 } }.to_json, headers: auth_headers
       expect(response).to have_http_status(:not_found)

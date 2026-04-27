@@ -19,7 +19,8 @@ module Api
     # SQL fragments back to the client.
     class ToolArgumentError < StandardError; end
     USER_ERRORS = [ ToolArgumentError, ActiveRecord::RecordInvalid,
-                   ActiveRecord::RecordNotFound, ArgumentError, KeyError, Date::Error ].freeze
+                   ActiveRecord::RecordNotFound, ArgumentError, KeyError, Date::Error,
+                   Meal::InvalidScheduledTime ].freeze
 
     PROTOCOL_VERSION = "2025-06-18".freeze
     SERVER_INFO      = { name: "food-tracker", version: "0.2.0" }.freeze
@@ -296,25 +297,11 @@ module Api
     end
 
     def handle_update_meal(args)
-      plan = if args["plan_slug"].present?
-        Plan.find_by!(slug: args["plan_slug"])
-      else
-        log_for(args).plan
-      end
-      meal = plan.meals.find { |m| m.name.casecmp?(args.fetch("name")) } ||
-        raise(ToolArgumentError, "no meal \"#{args['name']}\" on plan \"#{plan.slug}\"; available: #{plan.meals.pluck(:name).join(', ')}")
-
-      attrs = args.slice("name", "target_kcal", "target_protein_g",
+      meal = resolve_meal(args)
+      # `name` is the lookup key, not an updatable field via this tool; use the
+      # REST PATCH /api/v1/meals/:id directly if you need to rename a meal.
+      attrs = args.slice("scheduled_time", "target_kcal", "target_protein_g",
                           "target_carbs_g", "target_fat_g").compact
-      if args["scheduled_time"].present?
-        st = args["scheduled_time"].to_s
-        raise ToolArgumentError, "scheduled_time must be HH:MM" unless st.match?(/\A\d{1,2}:\d{2}\z/)
-
-        h, m = st.split(":").map(&:to_i)
-        raise ToolArgumentError, "scheduled_time must be HH:MM (0-23 hour, 0-59 minute)" unless (0..23).cover?(h) && (0..59).cover?(m)
-
-        attrs["scheduled_time"] = Time.utc(2000, 1, 1, h, m)
-      end
       raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
 
       meal.update!(attrs)
@@ -356,7 +343,7 @@ module Api
     def resolve_meal(args)
       plan = plan_for(args)
       plan.meals.find { |m| m.name.casecmp?(args.fetch("name")) } ||
-        raise(ToolArgumentError, "no meal \"#{args['name']}\" on plan \"#{plan.slug}\"")
+        raise(ToolArgumentError, "no meal \"#{args['name']}\" on plan \"#{plan.slug}\"; available: #{plan.meals.pluck(:name).join(', ')}")
     end
 
     # ----- Tool registry. Schemas mirror the Zod definitions in the
@@ -364,7 +351,7 @@ module Api
     # ----- prose descriptions of each parameter's intent.
 
     ISO_DATE_PATTERN = '^\\d{4}-\\d{2}-\\d{2}$'.freeze
-    PLAN_SLUGS       = %w[exercise active rest].freeze
+    PLAN_SLUGS       = [ Plan::EXERCISE_SLUG, Plan::ACTIVE_SLUG, Plan::REST_SLUG ].freeze
     DATE_PROP        = { type: "string", pattern: ISO_DATE_PATTERN, description: "YYYY-MM-DD; defaults to today when omitted" }.freeze
 
     TOOLS = [
@@ -667,12 +654,12 @@ module Api
       },
       {
         name:        "update_meal",
-        description: "Update one meal on a plan: rename, reschedule (HH:MM in 24-hour), or change per-meal macro targets. Looks up the meal by name on the given plan (defaults to today's plan if plan_slug omitted).",
+        description: "Update one meal on a plan: reschedule (HH:MM in 24-hour) or change per-meal macro targets. Looks up the meal by name on the given plan (defaults to today's plan if plan_slug omitted). To rename a meal, use the REST API directly (PATCH /api/v1/meals/:id).",
         inputSchema: {
           type: "object",
           properties: {
             "plan_slug"        => { type: "string", enum: PLAN_SLUGS },
-            "name"             => { type: "string", description: "current meal name, e.g. 'Breakfast'" },
+            "name"             => { type: "string", description: "meal name to look up, e.g. 'Breakfast' (not renamed by this tool)" },
             "scheduled_time"   => { type: "string", pattern: '^\\d{1,2}:\\d{2}$', description: "HH:MM in 24-hour clock" },
             "target_kcal"      => { type: "integer", exclusiveMinimum: 0 },
             "target_protein_g" => { type: "number",  exclusiveMinimum: 0 },

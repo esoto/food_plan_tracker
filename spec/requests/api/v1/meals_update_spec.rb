@@ -32,7 +32,28 @@ RSpec.describe "Api::V1::MealsController#update", type: :request do
             params: { meal: { target_kcal: 550 } }.to_json,
             headers: auth_headers
 
-      expect(meal.reload.scheduled_time.utc.strftime("%H:%M")).to eq("07:00")
+      expect(response).to have_http_status(:ok)
+      expect(meal.reload.target_kcal).to eq(550)
+      expect(meal.scheduled_time.utc.strftime("%H:%M")).to eq("07:00")
+    end
+
+    it "rejects out-of-range scheduled_time (25:00) with 422" do
+      patch "/api/v1/meals/#{meal.id}",
+            params: { meal: { scheduled_time: "25:00" } }.to_json,
+            headers: auth_headers
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "rejects out-of-range scheduled_time (12:60) with 422" do
+      patch "/api/v1/meals/#{meal.id}",
+            params: { meal: { scheduled_time: "12:60" } }.to_json,
+            headers: auth_headers
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "400s when the :meal key is omitted from the body" do
+      patch "/api/v1/meals/#{meal.id}", params: {}.to_json, headers: auth_headers
+      expect(response).to have_http_status(:bad_request)
     end
 
     it "rejects malformed scheduled_time strings with 422" do
