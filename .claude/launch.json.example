@@ -1,0 +1,24 @@
+{
+  "//": [
+    "Template for .claude/launch.json — the actual file is gitignored.",
+    "Copy this to .claude/launch.json and fill in the env vars you need locally.",
+    "",
+    "VAPID keys: needed only if you want push reminders to work in dev.",
+    "Generate a dev keypair (different from production):",
+    "  bundle exec ruby -rweb-push -e 'k = WebPush.generate_key; puts \"PUB=#{k.public_key}\"; puts \"PRV=#{k.private_key}\"'",
+    "",
+    "Without the env vars, /notifications renders the 'aren't configured yet' branch."
+  ],
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Rails server",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "VAPID_PUBLIC_KEY='REPLACE-WITH-DEV-VAPID-PUB' VAPID_PRIVATE_KEY='REPLACE-WITH-DEV-VAPID-PRV' bin/rails server -p 3000"
+      ],
+      "port": 3000
+    }
+  ]
+}
