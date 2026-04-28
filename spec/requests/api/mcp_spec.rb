@@ -54,6 +54,34 @@ RSpec.describe "POST /mcp", type: :request do
     end
   end
 
+  describe "malformed JSON body" do
+    it "returns a JSON-RPC parse_error (400) when no Authorization header is present" do
+      post "/mcp",
+           params: "not-json-{[",
+           headers: { "Content-Type" => "application/json" }
+      expect(response).to have_http_status(:bad_request)
+      body = response.parsed_body
+      expect(body).to include("jsonrpc" => "2.0", "id" => nil)
+      expect(body.dig("error", "code")).to eq(-32700)
+      expect(body.dig("error", "message")).to eq("parse error")
+    end
+
+    it "returns a JSON-RPC parse_error (400) when the bearer is valid" do
+      post "/mcp",
+           params: "not-json-{[",
+           headers: auth
+      expect(response).to have_http_status(:bad_request)
+      expect(response.parsed_body.dig("error", "code")).to eq(-32700)
+    end
+
+    it "still rejects bogus bearers before parsing the body" do
+      post "/mcp",
+           params: "not-json-{[",
+           headers: { "Authorization" => "Bearer wrong", "Content-Type" => "application/json" }
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
+
   describe "initialize" do
     it "returns the protocol version, server info, and tool capability" do
       result = rpc("initialize")["result"]

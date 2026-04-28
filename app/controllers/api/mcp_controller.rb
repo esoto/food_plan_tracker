@@ -37,6 +37,19 @@ module Api
       render json: rpc_error(@rpc_id, -32603, "internal_error"), status: :ok
     end
 
+    # Anonymous garbage hitting /mcp used to slip through to the 200
+    # internal_error path because Doorkeeper falls back to params lookup
+    # when no Authorization header is present, and the params parser
+    # raises ParseError before doorkeeper_authorize! can return 401.
+    # Catch parse errors explicitly so they (a) return the spec-correct
+    # JSON-RPC parse_error code, (b) return HTTP 400 instead of 200, and
+    # (c) don't get logged as application errors. Declared after the
+    # StandardError handler so it takes precedence (Rescuable searches
+    # handlers in reverse declaration order).
+    rescue_from ActionDispatch::Http::Parameters::ParseError, JSON::ParserError do
+      render json: rpc_error(nil, -32700, "parse error"), status: :bad_request
+    end
+
     def handle
       msg = parse_message
       @rpc_id = msg["id"]
@@ -66,9 +79,11 @@ module Api
     end
 
     def parse_message
+      # An empty body is legal (the JSON-RPC notification short-circuit
+      # below still fires), but a malformed body raises JSON::ParserError
+      # which the rescue_from at the top of the class converts into a
+      # spec-correct -32700 / 400 response.
       @parsed_message ||= JSON.parse(request.raw_post.presence || "{}")
-    rescue JSON::ParserError
-      @parsed_message = {}
     end
 
     def initialize_result(_params)
