@@ -71,7 +71,10 @@ RSpec.describe "POST /mcp", type: :request do
            params: "not-json-{[",
            headers: auth
       expect(response).to have_http_status(:bad_request)
-      expect(response.parsed_body.dig("error", "code")).to eq(-32700)
+      body = response.parsed_body
+      expect(body).to include("jsonrpc" => "2.0", "id" => nil)
+      expect(body.dig("error", "code")).to eq(-32700)
+      expect(body.dig("error", "message")).to eq("parse error")
     end
 
     it "still rejects bogus bearers before parsing the body" do
@@ -79,6 +82,11 @@ RSpec.describe "POST /mcp", type: :request do
            params: "not-json-{[",
            headers: { "Authorization" => "Bearer wrong", "Content-Type" => "application/json" }
       expect(response).to have_http_status(:unauthorized)
+      # Lock in the auth-ordering invariant: Doorkeeper must short-circuit
+      # before parse_message runs, so the parse-error envelope must NOT leak.
+      if response.body.present?
+        expect(response.parsed_body.dig("error", "code")).not_to eq(-32700)
+      end
     end
   end
 

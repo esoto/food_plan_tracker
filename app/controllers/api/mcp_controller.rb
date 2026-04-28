@@ -46,7 +46,14 @@ module Api
     # (c) don't get logged as application errors. Declared after the
     # StandardError handler so it takes precedence (Rescuable searches
     # handlers in reverse declaration order).
-    rescue_from ActionDispatch::Http::Parameters::ParseError, JSON::ParserError do
+    #
+    # Scoped to ParseError specifically (not JSON::ParserError) so that a
+    # future tool handler that calls JSON.parse on user input won't have
+    # its failure misclassified as a transport-level parse error with
+    # `id: nil`. parse_message rewraps its own JSON::ParserError into
+    # ParseError so both the middleware-driven path and the controller's
+    # explicit body parse end up here.
+    rescue_from ActionDispatch::Http::Parameters::ParseError do
       render json: rpc_error(nil, -32700, "parse error"), status: :bad_request
     end
 
@@ -80,10 +87,14 @@ module Api
 
     def parse_message
       # An empty body is legal (the JSON-RPC notification short-circuit
-      # below still fires), but a malformed body raises JSON::ParserError
-      # which the rescue_from at the top of the class converts into a
-      # spec-correct -32700 / 400 response.
+      # below still fires). A malformed body is rewrapped as ParseError
+      # so the single class-level rescue handles both this path and the
+      # one Doorkeeper triggers via params-lookup fallback. Note that
+      # ActionDispatch::Http::Parameters::ParseError takes no args — its
+      # constructor reads $!.message from the active rescue context.
       @parsed_message ||= JSON.parse(request.raw_post.presence || "{}")
+    rescue JSON::ParserError
+      raise ActionDispatch::Http::Parameters::ParseError
     end
 
     def initialize_result(_params)
