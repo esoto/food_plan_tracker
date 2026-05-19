@@ -24,14 +24,14 @@ RSpec.shared_examples 'Tenantable' do
   describe 'before_validation callback' do
     it 'assigns Current.user on create' do
       user = create(:user)
-      Current.user = user
+      Current.session = Session.create!(user: user)
       record = described_class.new
       record.valid?
       expect(record.user).to eq(user)
     end
 
     it 'leaves user nil when Current.user is nil and no parent association' do
-      Current.user = nil
+      Current.reset
       record = described_class.new
       record.valid?
       expect(record.user).to be_nil
