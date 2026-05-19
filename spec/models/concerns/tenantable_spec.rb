@@ -53,11 +53,21 @@ RSpec.describe Tenantable, type: :model do
       record.valid?
       expect(record.user).to eq(parent_user)
     end
+
+    it 'prefers Current.user over parent association' do
+      current_user = create(:user)
+      Current.session = Session.create!(user: current_user, user_agent: 'test', ip_address: '127.0.0.1')
+      record = TenantableTestRecord.new(meal: parent)
+      record.valid?
+      expect(record.user).to eq(current_user)
+    end
   end
 
   describe 'meta-test: user_id column presence' do
     it 'verifies every Tenantable model has a user_id column' do
       pending 'unblocks after PER-553 adds user_id columns to all Tenantable models'
+
+      Rails.application.eager_load! unless Rails.application.config.eager_load
 
       tenantable_models = ApplicationRecord.descendants.select do |model|
         model.included_modules.include?(Tenantable) && model.table_exists?

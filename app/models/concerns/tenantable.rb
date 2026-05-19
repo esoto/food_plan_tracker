@@ -13,14 +13,22 @@
 # 4. +belongs_to :user, optional: true+ is transitional. PER-553 switches to
 #    required after backfill + NOT NULL.
 #
+# 5. Including models MUST NOT declare their own +belongs_to :user+ — the
+#    concern owns the association. Re-declaring would silently override due to
+#    ActiveRecord's last-declaration-wins rule.
+#
 # NO default_scope. Silent global filters mask bugs (especially in jobs and
 # rake tasks where Current.user may be unset) and complicate unscoped
 # reasoning.
 module Tenantable
   extend ActiveSupport::Concern
 
+  # Associations checked in precedence order for deriving user from a parent.
+  TENANT_PARENT_ASSOCIATIONS = %i[meal plan daily_log supplement goal].freeze
+
   included do
     belongs_to :user, optional: true
+    attr_readonly :user_id
 
     scope :for_user, ->(user) { user ? where(user: user) : none }
 
@@ -34,10 +42,9 @@ module Tenantable
     return if user.present?
 
     # Fallback for child models: derive from parent association
-    self.user ||= meal&.user        if respond_to?(:meal)        && meal.present?
-    self.user ||= plan&.user        if respond_to?(:plan)        && plan.present?
-    self.user ||= daily_log&.user   if respond_to?(:daily_log)   && daily_log.present?
-    self.user ||= supplement&.user  if respond_to?(:supplement)  && supplement.present?
-    self.user ||= goal&.user        if respond_to?(:goal)        && goal.present?
+    Tenantable::TENANT_PARENT_ASSOCIATIONS.each do |assoc|
+      next unless respond_to?(assoc) && send(assoc).present?
+      self.user ||= send(assoc).user
+    end
   end
 end
