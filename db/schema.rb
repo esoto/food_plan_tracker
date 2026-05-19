@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,8 +20,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.string "name", null: false
     t.string "token_digest", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["name"], name: "index_api_tokens_on_name", unique: true
     t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_api_tokens_on_user_id"
   end
 
   create_table "biomarker_entries", force: :cascade do |t|
@@ -29,9 +31,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.integer "goal_id", null: false
     t.date "recorded_on", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.decimal "value", precision: 7, scale: 2, null: false
     t.index ["goal_id", "recorded_on"], name: "index_biomarker_entries_on_goal_id_and_recorded_on"
     t.index ["goal_id"], name: "index_biomarker_entries_on_goal_id"
+    t.index ["user_id"], name: "index_biomarker_entries_on_user_id"
   end
 
   create_table "checklist_completions", force: :cascade do |t|
@@ -53,8 +57,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.string "label", null: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["discarded_at"], name: "index_checklist_templates_kept", where: "(discarded_at IS NULL)"
     t.index ["position"], name: "index_checklist_templates_on_position"
+    t.index ["user_id"], name: "index_checklist_templates_on_user_id"
   end
 
   create_table "daily_logs", force: :cascade do |t|
@@ -63,9 +69,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.text "notes"
     t.integer "plan_id", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.decimal "weight_kg", precision: 6, scale: 2
     t.index ["date"], name: "index_daily_logs_on_date", unique: true
     t.index ["plan_id"], name: "index_daily_logs_on_plan_id"
+    t.index ["user_id"], name: "index_daily_logs_on_user_id"
   end
 
   create_table "foods", force: :cascade do |t|
@@ -91,7 +99,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.decimal "target_value", precision: 7, scale: 2, null: false
     t.string "unit", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["metric"], name: "index_goals_on_metric", unique: true
+    t.index ["user_id"], name: "index_goals_on_user_id"
   end
 
   create_table "logged_foods", force: :cascade do |t|
@@ -101,9 +111,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.datetime "logged_at", null: false
     t.decimal "quantity_grams", precision: 7, scale: 2, null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["daily_log_id", "logged_at"], name: "index_logged_foods_on_daily_log_id_and_logged_at"
     t.index ["daily_log_id"], name: "index_logged_foods_on_daily_log_id"
     t.index ["food_id"], name: "index_logged_foods_on_food_id"
+    t.index ["user_id"], name: "index_logged_foods_on_user_id"
   end
 
   create_table "meal_completions", force: :cascade do |t|
@@ -124,9 +136,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.integer "meal_id", null: false
     t.decimal "quantity_grams", precision: 7, scale: 2, null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["food_id"], name: "index_meal_items_on_food_id"
     t.index ["meal_id", "food_id"], name: "index_meal_items_on_meal_and_food", unique: true
     t.index ["meal_id"], name: "index_meal_items_on_meal_id"
+    t.index ["user_id"], name: "index_meal_items_on_user_id"
   end
 
   create_table "meals", force: :cascade do |t|
@@ -140,8 +154,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.integer "target_kcal", null: false
     t.decimal "target_protein_g", precision: 6, scale: 2, null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["plan_id", "position"], name: "index_meals_on_plan_id_and_position", unique: true
     t.index ["plan_id"], name: "index_meals_on_plan_id"
+    t.index ["user_id"], name: "index_meals_on_user_id"
   end
 
   create_table "notification_deliveries", force: :cascade do |t|
@@ -153,7 +169,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.string "url"
+    t.bigint "user_id"
     t.index ["fired_at"], name: "index_notification_deliveries_on_fired_at"
+    t.index ["user_id"], name: "index_notification_deliveries_on_user_id"
   end
 
   create_table "oauth_access_grants", force: :cascade do |t|
@@ -207,7 +225,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.integer "target_kcal", null: false
     t.integer "target_protein_g", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["slug"], name: "index_plans_on_slug", unique: true
+    t.index ["user_id"], name: "index_plans_on_user_id"
   end
 
   create_table "push_subscriptions", force: :cascade do |t|
@@ -217,7 +237,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.string "p256dh_key", null: false
     t.datetime "updated_at", null: false
     t.string "user_agent"
+    t.bigint "user_id"
     t.index "md5(endpoint)", name: "index_push_subscriptions_on_endpoint_md5", unique: true
+    t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
   end
 
   create_table "reminder_preferences", force: :cascade do |t|
@@ -226,7 +248,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.string "key", null: false
     t.string "reminder_type", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["reminder_type", "key"], name: "index_reminder_preferences_on_reminder_type_and_key", unique: true
+    t.index ["user_id"], name: "index_reminder_preferences_on_user_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -255,8 +279,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.integer "supplement_id", null: false
     t.integer "time_slot", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["supplement_id"], name: "index_supplement_schedules_on_supplement_id"
     t.index ["time_slot", "position"], name: "index_supplement_schedules_on_time_slot_and_position"
+    t.index ["user_id"], name: "index_supplement_schedules_on_user_id"
   end
 
   create_table "supplements", force: :cascade do |t|
@@ -268,7 +294,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_024312) do
     t.string "name", null: false
     t.string "notes"
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["discarded_at"], name: "index_supplements_kept", where: "(discarded_at IS NULL)"
+    t.index ["user_id"], name: "index_supplements_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
