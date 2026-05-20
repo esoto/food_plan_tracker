@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :checklist_completion do
-    daily_log { nil }
-    checklist_template { nil }
+    association :daily_log
+    association :checklist_template
     checked { false }
   end
 end

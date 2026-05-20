@@ -1,4 +1,4 @@
-require 'rails_helper'
+require "rails_helper"
 
 RSpec.describe MealItem, type: :model do
   let(:user_a) { create(:user) }
@@ -56,6 +56,62 @@ RSpec.describe MealItem, type: :model do
       item = build(:meal_item, meal: meal, food: food, user: user_b)
       expect(item).not_to be_valid
       expect(item.errors[:user_id]).to include("must match the meal's user")
+    end
+  end
+
+  describe "associations" do
+    it { is_expected.to belong_to(:meal) }
+    it { is_expected.to belong_to(:food) }
+  end
+
+  describe "validations" do
+    it { is_expected.to validate_presence_of(:quantity_grams) }
+    it { is_expected.to validate_numericality_of(:quantity_grams).is_greater_than(0) }
+
+    it "requires user to match the meal's user" do
+      meal = create(:meal)
+      other_user = create(:user)
+      item = build(:meal_item, meal: meal, food: create(:food), user: other_user)
+      expect(item).not_to be_valid
+      expect(item.errors[:user_id]).to include("must match the meal's user")
+    end
+
+    it "allows a matching user" do
+      meal = create(:meal)
+      item = build(:meal_item, meal: meal, food: create(:food), user: meal.user)
+      expect(item).to be_valid
+    end
+  end
+
+  describe "macros" do
+    let(:food)  { build(:food, serving_grams: 100, kcal: 200, protein_g: 25, carbs_g: 10, fat_g: 5) }
+    let(:meal_item) { build(:meal_item, food: food, quantity_grams: 50) }
+
+    it "calculates ratio from serving size" do
+      expect(meal_item.ratio).to eq(0.5)
+    end
+
+    it "calculates kcal" do
+      expect(meal_item.kcal).to eq(100)
+    end
+
+    it "calculates protein_g" do
+      expect(meal_item.protein_g).to eq(12.5)
+    end
+
+    it "calculates carbs_g" do
+      expect(meal_item.carbs_g).to eq(5.0)
+    end
+
+    it "calculates fat_g" do
+      expect(meal_item.fat_g).to eq(2.5)
+    end
+
+    it "returns 0 ratio when serving_grams is zero" do
+      zero_serving = build(:food, serving_grams: 0)
+      item = build(:meal_item, food: zero_serving, quantity_grams: 50)
+      expect(item.ratio).to eq(0)
+      expect(item.kcal).to eq(0)
     end
   end
 end
