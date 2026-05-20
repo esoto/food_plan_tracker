@@ -23,6 +23,7 @@ module Api
       if token
         token.touch_used!
         @current_api_token = token
+        Current.session = Session.new(user: token.user)
       else
         render json: { error: "unauthorized" }, status: :unauthorized
       end

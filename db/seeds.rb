@@ -110,7 +110,8 @@ user.save!
 
 puts "  user: #{user.email_address}"
 
-Current.set(user: user) do
+session = Session.create!(user: user, user_agent: "seeds", ip_address: "127.0.0.1")
+Current.set(session: session) do
 
 # -----------------------------------------------------------------------------
 # Plans + Meals + MealItems

@@ -10,7 +10,7 @@ class ReminderPreference < ApplicationRecord
   REMINDER_TYPES = %w[meal supplement_slot].freeze
 
   validates :reminder_type, presence: true, inclusion: { in: REMINDER_TYPES }
-  validates :key, presence: true, uniqueness: { scope: :reminder_type }
+  validates :key, presence: true, uniqueness: { scope: [:user_id, :reminder_type] }
 
   # Default behavior: a reminder with no row in the table is enabled.
   # Rows only exist once the user has explicitly toggled at least once.

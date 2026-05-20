@@ -19,7 +19,7 @@ class Goal < ApplicationRecord
 
   validates :metric, :direction, :display_name, :unit, presence: true
   validates :starting_value, :target_value, presence: true, numericality: true
-  validates :metric, uniqueness: true
+  validates :metric, uniqueness: { scope: :user_id }
 
   scope :with_measurements, -> { joins(:biomarker_entries).distinct }
 

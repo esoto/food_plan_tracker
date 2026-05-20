@@ -5,7 +5,7 @@ RSpec.shared_examples 'Tenantable' do |skip_for_user: false|
   let(:tenantable_attrs_b) { tenantable_attrs }
   let(:tenantable_attrs_nil_user) { tenantable_attrs }
 
-  it { is_expected.to belong_to(:user).optional }
+  it { is_expected.to belong_to(:user) }
 
   describe '.for_user' do
     unless skip_for_user

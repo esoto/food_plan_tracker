@@ -49,11 +49,11 @@ RSpec.describe ReminderTickerJob, type: :job do
     it "fires when current minute matches a meal's scheduled_time and the meal is uncompleted" do
       DailyLog.today # ensure today's log exists
 
-      expect(PushNotifier).to receive(:broadcast).with(
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(
         title: "🍱 Breakfast time",
         body:  /Breakfast.*450 kcal/,
         url:   "/menu"
-      )
+      ))
 
       described_class.perform_now(now: Time.zone.local(2026, 4, 26, 7, 30))
     end
@@ -77,11 +77,11 @@ RSpec.describe ReminderTickerJob, type: :job do
     it "fires one combined reminder per slot at the slot's representative time" do
       DailyLog.today
 
-      expect(PushNotifier).to receive(:broadcast).with(
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(
         title: "💊 Morning supplements",
         body:  "2 supplements due now.",
         url:   "/supplements"
-      )
+      ))
 
       described_class.perform_now(now: Time.zone.local(2026, 4, 26, 7, 0))
     end
@@ -90,11 +90,11 @@ RSpec.describe ReminderTickerJob, type: :job do
       log = DailyLog.today
       log.supplement_completions.create!(supplement: supp_a, taken_at: Time.current)
 
-      expect(PushNotifier).to receive(:broadcast).with(
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(
         title: "💊 Morning supplements",
         body:  "1 supplement due now.",
         url:   "/supplements"
-      )
+      ))
 
       described_class.perform_now(now: Time.zone.local(2026, 4, 26, 7, 0))
     end

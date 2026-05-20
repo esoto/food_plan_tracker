@@ -4,7 +4,7 @@ RSpec.describe "Api::V1::MealItems", type: :request do
   let(:user) { create(:user) }
 
   before do
-    Current.user = user
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
     stub_api_token
   end
 

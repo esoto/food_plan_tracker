@@ -46,7 +46,7 @@ RSpec.describe PushNotifier do
     before do
       ENV["VAPID_PUBLIC_KEY"]  = "PUB"
       ENV["VAPID_PRIVATE_KEY"] = "PRV"
-      Current.user = user
+      Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
     end
 
     it "calls WebPush.payload_send for each subscription" do

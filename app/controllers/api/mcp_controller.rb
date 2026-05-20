@@ -30,6 +30,7 @@ module Api
 
     before_action :reject_unsupported_methods
     before_action :doorkeeper_authorize!, only: :handle
+    before_action :set_current_session, only: :handle
 
     rescue_from StandardError do |error|
       Rails.logger.error("[mcp] #{error.class}: #{error.message}\n#{error.backtrace&.first(10)&.join("\n")}")
@@ -83,6 +84,13 @@ module Api
 
     def reject_unsupported_methods
       head(:method_not_allowed) unless request.post?
+    end
+
+    def set_current_session
+      return unless doorkeeper_token
+
+      user = User.find_by(id: doorkeeper_token.resource_owner_id)
+      Current.session = Session.new(user: user) if user
     end
 
     def parse_message

@@ -10,7 +10,7 @@ class DailyLog < ApplicationRecord
   has_many :checklist_completions, dependent: :destroy
   has_many :logged_foods, -> { order(logged_at: :desc) }, dependent: :destroy
 
-  validates :date, presence: true, uniqueness: true
+  validates :date, presence: true, uniqueness: { scope: :user_id }
 
   scope :chronological, -> { order(:date) }
   scope :recent, ->(n) { order(date: :desc).limit(n) }
