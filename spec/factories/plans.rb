@@ -1,5 +1,6 @@
 FactoryBot.define do
   factory :plan do
+    user
     name { "Active day" }
     sequence(:slug) { |n| "active-#{n}" }
     target_kcal { 2075 }

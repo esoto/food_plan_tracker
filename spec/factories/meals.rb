@@ -1,5 +1,6 @@
 FactoryBot.define do
   factory :meal do
+    user
     plan { nil }
     sequence(:position)
     name { "MyString" }

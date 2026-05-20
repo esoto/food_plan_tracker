@@ -1,4 +1,6 @@
 class Goal < ApplicationRecord
+  include Tenantable
+
   METRICS = {
     weight_kg:       0,
     body_fat_pct:    1,

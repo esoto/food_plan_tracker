@@ -1,4 +1,6 @@
 class Meal < ApplicationRecord
+  include Tenantable
+
   # Raised when a string assigned to scheduled_time can't be parsed as HH:MM
   # in the 0-23 / 0-59 range. Catchers: Api::V1::MealsController and
   # Api::McpController (in USER_ERRORS) surface it as 422 / isError. The
