@@ -1,6 +1,5 @@
 FactoryBot.define do
   factory :biomarker_entry do
-    user
     goal
     user { goal&.user }
     recorded_on { Date.current }
