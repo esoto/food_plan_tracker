@@ -1,6 +1,10 @@
 require "rails_helper"
 
 RSpec.describe ChecklistTemplate, type: :model do
+  it_behaves_like "Tenantable" do
+    let(:tenantable_attrs) { { label: "Test", position: 1 } }
+  end
+
   before { ChecklistTemplate.delete_all }
 
   describe ".next_position" do

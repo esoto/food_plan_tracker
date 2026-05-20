@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :logged_food do
-    user
+    user { daily_log&.user }
     daily_log
     food
     quantity_grams { 100.0 }

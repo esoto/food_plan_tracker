@@ -1,6 +1,11 @@
 require "rails_helper"
 
 RSpec.describe ApiToken, type: :model do
+  it_behaves_like "Tenantable" do
+    let(:tenantable_attrs) { { name: "Test" } }
+    let(:tenantable_attrs_b) { { name: "Test B" } }
+  end
+
   describe "create" do
     it "generates a 64-char hex plaintext token, stored only as a SHA256 digest" do
       token = ApiToken.create!(name: "Test")

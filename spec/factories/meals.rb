@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :meal do
     user
-    plan { nil }
+    plan
     sequence(:position)
     name { "MyString" }
     # Use the project's UTC sentinel time format (Time.utc(2000,1,1,h,m)) —
