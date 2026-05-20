@@ -89,6 +89,30 @@ end
 puts "  #{Food.count} foods (#{Food.protein.count} protein, #{Food.carb.count} carb, #{Food.fat.count} fat, #{Food.vegetable.count} vegetable)"
 
 # -----------------------------------------------------------------------------
+# Default user (must be created before any tenantable records)
+# -----------------------------------------------------------------------------
+
+puts "Seeding user…"
+
+email = ENV.fetch("ADMIN_EMAIL", "esoto074@gmail.com")
+password =
+  if Rails.env.production?
+    # No default in production — fail loudly if the deploy forgot to set the env var,
+    # rather than silently creating an account with a known credential.
+    ENV.fetch("ADMIN_PASSWORD") { raise "ADMIN_PASSWORD must be set in production" }
+  else
+    ENV.fetch("ADMIN_PASSWORD", "changeme-now-please")
+  end
+
+user = User.find_or_initialize_by(email_address: email)
+user.password = password if user.new_record?
+user.save!
+
+puts "  user: #{user.email_address}"
+
+Current.set(user: user) do
+
+# -----------------------------------------------------------------------------
 # Plans + Meals + MealItems
 #
 # Three day types:
@@ -103,7 +127,7 @@ puts "Seeding plans and meals…"
 # by slug means old "crossfit" plans stick around. If you see extras, run
 # `Plan.where(slug: "crossfit").destroy_all` in the console.
 
-exercise = Plan.find_or_initialize_by(slug: Plan::EXERCISE_SLUG)
+exercise = Plan.find_or_initialize_by(slug: Plan::EXERCISE_SLUG, user: user)
 exercise.assign_attributes(
   name: "Exercise day",
   target_kcal: 2100,
@@ -113,7 +137,7 @@ exercise.assign_attributes(
 )
 exercise.save!
 
-active = Plan.find_or_initialize_by(slug: Plan::ACTIVE_SLUG)
+active = Plan.find_or_initialize_by(slug: Plan::ACTIVE_SLUG, user: user)
 active.assign_attributes(
   name: "Active day",
   target_kcal: 2075,
@@ -123,7 +147,7 @@ active.assign_attributes(
 )
 active.save!
 
-rest = Plan.find_or_initialize_by(slug: Plan::REST_SLUG)
+rest = Plan.find_or_initialize_by(slug: Plan::REST_SLUG, user: user)
 rest.assign_attributes(
   name: "Rest day",
   target_kcal: 2050,
@@ -146,8 +170,8 @@ def find_food(name)
   Food.find_by!(name: name)
 end
 
-def upsert_meal(plan:, position:, name:, time:, kcal:, protein:, carbs:, fat:, items:)
-  meal = plan.meals.find_or_initialize_by(position: position)
+def upsert_meal(plan:, position:, name:, time:, kcal:, protein:, carbs:, fat:, items:, user:)
+  meal = plan.meals.find_or_initialize_by(position: position, user: user)
   hour, minute = time.split(":").map(&:to_i)
   meal.assign_attributes(
     name: name,
@@ -161,13 +185,13 @@ def upsert_meal(plan:, position:, name:, time:, kcal:, protein:, carbs:, fat:, i
 
   meal.meal_items.destroy_all
   items.each_with_index do |(food_name, qty), idx|
-    meal.meal_items.create!(food: find_food(food_name), quantity_grams: qty, display_order: idx)
+    meal.meal_items.create!(food: find_food(food_name), quantity_grams: qty, display_order: idx, user: user)
   end
   meal
 end
 
 # --- Exercise day meals (CrossFit days) ---
-upsert_meal(plan: exercise, position: 1, name: "Breakfast", time: "07:00",
+upsert_meal(user: user, plan: exercise, position: 1, name: "Breakfast", time: "07:00",
   kcal: 460, protein: 40, carbs: 50, fat: 14,
   items: [
     [ "Whole eggs", 150 ],
@@ -179,7 +203,7 @@ upsert_meal(plan: exercise, position: 1, name: "Breakfast", time: "07:00",
   ]
 )
 
-upsert_meal(plan: exercise, position: 2, name: "Lunch", time: "12:00",
+upsert_meal(user: user, plan: exercise, position: 2, name: "Lunch", time: "12:00",
   kcal: 525, protein: 45, carbs: 65, fat: 15,
   items: [
     [ "Chicken breast, cooked", 150 ],
@@ -191,7 +215,7 @@ upsert_meal(plan: exercise, position: 2, name: "Lunch", time: "12:00",
   ]
 )
 
-upsert_meal(plan: exercise, position: 3, name: "Pre-workout", time: "15:30",
+upsert_meal(user: user, plan: exercise, position: 3, name: "Pre-workout", time: "15:30",
   kcal: 380, protein: 30, carbs: 55, fat: 6,
   items: [
     [ "Whey isolate", 30 ],
@@ -201,7 +225,7 @@ upsert_meal(plan: exercise, position: 3, name: "Pre-workout", time: "15:30",
   ]
 )
 
-upsert_meal(plan: exercise, position: 4, name: "Post-workout dinner", time: "19:30",
+upsert_meal(user: user, plan: exercise, position: 4, name: "Post-workout dinner", time: "19:30",
   kcal: 525, protein: 40, carbs: 50, fat: 18,
   items: [
     [ "Salmon, baked", 150 ],
@@ -214,7 +238,7 @@ upsert_meal(plan: exercise, position: 4, name: "Post-workout dinner", time: "19:
   ]
 )
 
-upsert_meal(plan: exercise, position: 5, name: "Pre-sleep", time: "22:30",
+upsert_meal(user: user, plan: exercise, position: 5, name: "Pre-sleep", time: "22:30",
   kcal: 210, protein: 35, carbs: 8, fat: 5,
   items: [
     [ "Cottage cheese 2%", 200 ],
@@ -223,7 +247,7 @@ upsert_meal(plan: exercise, position: 5, name: "Pre-sleep", time: "22:30",
 )
 
 # --- Active day meals (walks / moderate activity) ---
-upsert_meal(plan: active, position: 1, name: "Breakfast", time: "07:30",
+upsert_meal(user: user, plan: active, position: 1, name: "Breakfast", time: "07:30",
   kcal: 450, protein: 40, carbs: 45, fat: 15,
   items: [
     [ "Whole eggs", 150 ],
@@ -235,7 +259,7 @@ upsert_meal(plan: active, position: 1, name: "Breakfast", time: "07:30",
   ]
 )
 
-upsert_meal(plan: active, position: 2, name: "Lunch", time: "12:30",
+upsert_meal(user: user, plan: active, position: 2, name: "Lunch", time: "12:30",
   kcal: 510, protein: 45, carbs: 55, fat: 16,
   items: [
     [ "Turkey breast, cooked", 170 ],
@@ -247,7 +271,7 @@ upsert_meal(plan: active, position: 2, name: "Lunch", time: "12:30",
   ]
 )
 
-upsert_meal(plan: active, position: 3, name: "Snack", time: "16:00",
+upsert_meal(user: user, plan: active, position: 3, name: "Snack", time: "16:00",
   kcal: 360, protein: 30, carbs: 40, fat: 12,
   items: [
     [ "Greek yogurt 0%", 250 ],
@@ -256,7 +280,7 @@ upsert_meal(plan: active, position: 3, name: "Snack", time: "16:00",
   ]
 )
 
-upsert_meal(plan: active, position: 4, name: "Dinner", time: "19:30",
+upsert_meal(user: user, plan: active, position: 4, name: "Dinner", time: "19:30",
   kcal: 530, protein: 40, carbs: 30, fat: 24,
   items: [
     [ "Salmon, baked", 140 ],
@@ -269,7 +293,7 @@ upsert_meal(plan: active, position: 4, name: "Dinner", time: "19:30",
   ]
 )
 
-upsert_meal(plan: active, position: 5, name: "Pre-sleep", time: "22:30",
+upsert_meal(user: user, plan: active, position: 5, name: "Pre-sleep", time: "22:30",
   kcal: 225, protein: 35, carbs: 10, fat: 6,
   items: [
     [ "Cottage cheese 2%", 200 ],
@@ -278,7 +302,7 @@ upsert_meal(plan: active, position: 5, name: "Pre-sleep", time: "22:30",
 )
 
 # --- Rest day meals ---
-upsert_meal(plan: rest, position: 1, name: "Breakfast", time: "07:30",
+upsert_meal(user: user, plan: rest, position: 1, name: "Breakfast", time: "07:30",
   kcal: 440, protein: 40, carbs: 35, fat: 16,
   items: [
     [ "Whole eggs", 150 ],
@@ -290,7 +314,7 @@ upsert_meal(plan: rest, position: 1, name: "Breakfast", time: "07:30",
   ]
 )
 
-upsert_meal(plan: rest, position: 2, name: "Lunch", time: "12:30",
+upsert_meal(user: user, plan: rest, position: 2, name: "Lunch", time: "12:30",
   kcal: 510, protein: 45, carbs: 50, fat: 17,
   items: [
     [ "Turkey breast, cooked", 170 ],
@@ -301,7 +325,7 @@ upsert_meal(plan: rest, position: 2, name: "Lunch", time: "12:30",
   ]
 )
 
-upsert_meal(plan: rest, position: 3, name: "Snack", time: "16:00",
+upsert_meal(user: user, plan: rest, position: 3, name: "Snack", time: "16:00",
   kcal: 340, protein: 30, carbs: 30, fat: 12,
   items: [
     [ "Greek yogurt 0%", 250 ],
@@ -310,7 +334,7 @@ upsert_meal(plan: rest, position: 3, name: "Snack", time: "16:00",
   ]
 )
 
-upsert_meal(plan: rest, position: 4, name: "Dinner", time: "19:30",
+upsert_meal(user: user, plan: rest, position: 4, name: "Dinner", time: "19:30",
   kcal: 540, protein: 40, carbs: 35, fat: 25,
   items: [
     [ "Salmon, baked", 140 ],
@@ -323,7 +347,7 @@ upsert_meal(plan: rest, position: 4, name: "Dinner", time: "19:30",
   ]
 )
 
-upsert_meal(plan: rest, position: 5, name: "Pre-sleep", time: "22:30",
+upsert_meal(user: user, plan: rest, position: 5, name: "Pre-sleep", time: "22:30",
   kcal: 220, protein: 35, carbs: 10, fat: 6,
   items: [
     [ "Cottage cheese 2%", 200 ],
@@ -376,7 +400,7 @@ allowed_names = SUPPLEMENTS.map { |s| s[:name] }
 Supplement.kept.where.not(name: allowed_names).destroy_all
 
 SUPPLEMENTS.each do |attrs|
-  supplement = Supplement.find_or_initialize_by(name: attrs[:name])
+  supplement = Supplement.find_or_initialize_by(name: attrs[:name], user: user)
   supplement.assign_attributes(
     dose: attrs[:dose],
     notes: attrs[:notes],
@@ -385,7 +409,7 @@ SUPPLEMENTS.each do |attrs|
   )
   supplement.save!
 
-  schedule = supplement.supplement_schedules.first_or_initialize
+  schedule = supplement.supplement_schedules.first_or_initialize(user: user)
   schedule.time_slot = attrs[:slot]
   schedule.position  = attrs[:position]
   schedule.save!
@@ -420,7 +444,7 @@ CHECKLIST = [
 ChecklistTemplate.kept.where.not(label: CHECKLIST.map { |c| c[:label] }).destroy_all
 
 CHECKLIST.each_with_index do |attrs, idx|
-  template = ChecklistTemplate.find_or_initialize_by(label: attrs[:label])
+  template = ChecklistTemplate.find_or_initialize_by(label: attrs[:label], user: user)
   template.description = attrs[:description]
   template.icon        = attrs[:icon]
   template.position    = idx + 1
@@ -445,32 +469,13 @@ GOALS = [
 ].freeze
 
 GOALS.each do |attrs|
-  goal = Goal.find_or_initialize_by(metric: attrs[:metric])
+  goal = Goal.find_or_initialize_by(metric: attrs[:metric], user: user)
   goal.assign_attributes(attrs)
   goal.save!
 end
 
 puts "  #{Goal.count} goals"
 
-# -----------------------------------------------------------------------------
-# Default user (Esteban)
-# -----------------------------------------------------------------------------
+end # Current.set(user: user)
 
-puts "Seeding user…"
-
-email = ENV.fetch("ADMIN_EMAIL", "esoto074@gmail.com")
-password =
-  if Rails.env.production?
-    # No default in production — fail loudly if the deploy forgot to set the env var,
-    # rather than silently creating an account with a known credential.
-    ENV.fetch("ADMIN_PASSWORD") { raise "ADMIN_PASSWORD must be set in production" }
-  else
-    ENV.fetch("ADMIN_PASSWORD", "changeme-now-please")
-  end
-
-user = User.find_or_initialize_by(email_address: email)
-user.password = password if user.new_record?
-user.save!
-
-puts "  user: #{user.email_address}"
 puts "Done."

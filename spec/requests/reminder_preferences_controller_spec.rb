@@ -1,7 +1,12 @@
 require "rails_helper"
 
 RSpec.describe ReminderPreferencesController, type: :request do
-  before { sign_in_as }
+  let(:user) { create(:user, password: "password") }
+
+  before do
+    sign_in_as(user)
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
+  end
 
   describe "PATCH /reminder_preferences" do
     it "creates a new preference row on first toggle" do
@@ -19,7 +24,7 @@ RSpec.describe ReminderPreferencesController, type: :request do
     end
 
     it "updates an existing preference row" do
-      ReminderPreference.create!(reminder_type: "supplement_slot", key: "morning", enabled: false)
+      ReminderPreference.create!(reminder_type: "supplement_slot", key: "morning", enabled: false, user: user)
 
       expect {
         patch reminder_preferences_path,

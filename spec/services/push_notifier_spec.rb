@@ -39,12 +39,14 @@ RSpec.describe PushNotifier do
   end
 
   describe ".broadcast" do
-    let!(:sub_a) { PushSubscription.create!(endpoint: "https://fcm.example/A", p256dh_key: "p", auth_key: "a") }
-    let!(:sub_b) { PushSubscription.create!(endpoint: "https://fcm.example/B", p256dh_key: "p", auth_key: "a") }
+    let(:user) { create(:user) }
+    let!(:sub_a) { PushSubscription.create!(endpoint: "https://fcm.example/A", p256dh_key: "p", auth_key: "a", user: user) }
+    let!(:sub_b) { PushSubscription.create!(endpoint: "https://fcm.example/B", p256dh_key: "p", auth_key: "a", user: user) }
 
     before do
       ENV["VAPID_PUBLIC_KEY"]  = "PUB"
       ENV["VAPID_PRIVATE_KEY"] = "PRV"
+      Current.user = user
     end
 
     it "calls WebPush.payload_send for each subscription" do

@@ -10,11 +10,13 @@ module ApiHelpers
   # across examples in the same example group.
   def stub_api_token(value = TOKEN)
     ApiToken.where(name: "spec").destroy_all
-    ApiToken.create!(name: "spec", token: value)
+    user = Current.user || User.first || create(:user)
+    ApiToken.create!(name: "spec", token: value, user: user)
   end
 
   def seed_plan(slug:, **overrides)
-    Plan.find_or_create_by!(slug: slug) do |p|
+    user = Current.user || User.first || create(:user)
+    Plan.find_or_create_by!(slug: slug, user: user) do |p|
       p.name = slug.titleize + " day"
       p.target_kcal = overrides[:target_kcal] || 2000
       p.target_protein_g = overrides[:target_protein_g] || 180

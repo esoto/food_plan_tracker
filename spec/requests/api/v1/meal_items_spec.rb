@@ -1,10 +1,15 @@
 require "rails_helper"
 
 RSpec.describe "Api::V1::MealItems", type: :request do
-  before { stub_api_token }
+  let(:user) { create(:user) }
 
-  let(:plan)  { create(:plan) }
-  let(:meal)  { create(:meal, plan: plan, name: "Breakfast") }
+  before do
+    Current.user = user
+    stub_api_token
+  end
+
+  let(:plan)  { create(:plan, user: user) }
+  let(:meal)  { create(:meal, plan: plan, name: "Breakfast", user: user) }
   let(:eggs)  { create(:food, name: "Eggs",       category: "protein", serving_grams: 50, kcal: 78, protein_g: 6, carbs_g: 0.5, fat_g: 5) }
   let(:oats)  { create(:food, name: "Oats",       category: "carb",    serving_grams: 40, kcal: 150, protein_g: 5, carbs_g: 27, fat_g: 3) }
   let(:evoo)  { create(:food, name: "EVOO",       category: "fat",     serving_grams: 14, kcal: 120, protein_g: 0, carbs_g: 0, fat_g: 14) }

@@ -6,7 +6,7 @@ class Plan < ApplicationRecord
   REST_SLUG     = "rest".freeze
 
   has_many :meals, -> { order(:position) }, dependent: :destroy, inverse_of: :plan
-  has_many :daily_logs, dependent: :restrict_with_error
+  has_many :daily_logs, dependent: :destroy
 
   validates :name, :slug, presence: true
   validates :slug, uniqueness: true

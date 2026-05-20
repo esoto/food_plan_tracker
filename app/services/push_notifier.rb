@@ -42,7 +42,8 @@ class PushNotifier
       url:          @url,
       sent_count:   sent,
       pruned_count: pruned,
-      fired_at:     Time.current
+      fired_at:     Time.current,
+      user:         Current.user
     )
 
     { sent: sent, pruned: pruned }

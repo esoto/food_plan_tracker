@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe PushSubscriptionsController, type: :request do
+  let(:user) { create(:user, password: "password") }
   let(:body) do
     {
       endpoint: "https://fcm.googleapis.com/fcm/send/abc123",
@@ -8,7 +9,10 @@ RSpec.describe PushSubscriptionsController, type: :request do
     }
   end
 
-  before { sign_in_as }
+  before do
+    sign_in_as(user)
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
+  end
 
   describe "POST /push_subscriptions" do
     it "stores a new subscription and returns 201" do
@@ -52,7 +56,7 @@ RSpec.describe PushSubscriptionsController, type: :request do
 
   describe "DELETE /push_subscriptions" do
     it "removes the subscription matching the given endpoint" do
-      PushSubscription.create!(endpoint: body[:endpoint], p256dh_key: "x", auth_key: "y")
+      PushSubscription.create!(endpoint: body[:endpoint], p256dh_key: "x", auth_key: "y", user: user)
 
       expect {
         delete "/push_subscriptions",
