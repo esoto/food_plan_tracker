@@ -29,7 +29,7 @@ class MealItem < ApplicationRecord
   end
 
   def user_matches_meal_user
-    return if user_id == meal.user_id
+    return if user_id == meal&.user_id
 
     errors.add(:user_id, "must match the meal's user")
   end
