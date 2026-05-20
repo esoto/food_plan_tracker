@@ -11,7 +11,9 @@ module ApiHelpers
   def stub_api_token(value = TOKEN)
     ApiToken.where(name: "spec").destroy_all
     user = Current.user || User.first || create(:user)
-    ApiToken.create!(name: "spec", token: value, user: user)
+    token = ApiToken.create!(name: "spec", token: value, user: user)
+    Current.user = user
+    token
   end
 
   def seed_plan(slug:, user: nil, **overrides)

@@ -1,17 +1,19 @@
 require "rails_helper"
 
 RSpec.describe TodayController, type: :request do
+  let!(:user) { create(:user) }
+
   before do
-    user = sign_in_as
     create(:plan, slug: "exercise", name: "Exercise day", user: user)
-    create(:plan, slug: "active",   name: "Active day", user: user)
-    create(:plan, slug: "rest",     name: "Rest day", user: user)
+    create(:plan, slug: "active",   name: "Active day",   user: user)
+    create(:plan, slug: "rest",     name: "Rest day",     user: user)
+    sign_in_as(user)
   end
 
   describe "GET /" do
     it "renders only goals that have at least one biomarker reading" do
-      tracked   = create(:goal, :weight, :with_measurement, measurement_value: 90.0)
-      untracked = create(:goal)
+      tracked   = create(:goal, :weight, :with_measurement, measurement_value: 90.0, user: user)
+      untracked = create(:goal, user: user)
 
       get root_path
 
@@ -21,8 +23,8 @@ RSpec.describe TodayController, type: :request do
     end
 
     it "renders the '+ Log a biomarker' CTA when at least one goal has no readings" do
-      create(:goal, :weight, :with_measurement, measurement_value: 90.0)
-      create(:goal)
+      create(:goal, :weight, :with_measurement, measurement_value: 90.0, user: user)
+      create(:goal, user: user)
 
       get root_path
 
@@ -31,8 +33,8 @@ RSpec.describe TodayController, type: :request do
     end
 
     it "hides the CTA when every goal has at least one reading" do
-      create(:goal, :weight,   :with_measurement, measurement_value: 90.0)
-      create(:goal, :preserve, :with_measurement, measurement_value: 67.0)
+      create(:goal, :weight,   :with_measurement, measurement_value: 90.0, user: user)
+      create(:goal, :preserve, :with_measurement, measurement_value: 67.0, user: user)
 
       get root_path
 

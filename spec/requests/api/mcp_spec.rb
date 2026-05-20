@@ -8,7 +8,10 @@ RSpec.describe "POST /mcp", type: :request do
 
   let(:auth) { { "Authorization" => "Bearer #{plain_token}", "Content-Type" => "application/json" } }
 
-  before { seed_plan(slug: "active") }
+  before do
+    Current.user = user
+    seed_plan(slug: "active")
+  end
 
   def rpc(method, params = nil, id: 1)
     body = { jsonrpc: "2.0", id: id, method: method }
@@ -191,7 +194,7 @@ RSpec.describe "POST /mcp", type: :request do
 
     it "delete_logged_food removes a previously logged food and returns the refreshed day" do
       food = seed_food(name: "Plain rice", category: "carb", serving_grams: 100, kcal: 130)
-      log  = DailyLog.today
+      log  = DailyLog.today(user: user)
       entry = log.logged_foods.create!(food: food, quantity_grams: 50, logged_at: Time.current)
 
       result = rpc("tools/call", { name: "delete_logged_food", arguments: { id: entry.id } })["result"]
@@ -245,16 +248,17 @@ RSpec.describe "POST /mcp", type: :request do
 
     describe "copy_yesterday_meals" do
       let!(:breakfast) do
-        Plan.find_by(slug: "active").meals.create!(
+        Plan.active(user: user).meals.create!(
           position: 1, name: "Breakfast",
           scheduled_time: Time.utc(2000, 1, 1, 7, 0),
-          target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10
+          target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10,
+          user: user
         )
       end
 
       it "copies yesterday's completions onto today and reports the count" do
         travel_to Time.zone.local(2026, 4, 25, 12, 0) do
-          plan = Plan.find_by(slug: "active")
+          plan = Plan.active(user: user)
           yesterday = DailyLog.create!(date: Date.current - 1, plan: plan)
           yesterday.meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
 
@@ -262,25 +266,25 @@ RSpec.describe "POST /mcp", type: :request do
           payload = JSON.parse(result["content"].first["text"])
 
           expect(payload["copied"]).to eq(1)
-          expect(DailyLog.today.meal_completions.count).to eq(1)
+          expect(DailyLog.today(user: user).meal_completions.count).to eq(1)
         end
       end
 
       it "is idempotent — re-invocation reports copied: 0 and preserves prior completions" do
         travel_to Time.zone.local(2026, 4, 25, 12, 0) do
-          plan = Plan.find_by(slug: "active")
+          plan = Plan.active(user: user)
           yesterday = DailyLog.create!(date: Date.current - 1, plan: plan)
           yesterday.meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
 
           rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })
-          first_completion = DailyLog.today.meal_completions.find_by!(meal: breakfast)
+          first_completion = DailyLog.today(user: user).meal_completions.find_by!(meal: breakfast)
           first_timestamp = first_completion.completed_at
 
           result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
           payload = JSON.parse(result["content"].first["text"])
 
           expect(payload["copied"]).to eq(0)
-          expect(DailyLog.today.meal_completions.count).to eq(1)
+          expect(DailyLog.today(user: user).meal_completions.count).to eq(1)
           expect(first_completion.reload.completed_at).to eq(first_timestamp)
         end
       end
@@ -300,7 +304,7 @@ RSpec.describe "POST /mcp", type: :request do
           other_plan = seed_plan(slug: "exercise", target_kcal: 2200)
           DailyLog.create!(date: Date.current - 1, plan: other_plan)
             .meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
-          DailyLog.today
+          DailyLog.today(user: user)
 
           result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
           expect(result["isError"]).to be(true)
