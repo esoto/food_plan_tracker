@@ -15,13 +15,25 @@ class DailyLog < ApplicationRecord
   scope :chronological, -> { order(:date) }
   scope :recent, ->(n) { order(date: :desc).limit(n) }
 
-  def self.for(date, user: Current.user, default_plan: nil)
-    default_plan ||= Plan.active(user: user) || Plan.exercise(user: user) || Plan.for_user(user).ordered.first
-    for_user(user).find_or_create_by!(date: date) { |log| log.plan = default_plan }
+  def self.for(positional_date = nil, positional_user = nil, user: nil, default_plan: nil)
+    if positional_date.is_a?(Date)
+      date = positional_date
+      actual_user = user || positional_user || Current.user
+    elsif positional_date.present?
+      # Backward-compatible: DailyLog.for(Current.user, date)
+      actual_user = positional_date
+      date = positional_user || Date.current
+    else
+      raise ArgumentError, "date is required"
+    end
+
+    default_plan ||= Plan.active(user: actual_user) || Plan.exercise(user: actual_user) || Plan.for_user(actual_user).ordered.first
+    for_user(actual_user).find_or_create_by!(date: date) { |log| log.plan = default_plan }
   end
 
-  def self.today(user: Current.user)
-    self.for(Date.current, user: user)
+  def self.today(positional_user = nil, user: nil)
+    actual_user = positional_user || user || Current.user
+    self.for(Date.current, user: actual_user)
   end
 
   def self.yesterday(user: Current.user)
