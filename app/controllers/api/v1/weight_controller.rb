@@ -9,7 +9,7 @@ module Api
         value = params.require(:value)
 
         entry = goal.biomarker_entries.create!(value: value, recorded_on: date)
-        log = DailyLog.for(date)
+        log = DailyLog.for(Current.user, date)
         log.update!(weight_kg: entry.value) if log.date == entry.recorded_on
 
         render json: {

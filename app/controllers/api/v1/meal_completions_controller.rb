@@ -30,7 +30,7 @@ module Api
           return render json: { error: "plan_mismatch", today_plan: existing_today.plan.slug, yesterday_plan: yesterday.plan.slug }, status: :unprocessable_entity
         end
 
-        today = existing_today || DailyLog.for(target_date, default_plan: yesterday.plan)
+        today = existing_today || DailyLog.for(Current.user, target_date, default_plan: yesterday.plan)
         copied = today.copy_completions_from(yesterday)
         render json: { ok: true, copied: copied, day: serialize_day(today.reload) }
       end

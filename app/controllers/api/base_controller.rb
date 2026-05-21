@@ -31,7 +31,7 @@ module Api
 
     def daily_log_for(date_param)
       date = date_param.present? ? Date.parse(date_param.to_s) : Date.current
-      DailyLog.for(date)
+      DailyLog.for(Current.user, date)
     end
 
     def not_found

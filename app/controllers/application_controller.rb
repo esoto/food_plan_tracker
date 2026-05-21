@@ -10,7 +10,7 @@ class ApplicationController < ActionController::Base
   private
 
   def today_log
-    @today_log ||= DailyLog.today
+    @today_log ||= DailyLog.today(Current.user)
   end
 
   # Resolve which DailyLog a write should target. When a form passes an

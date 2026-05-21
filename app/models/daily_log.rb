@@ -15,12 +15,29 @@ class DailyLog < ApplicationRecord
   scope :chronological, -> { order(:date) }
   scope :recent, ->(n) { order(date: :desc).limit(n) }
 
-  def self.for(date, default_plan: Plan.active || Plan.exercise || Plan.ordered.first)
-    find_or_create_by!(date: date) { |log| log.plan = default_plan }
+  def self.for(user, date = nil, default_plan: nil)
+    # Backward-compatible: DailyLog.for(Date.current) → use Current.user
+    if user.is_a?(Date)
+      date = user
+      user = Current.user
+    end
+
+    if user.present?
+      plan = default_plan || user.plans.find_by(slug: Plan::ACTIVE_SLUG) || user.plans.find_by(slug: Plan::EXERCISE_SLUG) || user.plans.ordered.first
+      user.daily_logs.find_or_create_by!(date: date) { |log| log.plan = plan }
+    else
+      # Legacy fallback for specs and rake tasks where Current.user may be unset
+      plan = default_plan || Plan.active || Plan.exercise || Plan.ordered.first
+      find_or_create_by!(date: date) { |log| log.plan = plan }
+    end
   end
 
-  def self.today
-    self.for(Date.current)
+  def self.today(user = Current.user)
+    if user.present?
+      self.for(user, Date.current)
+    else
+      self.for(Date.current)
+    end
   end
 
   def self.yesterday
