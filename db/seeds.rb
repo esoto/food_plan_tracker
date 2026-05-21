@@ -112,7 +112,6 @@ puts "  user: #{user.email_address}"
 
 session = Session.create!(user: user, user_agent: "seeds", ip_address: "127.0.0.1")
 Current.set(session: session) do
-
 # -----------------------------------------------------------------------------
 # Plans + Meals + MealItems
 #
@@ -476,7 +475,6 @@ GOALS.each do |attrs|
 end
 
 puts "  #{Goal.count} goals"
-
 end # Current.set(user: user)
 
 puts "Done."
