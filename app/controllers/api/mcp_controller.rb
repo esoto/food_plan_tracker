@@ -90,7 +90,7 @@ module Api
       return unless doorkeeper_token
 
       user = User.find_by(id: doorkeeper_token.resource_owner_id)
-      Current.session = Session.new(user: user) if user
+      Current.user = user if user
     end
 
     def parse_message
