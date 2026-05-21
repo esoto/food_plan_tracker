@@ -37,7 +37,8 @@ class PushNotifier
       pruned += 1
     end
 
-    if @user || Current.user
+    recipient = @user || Current.user
+    if recipient
       NotificationDelivery.create!(
         title:        @title,
         body:         @body,
@@ -45,8 +46,10 @@ class PushNotifier
         sent_count:   sent,
         pruned_count: pruned,
         fired_at:     Time.current,
-        user:         @user || Current.user
+        user:         recipient
       )
+    else
+      Rails.logger.warn("PushNotifier: no user resolved — NotificationDelivery not recorded")
     end
 
     { sent: sent, pruned: pruned }

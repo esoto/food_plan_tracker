@@ -1,5 +1,5 @@
 class Current < ActiveSupport::CurrentAttributes
-  attribute :session
+  attribute :session, :user
 
   # Supports both assignment patterns:
   #   Current.session = Session.find(id)  → user derived from session
@@ -9,12 +9,6 @@ class Current < ActiveSupport::CurrentAttributes
   # synthetic Session (e.g. API token auth) can set the user directly
   # without needing a persisted Session row.
   def user
-    @user || session&.user
+    super || session&.user
   end
-
-  def user=(user)
-    @user = user
-  end
-
-  resets { @user = nil }
 end

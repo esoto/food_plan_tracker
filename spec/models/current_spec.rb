@@ -42,5 +42,12 @@ RSpec.describe Current, type: :model do
       Current.reset
       expect(Current.user).to be_nil
     end
+
+    it "clears the session-derived user between resets" do
+      Current.session = Session.create!(user: create(:user), user_agent: 'test', ip_address: '127.0.0.1')
+      expect(Current.user).to be_present
+      Current.reset
+      expect(Current.user).to be_nil
+    end
   end
 end
