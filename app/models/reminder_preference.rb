@@ -14,15 +14,15 @@ class ReminderPreference < ApplicationRecord
 
   # Default behavior: a reminder with no row in the table is enabled.
   # Rows only exist once the user has explicitly toggled at least once.
-  def self.enabled?(reminder_type:, key:)
-    record = find_by(reminder_type: reminder_type, key: key)
+  def self.enabled?(reminder_type:, key:, user: Current.user)
+    record = for_user(user).find_by(reminder_type: reminder_type, key: key)
     record.nil? || record.enabled
   end
 
   # Idempotent — find or create the row, then flip enabled to the given
   # value.
-  def self.set(reminder_type:, key:, enabled:)
-    pref = find_or_initialize_by(reminder_type: reminder_type, key: key)
+  def self.set(reminder_type:, key:, enabled:, user: Current.user)
+    pref = for_user(user).find_or_initialize_by(reminder_type: reminder_type, key: key)
     pref.enabled = enabled
     pref.save!
     pref

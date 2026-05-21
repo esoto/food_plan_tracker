@@ -23,6 +23,10 @@ class Goal < ApplicationRecord
 
   scope :with_measurements, -> { joins(:biomarker_entries).distinct }
 
+  def self.find_by_metric!(metric, user: Current.user)
+    for_user(user).find_by!(metric: metric)
+  end
+
   def current_value
     biomarker_entries.last&.value || starting_value
   end

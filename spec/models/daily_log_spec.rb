@@ -17,17 +17,17 @@ RSpec.describe DailyLog, type: :model do
   describe ".yesterday" do
     it "returns the log dated yesterday" do
       log = DailyLog.create!(date: Date.yesterday, plan: plan, user: user)
-      expect(DailyLog.yesterday).to eq(log)
+      expect(DailyLog.yesterday(user: user)).to eq(log)
     end
 
     it "returns nil when no log exists for yesterday" do
       DailyLog.where(date: Date.yesterday).destroy_all
-      expect(DailyLog.yesterday).to be_nil
+      expect(DailyLog.yesterday(user: user)).to be_nil
     end
   end
 
   describe "#can_copy_from?" do
-    let(:today) { DailyLog.today }
+    let(:today) { DailyLog.today(user: user) }
 
     it "is true when other shares the same plan" do
       yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan, user: user)
@@ -46,7 +46,7 @@ RSpec.describe DailyLog, type: :model do
   end
 
   describe "#has_uncopied_completions_from?" do
-    let(:today) { DailyLog.today }
+    let(:today) { DailyLog.today(user: user) }
 
     it "is true when other has more completions than self" do
       yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan, user: user)
@@ -75,8 +75,8 @@ RSpec.describe DailyLog, type: :model do
   end
 
   describe "#copy_completions_from" do
-    let(:today) { DailyLog.today }
-    let(:yesterday) { DailyLog.create!(date: Date.yesterday, plan: today.plan, user: user) }
+    let(:today) { DailyLog.today(user: user) }
+    let(:yesterday) { DailyLog.create!(date: Date.yesterday, plan: today.plan) }
 
     it "returns the count actually inserted, skipping pre-existing meals" do
       yesterday.meal_completions.create!(meal: meal_a, completed_at: 1.day.ago)

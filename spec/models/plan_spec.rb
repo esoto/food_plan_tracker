@@ -42,21 +42,21 @@ RSpec.describe Plan, type: :model do
   describe ".exercise / .active / .rest" do
     it "finds the exercise plan by slug" do
       exercise = create(:plan, slug: "exercise")
-      expect(described_class.exercise).to eq(exercise)
+      expect(described_class.exercise(user: exercise.user)).to eq(exercise)
     end
 
     it "finds the active plan by slug" do
       active = create(:plan, slug: "active")
-      expect(described_class.active).to eq(active)
+      expect(described_class.active(user: active.user)).to eq(active)
     end
 
     it "finds the rest plan by slug" do
       rest = create(:plan, slug: "rest")
-      expect(described_class.rest).to eq(rest)
+      expect(described_class.rest(user: rest.user)).to eq(rest)
     end
 
     it "returns nil when the plan does not exist" do
-      expect(described_class.exercise).to be_nil
+      expect(described_class.exercise(user: create(:user))).to be_nil
     end
   end
 

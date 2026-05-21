@@ -16,16 +16,20 @@ class Plan < ApplicationRecord
   # Highest to lowest demand: Exercise → Active → Rest.
   scope :ordered, -> { in_order_of(:slug, [ EXERCISE_SLUG, ACTIVE_SLUG, REST_SLUG ]) }
 
-  def self.exercise
-    find_by(slug: EXERCISE_SLUG)
+  def self.exercise(user: Current.user)
+    for_user(user).find_by(slug: EXERCISE_SLUG)
   end
 
-  def self.active
-    find_by(slug: ACTIVE_SLUG)
+  def self.active(user: Current.user)
+    for_user(user).find_by(slug: ACTIVE_SLUG)
   end
 
-  def self.rest
-    find_by(slug: REST_SLUG)
+  def self.rest(user: Current.user)
+    for_user(user).find_by(slug: REST_SLUG)
+  end
+
+  def self.find_by_slug!(slug, user: Current.user)
+    for_user(user).find_by!(slug: slug)
   end
 
   def exercise?

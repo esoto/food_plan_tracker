@@ -15,33 +15,33 @@ class DailyLog < ApplicationRecord
   scope :chronological, -> { order(:date) }
   scope :recent, ->(n) { order(date: :desc).limit(n) }
 
-  def self.for(user, date = nil, default_plan: nil)
-    # Backward-compatible: DailyLog.for(Date.current) → use Current.user
-    if user.is_a?(Date)
-      date = user
-      user = Current.user
+  def self.for(positional_date = nil, positional_user = nil, user: nil, default_plan: nil)
+    if positional_date.is_a?(Date)
+      date = positional_date
+      actual_user = user || positional_user || Current.user
+    elsif positional_date.present?
+      # Backward-compatible: DailyLog.for(Current.user, date)
+      actual_user = positional_date
+      date = positional_user || Date.current
+    else
+      raise ArgumentError, "date is required"
     end
 
-    if user.present?
-      plan = default_plan || user.plans.find_by(slug: Plan::ACTIVE_SLUG) || user.plans.find_by(slug: Plan::EXERCISE_SLUG) || user.plans.ordered.first
-      user.daily_logs.find_or_create_by!(date: date) { |log| log.plan = plan }
-    else
-      # Legacy fallback for specs and rake tasks where Current.user may be unset
-      plan = default_plan || Plan.active || Plan.exercise || Plan.ordered.first
-      find_or_create_by!(date: date) { |log| log.plan = plan }
-    end
+    default_plan ||= Plan.active(user: actual_user) || Plan.exercise(user: actual_user) || Plan.for_user(actual_user).ordered.first
+    for_user(actual_user).find_or_create_by!(date: date) { |log| log.plan = default_plan }
   end
 
-  def self.today(user = Current.user)
-    if user.present?
-      self.for(user, Date.current)
-    else
-      self.for(Date.current)
-    end
+  def self.today(positional_user = nil, user: nil)
+    actual_user = positional_user || user || Current.user
+    self.for(Date.current, user: actual_user)
   end
 
-  def self.yesterday
-    find_by(date: Date.yesterday)
+  def self.yesterday(user: Current.user)
+    for_user(user).find_by(date: Date.yesterday)
+  end
+
+  def self.recent(n, user: Current.user)
+    for_user(user).chronological.recent(n)
   end
 
   # Authorization: copying across plans is meaningless because meal_ids differ.
@@ -88,7 +88,7 @@ class DailyLog < ApplicationRecord
   end
 
   def checklist_adherence_pct
-    total = ChecklistTemplate.kept_on(date).count
+    total = ChecklistTemplate.for_user(user).kept_on(date).count
     return 0 if total.zero?
 
     checked = checklist_completions.where(checked: true).count
