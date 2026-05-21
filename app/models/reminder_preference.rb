@@ -1,4 +1,6 @@
 class ReminderPreference < ApplicationRecord
+  include Tenantable
+
   # Keys are intentionally domain-stable (meal NAME, slot SYMBOL) rather
   # than DB ids. That way a "Breakfast" preference applies across all
   # plans (active/exercise/rest) since they all share the meal name —

@@ -1,8 +1,10 @@
 class PushSubscription < ApplicationRecord
-  # No user_id column on purpose — this app is single-user. If the app ever
-  # grows past one user, add a user_id column, scope `PushNotifier#broadcast`
-  # by user, and gate `PushSubscriptionsController` writes to the current
-  # user's subscriptions only.
+  include Tenantable
+
+  # TODO(PER-560): unscoped call sites remain — PushNotifier#broadcast uses
+  #   PushSubscription.find_each across all users, and PushSubscriptionsController
+  #   create/destroy use unscoped find_or_initialize_by / where(endpoint:).
+
   validates :endpoint, :p256dh_key, :auth_key, presence: true
 
   # Hand the record's keys back in the shape the web-push gem expects.

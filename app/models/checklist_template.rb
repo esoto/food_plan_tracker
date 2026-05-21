@@ -1,5 +1,5 @@
 class ChecklistTemplate < ApplicationRecord
-  include Discardable
+  include Discardable, Tenantable
 
   has_many :checklist_completions, dependent: :destroy
 

@@ -1,4 +1,6 @@
 class LoggedFood < ApplicationRecord
+  include Tenantable
+
   belongs_to :daily_log
   belongs_to :food
 

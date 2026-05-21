@@ -1,6 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe DailyLog, type: :model do
+  it_behaves_like "Tenantable" do
+    let(:tenantable_attrs) { { date: Date.current, plan: create(:plan) } }
+    let(:tenantable_attrs_b) { { date: Date.yesterday, plan: create(:plan) } }
+    let(:tenantable_attrs_nil_user) { { date: Date.current - 2 } }
+  end
+
   let!(:plan) { Plan.find_or_create_by!(slug: "active") { |p| p.name = "Active day"; p.target_kcal = 2000; p.target_protein_g = 180; p.target_carbs_g = 180; p.target_fat_g = 70 } }
   let(:other_plan) { Plan.find_or_create_by!(slug: "exercise") { |p| p.name = "Exercise day"; p.target_kcal = 2200; p.target_protein_g = 180; p.target_carbs_g = 180; p.target_fat_g = 70 } }
   let(:meal_a) { plan.meals.create!(position: 1, name: "A", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10) }

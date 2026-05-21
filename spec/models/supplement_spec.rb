@@ -1,6 +1,10 @@
 require "rails_helper"
 
 RSpec.describe Supplement, type: :model do
+  it_behaves_like "Tenantable" do
+    let(:tenantable_attrs) { { name: "Vitamin D", dose: "1 capsule" } }
+  end
+
   describe "#sync_time_slots!" do
     let(:supplement) { create(:supplement) }
 

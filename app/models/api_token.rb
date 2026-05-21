@@ -12,6 +12,8 @@ require "securerandom"
 #
 # To revoke: ApiToken.find_by(name: "MCP").destroy
 class ApiToken < ApplicationRecord
+  include Tenantable
+
   attr_accessor :token
 
   TOUCH_INTERVAL = 1.minute

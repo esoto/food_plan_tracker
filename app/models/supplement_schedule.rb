@@ -1,4 +1,6 @@
 class SupplementSchedule < ApplicationRecord
+  include Tenantable
+
   TIME_SLOTS = { morning: 0, pre_lunch: 1, dinner: 2, pre_sleep: 3 }.freeze
 
   enum :time_slot, TIME_SLOTS

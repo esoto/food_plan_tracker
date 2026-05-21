@@ -1,4 +1,6 @@
 class Plan < ApplicationRecord
+  include Tenantable
+
   EXERCISE_SLUG = "exercise".freeze
   ACTIVE_SLUG   = "active".freeze
   REST_SLUG     = "rest".freeze

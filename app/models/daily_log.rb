@@ -1,4 +1,6 @@
 class DailyLog < ApplicationRecord
+  include Tenantable
+
   belongs_to :plan
 
   has_many :meal_completions, dependent: :destroy

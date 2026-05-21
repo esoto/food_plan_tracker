@@ -65,8 +65,6 @@ RSpec.describe Tenantable, type: :model do
 
   describe 'meta-test: user_id column presence' do
     it 'verifies every Tenantable model has a user_id column' do
-      pending 'unblocks after PER-553 adds user_id columns to all Tenantable models'
-
       Rails.application.eager_load! unless Rails.application.config.eager_load
 
       tenantable_models = ApplicationRecord.descendants.select do |model|

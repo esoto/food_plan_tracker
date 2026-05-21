@@ -1,5 +1,6 @@
 FactoryBot.define do
   factory :goal do
+    user
     metric         { :body_fat_pct }
     direction      { :down }
     display_name   { "Body fat" }
