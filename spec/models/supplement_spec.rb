@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Supplement, type: :model do
   it_behaves_like "Tenantable" do
-    let(:tenantable_attrs) { { name: "Vitamin D", dose: "1 capsule" } }
+    let(:tenantable_attrs) { { name: "Test", dose: "1g" } }
   end
 
   describe "#sync_time_slots!" do

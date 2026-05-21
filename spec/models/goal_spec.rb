@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Goal, type: :model do
   it_behaves_like "Tenantable" do
-    let(:tenantable_attrs) { { metric: :weight_kg, direction: :down, display_name: "Weight", unit: "kg", starting_value: 90, target_value: 80 } }
+    let(:tenantable_attrs) { { metric: :body_fat_pct, direction: :down, display_name: "Body fat", unit: "%", starting_value: 22.0, target_value: 19.0 } }
     let(:tenantable_attrs_b) { { metric: :body_fat_pct, direction: :down, display_name: "Body fat", unit: "%", starting_value: 22, target_value: 19 } }
     let(:tenantable_attrs_nil_user) { { metric: :hdl, direction: :up, display_name: "HDL", unit: "mg/dL", starting_value: 40, target_value: 60 } }
   end

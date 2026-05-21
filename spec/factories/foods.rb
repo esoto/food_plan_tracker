@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :food do
-    name { "MyString" }
+    sequence(:name) { |n| "Food #{n}" }
     category { 1 }
     serving_grams { "9.99" }
     kcal { 1 }
