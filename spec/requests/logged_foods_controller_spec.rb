@@ -1,10 +1,11 @@
 require "rails_helper"
 
 RSpec.describe LoggedFoodsController, type: :request do
-  let!(:plan) { seed_plan(slug: "active") }
+  let!(:user) { create(:user) }
+  let!(:plan) { seed_plan(slug: "active", user: user) }
   let!(:food) { seed_food(name: "Whole eggs", category: "protein", serving_grams: 50, kcal: 78, protein_g: 6, carbs_g: 1, fat_g: 5) }
 
-  before { sign_in_as }
+  before { sign_in_as(user) }
 
   describe "POST /logged_foods" do
     it "logs the food onto today by default" do

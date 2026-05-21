@@ -18,7 +18,7 @@ namespace :tenantable do
   end
 
   desc "Backfill user_id on all tenantable tables using the default owner"
-  task backfill_user_id: :environment do
+  task backfill_user_id: [:environment, :create_default_owner] do
     default_owner = User.find_by!(email_address: "esoto074@gmail.com")
     default_user_id = default_owner.id
 

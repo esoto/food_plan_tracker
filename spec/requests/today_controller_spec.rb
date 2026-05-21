@@ -2,10 +2,10 @@ require "rails_helper"
 
 RSpec.describe TodayController, type: :request do
   before do
-    create(:plan, slug: "exercise", name: "Exercise day")
-    create(:plan, slug: "active",   name: "Active day")
-    create(:plan, slug: "rest",     name: "Rest day")
-    sign_in_as
+    user = sign_in_as
+    create(:plan, slug: "exercise", name: "Exercise day", user: user)
+    create(:plan, slug: "active",   name: "Active day", user: user)
+    create(:plan, slug: "rest",     name: "Rest day", user: user)
   end
 
   describe "GET /" do

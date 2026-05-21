@@ -14,8 +14,8 @@ module ApiHelpers
     ApiToken.create!(name: "spec", token: value, user: user)
   end
 
-  def seed_plan(slug:, **overrides)
-    user = Current.user || User.first || create(:user)
+  def seed_plan(slug:, user: nil, **overrides)
+    user ||= Current.user || User.first || create(:user)
     Plan.find_or_create_by!(slug: slug, user: user) do |p|
       p.name = slug.titleize + " day"
       p.target_kcal = overrides[:target_kcal] || 2000
