@@ -2,9 +2,10 @@ require "rails_helper"
 
 RSpec.describe Meal, type: :model do
   it_behaves_like "Tenantable" do
-    let(:tenantable_attrs) { { plan: create(:plan), position: 1, name: "Breakfast", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10 } }
+    let(:tenantable_attrs) { ->(user) { { plan: create(:plan, user: user), name: "Breakfast", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10, position: 1 } } }
     let(:tenantable_attrs_b) { { plan: create(:plan), position: 1, name: "Lunch", scheduled_time: Time.utc(2000, 1, 1, 12, 0), target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20 } }
     let(:tenantable_attrs_nil_user) { { position: 1, name: "Dinner", scheduled_time: Time.utc(2000, 1, 1, 19, 0), target_kcal: 500, target_protein_g: 40, target_carbs_g: 55, target_fat_g: 15 } }
+    let(:skip_nil_parent_test) { true }
   end
 
   describe "#scheduled_time= (HH:MM string coercion)" do

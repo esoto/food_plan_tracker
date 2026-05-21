@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe ReminderPreference, type: :model do
   it_behaves_like "Tenantable" do
-    let(:tenantable_attrs) { { reminder_type: "meal", key: "Breakfast", enabled: true } }
+    let(:tenantable_attrs) { { reminder_type: "meal", key: "Breakfast" } }
     let(:tenantable_attrs_b) { { reminder_type: "meal", key: "Lunch", enabled: true } }
     let(:tenantable_attrs_nil_user) { { reminder_type: "supplement_slot", key: "morning", enabled: true } }
   end

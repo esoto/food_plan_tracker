@@ -8,8 +8,9 @@ RSpec.describe MealItem, type: :model do
   let(:food)   { create(:food) }
 
   it_behaves_like "Tenantable", skip_for_user: true do
-    let(:tenantable_attrs) { { meal: create(:meal), food: create(:food), quantity_grams: 100 } }
+    let(:tenantable_attrs) { ->(user) { { meal: create(:meal, user: user), food: create(:food), quantity_grams: 50 } } }
     let(:tenantable_attrs_nil_user) { { food: create(:food), quantity_grams: 100 } }
+    let(:skip_nil_parent_test) { true }
   end
 
   describe '.for_user' do

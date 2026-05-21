@@ -24,11 +24,18 @@ RSpec.describe Plan, type: :model do
     it { is_expected.to validate_numericality_of(:target_carbs_g).is_greater_than(0) }
     it { is_expected.to validate_numericality_of(:target_fat_g).is_greater_than(0) }
 
-    it "requires a unique slug" do
-      create(:plan, slug: "active")
-      duplicate = build(:plan, slug: "active")
+    it "requires a unique slug per user" do
+      existing = create(:plan, slug: "active")
+      duplicate = build(:plan, slug: "active", user: existing.user)
       expect(duplicate).not_to be_valid
       expect(duplicate.errors[:slug]).to include("has already been taken")
+    end
+
+    it "allows the same slug for different users" do
+      create(:plan, slug: "active")
+      other_user = create(:user)
+      other_plan = build(:plan, slug: "active", user: other_user)
+      expect(other_plan).to be_valid
     end
   end
 

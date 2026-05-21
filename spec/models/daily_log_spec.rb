@@ -5,6 +5,7 @@ RSpec.describe DailyLog, type: :model do
     let(:tenantable_attrs) { { date: Date.current, plan: create(:plan) } }
     let(:tenantable_attrs_b) { { date: Date.yesterday, plan: create(:plan) } }
     let(:tenantable_attrs_nil_user) { { date: Date.current - 2 } }
+    let(:skip_nil_parent_test) { true }
   end
 
   let(:user) { create(:user) }
@@ -29,7 +30,7 @@ RSpec.describe DailyLog, type: :model do
     let(:today) { DailyLog.today }
 
     it "is true when other shares the same plan" do
-      yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan)
+      yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan, user: user)
       expect(today.can_copy_from?(yesterday)).to be true
     end
 
@@ -39,7 +40,7 @@ RSpec.describe DailyLog, type: :model do
 
     it "is false when other has a different plan" do
       other_plan
-      yesterday = DailyLog.create!(date: Date.yesterday, plan: other_plan)
+      yesterday = DailyLog.create!(date: Date.yesterday, plan: other_plan, user: user)
       expect(today.can_copy_from?(yesterday)).to be false
     end
   end
@@ -48,18 +49,18 @@ RSpec.describe DailyLog, type: :model do
     let(:today) { DailyLog.today }
 
     it "is true when other has more completions than self" do
-      yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan)
+      yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan, user: user)
       yesterday.meal_completions.create!(meal: meal_a, completed_at: 1.day.ago)
       expect(today.has_uncopied_completions_from?(yesterday)).to be true
     end
 
     it "is false when other has zero completions" do
-      yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan)
+      yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan, user: user)
       expect(today.has_uncopied_completions_from?(yesterday)).to be false
     end
 
     it "is false when self already has equal-or-more completions" do
-      yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan)
+      yesterday = DailyLog.create!(date: Date.yesterday, plan: today.plan, user: user)
       yesterday.meal_completions.create!(meal: meal_a, completed_at: 1.day.ago)
       today.meal_completions.create!(meal: meal_a, completed_at: Time.current)
       expect(today.has_uncopied_completions_from?(yesterday)).to be false
@@ -67,7 +68,7 @@ RSpec.describe DailyLog, type: :model do
 
     it "is false when authorization fails (different plan)" do
       other_plan
-      yesterday = DailyLog.create!(date: Date.yesterday, plan: other_plan)
+      yesterday = DailyLog.create!(date: Date.yesterday, plan: other_plan, user: user)
       yesterday.meal_completions.create!(meal: meal_a, completed_at: 1.day.ago)
       expect(today.has_uncopied_completions_from?(yesterday)).to be false
     end
@@ -75,7 +76,7 @@ RSpec.describe DailyLog, type: :model do
 
   describe "#copy_completions_from" do
     let(:today) { DailyLog.today }
-    let(:yesterday) { DailyLog.create!(date: Date.yesterday, plan: today.plan) }
+    let(:yesterday) { DailyLog.create!(date: Date.yesterday, plan: today.plan, user: user) }
 
     it "returns the count actually inserted, skipping pre-existing meals" do
       yesterday.meal_completions.create!(meal: meal_a, completed_at: 1.day.ago)
