@@ -21,7 +21,7 @@ class ReminderTickerJob < ApplicationJob
   def perform(now: Time.current)
     return unless PushNotifier.configured?
 
-    today = DailyLog.today
+    today = DailyLog.find_by(date: Date.current)
     return unless today&.plan # no-op if seed data isn't ready (fresh install, etc.)
 
     fire_meal_reminders(today, now)
@@ -47,7 +47,8 @@ class ReminderTickerJob < ApplicationJob
       PushNotifier.broadcast(
         title: "🍱 #{meal_name} time",
         body:  "Time to log #{meal_name} (~#{meal.target_kcal} kcal).",
-        url:   "/menu"
+        url:   "/menu",
+        user:  today.plan.user
       )
     end
   end
@@ -69,7 +70,8 @@ class ReminderTickerJob < ApplicationJob
       PushNotifier.broadcast(
         title: "💊 #{slot.titleize} supplements",
         body:  "#{pending.size} #{'supplement'.pluralize(pending.size)} due now.",
-        url:   "/supplements"
+        url:   "/supplements",
+        user:  today.plan.user
       )
     end
   end

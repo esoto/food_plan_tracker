@@ -6,14 +6,15 @@
 class PushNotifier
   class NotConfiguredError < StandardError; end
 
-  def self.broadcast(title:, body:, url: "/")
-    new(title: title, body: body, url: url).broadcast
+  def self.broadcast(title:, body:, url: "/", user: nil)
+    new(title: title, body: body, url: url, user: user).broadcast
   end
 
-  def initialize(title:, body:, url: "/")
+  def initialize(title:, body:, url: "/", user: nil)
     @title = title
     @body  = body
     @url   = url
+    @user  = user
   end
 
   def broadcast
@@ -36,14 +37,17 @@ class PushNotifier
       pruned += 1
     end
 
-    NotificationDelivery.create!(
-      title:        @title,
-      body:         @body,
-      url:          @url,
-      sent_count:   sent,
-      pruned_count: pruned,
-      fired_at:     Time.current
-    )
+    if @user || Current.user
+      NotificationDelivery.create!(
+        title:        @title,
+        body:         @body,
+        url:          @url,
+        sent_count:   sent,
+        pruned_count: pruned,
+        fired_at:     Time.current,
+        user:         @user || Current.user
+      )
+    end
 
     { sent: sent, pruned: pruned }
   end

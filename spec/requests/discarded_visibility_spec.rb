@@ -4,8 +4,8 @@ require "rails_helper"
 # transparently filter out anything that's been soft-deleted.
 RSpec.describe "Discarded supplement and habit visibility", type: :request do
   before do
-    create(:plan, slug: "exercise", name: "Exercise day")
-    sign_in_as
+    user = sign_in_as
+    create(:plan, slug: "exercise", name: "Exercise day", user: user)
   end
 
   describe "GET /supplements" do

@@ -1,14 +1,18 @@
 require "rails_helper"
 
 RSpec.describe NotificationsController, type: :request do
-  let!(:plan) { seed_plan(slug: "active") }
+  let(:user) { create(:user, password: "password") }
+  let!(:plan) { seed_plan(slug: "active", user: user) }
   let!(:meal) do
     plan.meals.create!(position: 1, name: "Breakfast",
                        scheduled_time: Time.utc(2000, 1, 1, 7, 30),
-                       target_kcal: 450, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10)
+                       target_kcal: 450, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10, user: user)
   end
 
-  before { sign_in_as }
+  before do
+    sign_in_as(user)
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
+  end
 
   describe "GET /notifications" do
     it "renders the page with all four sections" do
@@ -23,7 +27,7 @@ RSpec.describe NotificationsController, type: :request do
     end
 
     it "lists subscribed devices with their user_agent" do
-      PushSubscription.create!(endpoint: "https://fcm.example/A", p256dh_key: "p", auth_key: "a", user_agent: "Pixel 8 Chrome")
+      PushSubscription.create!(endpoint: "https://fcm.example/A", p256dh_key: "p", auth_key: "a", user_agent: "Pixel 8 Chrome", user: user)
 
       get notifications_path
 
@@ -37,7 +41,7 @@ RSpec.describe NotificationsController, type: :request do
 
     it "shows recent deliveries" do
       NotificationDelivery.create!(title: "🍱 Breakfast time", body: "Time to log Breakfast", url: "/menu",
-                                   sent_count: 1, fired_at: 1.minute.ago)
+                                   sent_count: 1, fired_at: 1.minute.ago, user: user)
 
       get notifications_path
 

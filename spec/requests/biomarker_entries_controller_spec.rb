@@ -1,21 +1,26 @@
 require "rails_helper"
 
 RSpec.describe BiomarkerEntriesController, type: :request do
+  let(:user) { create(:user, password: "password") }
   let(:plan) { seed_plan(slug: "active") }
   let!(:weight_goal) do
-    Goal.find_or_create_by!(metric: 0) do |g|
+    Goal.find_or_create_by!(metric: 0, user: user) do |g|
       g.starting_value = 90; g.target_value = 87; g.unit = "kg"
       g.direction = "down"; g.display_name = "Weight"
     end
   end
   let!(:hdl_goal) do
-    Goal.find_or_create_by!(metric: 2) do |g|
+    Goal.find_or_create_by!(metric: 2, user: user) do |g|
       g.starting_value = 39; g.target_value = 45; g.unit = "mg/dL"
       g.direction = "up"; g.display_name = "HDL"
     end
   end
 
-  before { sign_in_as; plan }
+  before do
+    sign_in_as(user)
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
+    plan
+  end
 
   describe "GET /biomarker_entries/new" do
     it "renders the bulk form with all goals" do

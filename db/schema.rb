@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_20_000006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,9 +20,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.string "name", null: false
     t.string "token_digest", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
-    t.index ["name"], name: "index_api_tokens_on_name", unique: true
-    t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
+    t.bigint "user_id", null: false
+    t.index ["user_id", "name"], name: "index_api_tokens_on_user_id_and_name", unique: true
+    t.index ["user_id", "token_digest"], name: "index_api_tokens_on_user_id_and_token_digest", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
   end
 
@@ -31,7 +31,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.integer "goal_id", null: false
     t.date "recorded_on", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.decimal "value", precision: 7, scale: 2, null: false
     t.index ["goal_id", "recorded_on"], name: "index_biomarker_entries_on_goal_id_and_recorded_on"
     t.index ["goal_id"], name: "index_biomarker_entries_on_goal_id"
@@ -57,7 +57,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.string "label", null: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.index ["discarded_at"], name: "index_checklist_templates_kept", where: "(discarded_at IS NULL)"
     t.index ["position"], name: "index_checklist_templates_on_position"
     t.index ["user_id"], name: "index_checklist_templates_on_user_id"
@@ -69,10 +69,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.text "notes"
     t.integer "plan_id", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.decimal "weight_kg", precision: 6, scale: 2
-    t.index ["date"], name: "index_daily_logs_on_date", unique: true
     t.index ["plan_id"], name: "index_daily_logs_on_plan_id"
+    t.index ["user_id", "date"], name: "index_daily_logs_on_user_id_and_date", unique: true
     t.index ["user_id"], name: "index_daily_logs_on_user_id"
   end
 
@@ -99,8 +99,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.decimal "target_value", precision: 7, scale: 2, null: false
     t.string "unit", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
-    t.index ["metric"], name: "index_goals_on_metric", unique: true
+    t.bigint "user_id", null: false
+    t.index ["user_id", "metric"], name: "index_goals_on_user_id_and_metric", unique: true
     t.index ["user_id"], name: "index_goals_on_user_id"
   end
 
@@ -111,7 +111,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.datetime "logged_at", null: false
     t.decimal "quantity_grams", precision: 7, scale: 2, null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.index ["daily_log_id", "logged_at"], name: "index_logged_foods_on_daily_log_id_and_logged_at"
     t.index ["daily_log_id"], name: "index_logged_foods_on_daily_log_id"
     t.index ["food_id"], name: "index_logged_foods_on_food_id"
@@ -136,7 +136,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.integer "meal_id", null: false
     t.decimal "quantity_grams", precision: 7, scale: 2, null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.index ["food_id"], name: "index_meal_items_on_food_id"
     t.index ["meal_id", "food_id"], name: "index_meal_items_on_meal_and_food", unique: true
     t.index ["meal_id"], name: "index_meal_items_on_meal_id"
@@ -154,7 +154,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.integer "target_kcal", null: false
     t.decimal "target_protein_g", precision: 6, scale: 2, null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.index ["plan_id", "position"], name: "index_meals_on_plan_id_and_position", unique: true
     t.index ["plan_id"], name: "index_meals_on_plan_id"
     t.index ["user_id"], name: "index_meals_on_user_id"
@@ -169,7 +169,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.string "url"
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.index ["fired_at"], name: "index_notification_deliveries_on_fired_at"
     t.index ["user_id"], name: "index_notification_deliveries_on_user_id"
   end
@@ -225,8 +225,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.integer "target_kcal", null: false
     t.integer "target_protein_g", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
-    t.index ["slug"], name: "index_plans_on_slug", unique: true
+    t.bigint "user_id", null: false
+    t.index ["user_id", "slug"], name: "index_plans_on_user_id_and_slug", unique: true
     t.index ["user_id"], name: "index_plans_on_user_id"
   end
 
@@ -237,7 +237,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.string "p256dh_key", null: false
     t.datetime "updated_at", null: false
     t.string "user_agent"
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.index "md5(endpoint)", name: "index_push_subscriptions_on_endpoint_md5", unique: true
     t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
   end
@@ -248,8 +248,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.string "key", null: false
     t.string "reminder_type", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
-    t.index ["reminder_type", "key"], name: "index_reminder_preferences_on_reminder_type_and_key", unique: true
+    t.bigint "user_id", null: false
+    t.index ["user_id", "reminder_type", "key"], name: "idx_on_user_id_reminder_type_key_b3378a9672", unique: true
     t.index ["user_id"], name: "index_reminder_preferences_on_user_id"
   end
 
@@ -279,7 +279,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.integer "supplement_id", null: false
     t.integer "time_slot", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.index ["supplement_id"], name: "index_supplement_schedules_on_supplement_id"
     t.index ["time_slot", "position"], name: "index_supplement_schedules_on_time_slot_and_position"
     t.index ["user_id"], name: "index_supplement_schedules_on_user_id"
@@ -294,7 +294,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.string "name", null: false
     t.string "notes"
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.index ["discarded_at"], name: "index_supplements_kept", where: "(discarded_at IS NULL)"
     t.index ["user_id"], name: "index_supplements_on_user_id"
   end
@@ -307,23 +307,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_230645) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "api_tokens", "users"
   add_foreign_key "biomarker_entries", "goals"
+  add_foreign_key "biomarker_entries", "users"
   add_foreign_key "checklist_completions", "checklist_templates"
   add_foreign_key "checklist_completions", "daily_logs"
+  add_foreign_key "checklist_templates", "users"
   add_foreign_key "daily_logs", "plans"
+  add_foreign_key "daily_logs", "users"
+  add_foreign_key "goals", "users"
   add_foreign_key "logged_foods", "daily_logs"
   add_foreign_key "logged_foods", "foods"
+  add_foreign_key "logged_foods", "users"
   add_foreign_key "meal_completions", "daily_logs"
   add_foreign_key "meal_completions", "meals"
   add_foreign_key "meal_items", "foods"
   add_foreign_key "meal_items", "meals"
+  add_foreign_key "meal_items", "users"
   add_foreign_key "meals", "plans"
+  add_foreign_key "meals", "users"
+  add_foreign_key "notification_deliveries", "users"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_grants", "users", column: "resource_owner_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_tokens", "users", column: "resource_owner_id"
+  add_foreign_key "plans", "users"
+  add_foreign_key "push_subscriptions", "users"
+  add_foreign_key "reminder_preferences", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "supplement_completions", "daily_logs"
   add_foreign_key "supplement_completions", "supplements"
   add_foreign_key "supplement_schedules", "supplements"
+  add_foreign_key "supplement_schedules", "users"
+  add_foreign_key "supplements", "users"
 end

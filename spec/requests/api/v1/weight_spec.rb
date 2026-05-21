@@ -1,10 +1,13 @@
 require "rails_helper"
 
 RSpec.describe "POST /api/v1/weight", type: :request do
+  let(:user) { create(:user) }
+
   before do
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
     stub_api_token
     seed_plan(slug: "active")
-    Goal.find_or_create_by!(metric: 0) do |g|
+    Goal.find_or_create_by!(metric: 0, user: user) do |g|
       g.starting_value = 90
       g.target_value = 87
       g.unit = "kg"

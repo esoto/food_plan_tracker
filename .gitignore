@@ -49,3 +49,4 @@
 # Per-developer dev-server config (Claude Preview launch). May contain
 # local-only env vars (e.g. dev VAPID keys); template lives next to it.
 .claude/launch.json
+.claude/settings.local.json

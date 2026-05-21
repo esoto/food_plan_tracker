@@ -1,9 +1,10 @@
 require "rails_helper"
 
 RSpec.describe "GET /api/v1/weekly_summary", type: :request do
+  let(:user) { create(:user) }
   let!(:plan) { seed_plan(slug: "active") }
   let!(:weight_goal) do
-    Goal.find_or_create_by!(metric: :weight_kg) do |g|
+    Goal.find_or_create_by!(metric: :weight_kg, user: user) do |g|
       g.display_name = "Weight"
       g.unit = "kg"
       g.direction = :down
@@ -12,7 +13,10 @@ RSpec.describe "GET /api/v1/weekly_summary", type: :request do
     end
   end
 
-  before { stub_api_token }
+  before do
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
+    stub_api_token
+  end
 
   it "returns 401 without a token" do
     get "/api/v1/weekly_summary"

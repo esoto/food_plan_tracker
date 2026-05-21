@@ -1,8 +1,9 @@
 require "rails_helper"
 
 RSpec.describe ReminderTickerJob, type: :job do
+  let(:user) { create(:user) }
   let!(:plan) do
-    Plan.find_or_create_by!(slug: "active") do |p|
+    Plan.find_or_create_by!(slug: "active", user: user) do |p|
       p.name = "Active day"
       p.target_kcal = 2000
       p.target_protein_g = 180
@@ -13,19 +14,20 @@ RSpec.describe ReminderTickerJob, type: :job do
   let!(:breakfast) do
     plan.meals.create!(position: 1, name: "Breakfast",
                        scheduled_time: Time.utc(2000, 1, 1, 7, 30),
-                       target_kcal: 450, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10)
+                       target_kcal: 450, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10, user: user)
   end
   let!(:lunch) do
     plan.meals.create!(position: 2, name: "Lunch",
                        scheduled_time: Time.utc(2000, 1, 1, 12, 30),
-                       target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20)
+                       target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20, user: user)
   end
-  let!(:supp_a) { Supplement.create!(name: "Vitamin D", dose: "1000 IU") }
-  let!(:supp_b) { Supplement.create!(name: "Magnesium", dose: "400mg") }
+  let!(:supp_a) { Supplement.create!(name: "Vitamin D", dose: "1000 IU", user: user) }
+  let!(:supp_b) { Supplement.create!(name: "Magnesium", dose: "400mg", user: user) }
   let!(:morning_a) { SupplementSchedule.create!(supplement: supp_a, time_slot: :morning, position: 1) }
   let!(:morning_b) { SupplementSchedule.create!(supplement: supp_b, time_slot: :morning, position: 2) }
 
   before do
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
     allow(PushNotifier).to receive(:configured?).and_return(true)
     allow(PushNotifier).to receive(:broadcast)
   end
@@ -47,11 +49,11 @@ RSpec.describe ReminderTickerJob, type: :job do
     it "fires when current minute matches a meal's scheduled_time and the meal is uncompleted" do
       DailyLog.today # ensure today's log exists
 
-      expect(PushNotifier).to receive(:broadcast).with(
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(
         title: "🍱 Breakfast time",
         body:  /Breakfast.*450 kcal/,
         url:   "/menu"
-      )
+      ))
 
       described_class.perform_now(now: Time.zone.local(2026, 4, 26, 7, 30))
     end
@@ -75,11 +77,11 @@ RSpec.describe ReminderTickerJob, type: :job do
     it "fires one combined reminder per slot at the slot's representative time" do
       DailyLog.today
 
-      expect(PushNotifier).to receive(:broadcast).with(
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(
         title: "💊 Morning supplements",
         body:  "2 supplements due now.",
         url:   "/supplements"
-      )
+      ))
 
       described_class.perform_now(now: Time.zone.local(2026, 4, 26, 7, 0))
     end
@@ -88,11 +90,11 @@ RSpec.describe ReminderTickerJob, type: :job do
       log = DailyLog.today
       log.supplement_completions.create!(supplement: supp_a, taken_at: Time.current)
 
-      expect(PushNotifier).to receive(:broadcast).with(
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(
         title: "💊 Morning supplements",
         body:  "1 supplement due now.",
         url:   "/supplements"
-      )
+      ))
 
       described_class.perform_now(now: Time.zone.local(2026, 4, 26, 7, 0))
     end
@@ -132,7 +134,7 @@ RSpec.describe ReminderTickerJob, type: :job do
       SupplementSchedule.create!(supplement: supp_a, time_slot: :pre_lunch, position: 1)
       plan.meals.create!(position: 99, name: "Pre-lunch snack",
                          scheduled_time: Time.utc(2000, 1, 1, 11, 45),
-                         target_kcal: 200, target_protein_g: 10, target_carbs_g: 20, target_fat_g: 5)
+                         target_kcal: 200, target_protein_g: 10, target_carbs_g: 20, target_fat_g: 5, user: user)
       DailyLog.today
 
       expect(PushNotifier).to receive(:broadcast).with(hash_including(title: "🍱 Pre-lunch snack time"))

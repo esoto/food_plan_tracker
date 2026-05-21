@@ -23,6 +23,7 @@ module Api
       if token
         token.touch_used!
         @current_api_token = token
+        Current.session = Session.new(user: token.user)
       else
         render json: { error: "unauthorized" }, status: :unauthorized
       end
@@ -30,7 +31,7 @@ module Api
 
     def daily_log_for(date_param)
       date = date_param.present? ? Date.parse(date_param.to_s) : Date.current
-      DailyLog.for(date)
+      DailyLog.for(Current.user, date)
     end
 
     def not_found

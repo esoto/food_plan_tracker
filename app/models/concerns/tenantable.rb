@@ -27,7 +27,7 @@ module Tenantable
   TENANT_PARENT_ASSOCIATIONS = %i[meal plan daily_log supplement goal].freeze
 
   included do
-    belongs_to :user, optional: true
+    belongs_to :user
     attr_readonly :user_id
 
     scope :for_user, ->(user) { user ? where(user: user) : none }

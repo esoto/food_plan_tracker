@@ -1,8 +1,9 @@
 require "rails_helper"
 
 RSpec.describe WeeklySummary, type: :model do
+  let(:user) { create(:user) }
   let!(:plan) do
-    Plan.find_or_create_by!(slug: "active") do |p|
+    Plan.find_or_create_by!(slug: "active", user: user) do |p|
       p.name = "Active day"
       p.target_kcal = 2000
       p.target_protein_g = 180
@@ -11,7 +12,7 @@ RSpec.describe WeeklySummary, type: :model do
     end
   end
   let!(:other_plan) do
-    Plan.find_or_create_by!(slug: "exercise") do |p|
+    Plan.find_or_create_by!(slug: "exercise", user: user) do |p|
       p.name = "Exercise day"
       p.target_kcal = 2200
       p.target_protein_g = 180
@@ -19,12 +20,12 @@ RSpec.describe WeeklySummary, type: :model do
       p.target_fat_g = 70
     end
   end
-  let!(:meal_a) { plan.meals.create!(position: 1, name: "A", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10) }
-  let!(:meal_b) { plan.meals.create!(position: 2, name: "B", scheduled_time: Time.utc(2000, 1, 1, 12, 0), target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20) }
-  let!(:other_meal) { other_plan.meals.create!(position: 1, name: "X", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 500, target_protein_g: 40, target_carbs_g: 40, target_fat_g: 15) }
+  let!(:meal_a) { plan.meals.create!(position: 1, name: "A", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10, user: user) }
+  let!(:meal_b) { plan.meals.create!(position: 2, name: "B", scheduled_time: Time.utc(2000, 1, 1, 12, 0), target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20, user: user) }
+  let!(:other_meal) { other_plan.meals.create!(position: 1, name: "X", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 500, target_protein_g: 40, target_carbs_g: 40, target_fat_g: 15, user: user) }
 
   let!(:weight_goal) do
-    Goal.find_or_create_by!(metric: :weight_kg) do |g|
+    Goal.find_or_create_by!(metric: :weight_kg, user: user) do |g|
       g.display_name = "Weight"
       g.unit = "kg"
       g.direction = :down
@@ -33,8 +34,8 @@ RSpec.describe WeeklySummary, type: :model do
     end
   end
 
-  let!(:supp_a) { Supplement.create!(name: "A", dose: "1g") }
-  let!(:supp_b) { Supplement.create!(name: "B", dose: "1g") }
+  let!(:supp_a) { Supplement.create!(name: "A", dose: "1g", user: user) }
+  let!(:supp_b) { Supplement.create!(name: "B", dose: "1g", user: user) }
 
   before do
     ChecklistTemplate.delete_all
@@ -53,8 +54,8 @@ RSpec.describe WeeklySummary, type: :model do
 
   describe "#adherence_pct" do
     it "averages each daily log's checklist_adherence_pct" do
-      ChecklistTemplate.create!(label: "X", position: 1)
-      ChecklistTemplate.create!(label: "Y", position: 2)
+      ChecklistTemplate.create!(label: "X", position: 1, user: user)
+      ChecklistTemplate.create!(label: "Y", position: 2, user: user)
 
       log1 = DailyLog.create!(date: Date.current - 2, plan: plan)
       log1.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
@@ -73,8 +74,8 @@ RSpec.describe WeeklySummary, type: :model do
     end
 
     it "averages logs that have zero completions as 0% in the mean" do
-      ChecklistTemplate.create!(label: "X", position: 1)
-      ChecklistTemplate.create!(label: "Y", position: 2)
+      ChecklistTemplate.create!(label: "X", position: 1, user: user)
+      ChecklistTemplate.create!(label: "Y", position: 2, user: user)
 
       log1 = DailyLog.create!(date: Date.current - 1, plan: plan)
       log1.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
@@ -87,7 +88,7 @@ RSpec.describe WeeklySummary, type: :model do
     end
 
     it "excludes logs from the day before the window" do
-      ChecklistTemplate.create!(label: "X", position: 1)
+      ChecklistTemplate.create!(label: "X", position: 1, user: user)
       out_of_window = DailyLog.create!(date: Date.current - 7, plan: plan)
       out_of_window.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
 
@@ -95,7 +96,7 @@ RSpec.describe WeeklySummary, type: :model do
     end
 
     it "includes logs from exactly 6 days ago (window boundary)" do
-      ChecklistTemplate.create!(label: "X", position: 1)
+      ChecklistTemplate.create!(label: "X", position: 1, user: user)
       log = DailyLog.create!(date: Date.current - 6, plan: plan)
       log.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
 

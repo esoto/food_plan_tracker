@@ -18,8 +18,8 @@ class ApiToken < ApplicationRecord
 
   TOUCH_INTERVAL = 1.minute
 
-  validates :name, presence: true, uniqueness: true
-  validates :token_digest, presence: true, uniqueness: true
+  validates :name, presence: true, uniqueness: { scope: :user_id }
+  validates :token_digest, presence: true, uniqueness: { scope: :user_id }
 
   before_validation :set_digest, on: :create
 

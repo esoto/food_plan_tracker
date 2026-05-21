@@ -134,7 +134,7 @@ RSpec.describe "POST /mcp", type: :request do
     end
 
     it "create_food + log_food round-trips a new food into today's diary" do
-      goal = Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg]) do |g|
+      goal = Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg], user: user) do |g|
         g.display_name = "Weight"; g.unit = "kg"; g.direction = "down"
         g.starting_value = 80; g.target_value = 75
       end
@@ -158,7 +158,7 @@ RSpec.describe "POST /mcp", type: :request do
     end
 
     it "log_weight records a biomarker entry and updates today's daily log" do
-      Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg]) do |g|
+      Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg], user: user) do |g|
         g.display_name = "Weight"; g.unit = "kg"; g.direction = "down"
         g.starting_value = 80; g.target_value = 75
       end
@@ -202,7 +202,7 @@ RSpec.describe "POST /mcp", type: :request do
 
     describe "get_weekly_summary" do
       let!(:weight_goal) do
-        Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg]) do |g|
+        Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg], user: user) do |g|
           g.display_name = "Weight"; g.unit = "kg"; g.direction = "down"
           g.starting_value = 88; g.target_value = 82
         end
@@ -469,8 +469,8 @@ RSpec.describe "POST /mcp", type: :request do
     end
 
     describe "meal item management" do
-      let(:plan2) { create(:plan, slug: "exercise-mi") }
-      let(:meal2) { create(:meal, plan: plan2, name: "Breakfast") }
+      let(:plan2) { create(:plan, slug: "exercise-mi", user: user) }
+      let(:meal2) { create(:meal, plan: plan2, name: "Breakfast", user: user) }
       let(:eggs2) { create(:food, name: "Eggs", category: "protein", serving_grams: 50, kcal: 78, protein_g: 6, carbs_g: 0.5, fat_g: 5) }
       let(:oats2) { create(:food, name: "Oats", category: "carb",    serving_grams: 40, kcal: 150, protein_g: 5, carbs_g: 27, fat_g: 3) }
 

@@ -1,11 +1,12 @@
 require "rails_helper"
 
 RSpec.describe "ProgressController#show", type: :request do
+  let(:user) { create(:user, password: "password") }
   let!(:plan) { seed_plan(slug: "active") }
-  let!(:meal_a) { plan.meals.create!(position: 1, name: "A", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10) }
-  let!(:meal_b) { plan.meals.create!(position: 2, name: "B", scheduled_time: Time.utc(2000, 1, 1, 12, 0), target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20) }
+  let!(:meal_a) { plan.meals.create!(position: 1, name: "A", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10, user: user) }
+  let!(:meal_b) { plan.meals.create!(position: 2, name: "B", scheduled_time: Time.utc(2000, 1, 1, 12, 0), target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20, user: user) }
   let!(:weight_goal) do
-    Goal.find_or_create_by!(metric: :weight_kg) do |g|
+    Goal.find_or_create_by!(metric: :weight_kg, user: user) do |g|
       g.display_name = "Weight"
       g.unit = "kg"
       g.direction = :down
@@ -14,7 +15,10 @@ RSpec.describe "ProgressController#show", type: :request do
     end
   end
 
-  before { sign_in_as }
+  before do
+    sign_in_as(user)
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
+  end
 
   it "renders the Last 7 days summary card with all four metric labels" do
     get progress_path

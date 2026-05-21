@@ -30,6 +30,7 @@ module Api
 
     before_action :reject_unsupported_methods
     before_action :doorkeeper_authorize!, only: :handle
+    before_action :set_current_session, only: :handle
 
     rescue_from StandardError do |error|
       Rails.logger.error("[mcp] #{error.class}: #{error.message}\n#{error.backtrace&.first(10)&.join("\n")}")
@@ -83,6 +84,13 @@ module Api
 
     def reject_unsupported_methods
       head(:method_not_allowed) unless request.post?
+    end
+
+    def set_current_session
+      return unless doorkeeper_token
+
+      user = User.find_by(id: doorkeeper_token.resource_owner_id)
+      Current.session = Session.new(user: user) if user
     end
 
     def parse_message
@@ -141,7 +149,7 @@ module Api
     end
 
     def log_for(args)
-      DailyLog.for(date_arg(args))
+      DailyLog.for(Current.user, date_arg(args))
     end
 
     def plan_for(args)
@@ -151,18 +159,18 @@ module Api
     # ----- Tool handlers.
 
     def handle_get_today_status(_args)
-      serialize_day(DailyLog.today)
+      serialize_day(DailyLog.today(Current.user))
     end
 
     def handle_get_day_status(args)
-      serialize_day(DailyLog.for(date_arg(args, default: -> { raise ToolArgumentError, "date is required" })))
+      serialize_day(DailyLog.for(Current.user, date_arg(args, default: -> { raise ToolArgumentError, "date is required" })))
     end
 
     def handle_log_weight(args)
       goal  = Goal.find_by!(metric: Goal.metrics[:weight_kg])
       date  = date_arg(args)
       entry = goal.biomarker_entries.create!(value: args.fetch("value"), recorded_on: date)
-      log   = DailyLog.for(date)
+      log   = DailyLog.for(Current.user, date)
       log.update!(weight_kg: entry.value) if log.date == entry.recorded_on
       { ok: true,
         entry: { id: entry.id, value: entry.value.to_f, recorded_on: entry.recorded_on.iso8601 },
@@ -356,7 +364,7 @@ module Api
         raise ToolArgumentError, "plan_mismatch: yesterday's plan (#{yesterday.plan.slug}) doesn't match today's (#{existing_today.plan.slug})"
       end
 
-      today = existing_today || DailyLog.for(target_date, default_plan: yesterday.plan)
+      today = existing_today || DailyLog.for(Current.user, target_date, default_plan: yesterday.plan)
       copied = today.copy_completions_from(yesterday)
       { ok: true, copied: copied, day: serialize_day(today.reload) }
     end
