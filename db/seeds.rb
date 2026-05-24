@@ -397,7 +397,7 @@ SUPPLEMENTS = [
 # kept (non-archived) records so user-archived custom supplements aren't
 # obliterated on re-seed — their completion history would go with them.
 allowed_names = SUPPLEMENTS.map { |s| s[:name] }
-Supplement.kept.where.not(name: allowed_names).destroy_all
+Supplement.for_user(user).kept.where.not(name: allowed_names).destroy_all
 
 SUPPLEMENTS.each do |attrs|
   supplement = Supplement.find_or_initialize_by(name: attrs[:name], user: user)
@@ -441,7 +441,7 @@ CHECKLIST = [
 # Remove stale Spanish-labeled templates if present. Scoped to kept rows so
 # user-archived custom habits aren't obliterated on re-seed (their completion
 # history would go with them).
-ChecklistTemplate.kept.where.not(label: CHECKLIST.map { |c| c[:label] }).destroy_all
+ChecklistTemplate.for_user(user).kept.where.not(label: CHECKLIST.map { |c| c[:label] }).destroy_all
 
 CHECKLIST.each_with_index do |attrs, idx|
   template = ChecklistTemplate.find_or_initialize_by(label: attrs[:label], user: user)
