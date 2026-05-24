@@ -39,13 +39,27 @@ RSpec.describe Supplement, type: :model do
     end
 
     it "appends at the end of existing positions in the slot" do
-      other = create(:supplement)
+      other = create(:supplement, user: supplement.user)
       other.supplement_schedules.create!(time_slot: "morning", position: 0)
       other.supplement_schedules.create!(time_slot: "morning", position: 1)
 
       supplement.sync_time_slots!([ "morning" ])
 
       expect(supplement.supplement_schedules.first.position).to eq(2)
+    end
+
+    it "computes next position from the owner's schedules only, ignoring other users" do
+      user_a = create(:user)
+      user_b = create(:user)
+
+      sup_b = create(:supplement, user: user_b)
+      sup_b.supplement_schedules.create!(time_slot: "morning", position: 0)
+      sup_b.supplement_schedules.create!(time_slot: "morning", position: 1)
+
+      new_sup = create(:supplement, user: user_a)
+      new_sup.sync_time_slots!(["morning"])
+
+      expect(new_sup.supplement_schedules.first.position).to eq(0)
     end
 
     it "is a no-op when slot set is unchanged" do
