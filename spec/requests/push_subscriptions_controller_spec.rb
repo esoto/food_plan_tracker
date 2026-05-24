@@ -91,6 +91,7 @@ RSpec.describe PushSubscriptionsController, type: :request do
            params: { endpoint: shared, keys: { p256dh: "new", auth: "new" } }.to_json,
            headers: { "Content-Type" => "application/json" }
 
+      expect(response).to have_http_status(:conflict)
       # Regardless of the response status, the other user's keys must be intact.
       expect(PushSubscription.find_by(endpoint: shared, user: other).p256dh_key).to eq("orig")
     end
