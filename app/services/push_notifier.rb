@@ -20,12 +20,13 @@ class PushNotifier
   def broadcast
     raise NotConfiguredError, "VAPID keys missing" unless self.class.configured?
 
+    recipient = @user || Current.user
     sent = 0
     pruned = 0
 
     payload = JSON.generate(title: @title, body: @body, url: @url)
 
-    PushSubscription.find_each do |sub|
+    PushSubscription.for_user(recipient).find_each do |sub|
       WebPush.payload_send(message: payload, vapid: vapid, **sub.to_push_payload)
       sent += 1
     rescue WebPush::ExpiredSubscription, WebPush::InvalidSubscription
@@ -37,7 +38,6 @@ class PushNotifier
       pruned += 1
     end
 
-    recipient = @user || Current.user
     if recipient
       NotificationDelivery.create!(
         title:        @title,

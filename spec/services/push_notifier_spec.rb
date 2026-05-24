@@ -111,5 +111,22 @@ RSpec.describe PushNotifier do
         described_class.broadcast(title: "x", body: "y")
       }.to raise_error(PushNotifier::NotConfiguredError)
     end
+
+    it "only notifies the recipient's subscriptions, not other users'" do
+      user_a = create(:user)
+      user_b = create(:user)
+      create(:push_subscription, user: user_a, endpoint: "https://push.example/A")
+      create(:push_subscription, user: user_b, endpoint: "https://push.example/B")
+
+      ENV["VAPID_PUBLIC_KEY"]  = "PUB"
+      ENV["VAPID_PRIVATE_KEY"] = "PRV"
+
+      expect(WebPush).to receive(:payload_send)
+        .with(hash_including(endpoint: "https://push.example/A")).once.and_return(true)
+      expect(WebPush).not_to receive(:payload_send)
+        .with(hash_including(endpoint: "https://push.example/B"))
+
+      described_class.broadcast(title: "Hi", body: "Msg", user: user_a)
+    end
   end
 end
