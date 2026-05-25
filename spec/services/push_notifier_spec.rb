@@ -128,5 +128,15 @@ RSpec.describe PushNotifier do
 
       described_class.broadcast(title: "Hi", body: "Msg", user: user_a)
     end
+
+    it "notifies nobody and logs a warning when no user is resolved" do
+      Current.reset
+      expect(WebPush).not_to receive(:payload_send)
+      expect(Rails.logger).to receive(:warn).with(/no user resolved/)
+
+      expect {
+        expect(described_class.broadcast(title: "x", body: "y")).to eq(sent: 0, pruned: 0)
+      }.not_to change(NotificationDelivery, :count)
+    end
   end
 end

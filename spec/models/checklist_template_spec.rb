@@ -35,6 +35,11 @@ RSpec.describe ChecklistTemplate, type: :model do
       create(:checklist_template, position: 3, user: user)
       expect(described_class.next_position).to eq(4)
     end
+
+    it "returns 0 when Current.user is nil and no user is provided" do
+      Current.reset
+      expect(described_class.next_position).to eq(0)
+    end
   end
 
   describe "#restore_at_end!" do
