@@ -37,6 +37,7 @@ RSpec.describe ChecklistTemplate, type: :model do
     end
 
     it "returns 0 when Current.user is nil and no user is provided" do
+      create(:checklist_template, position: 7, user: create(:user)) # noise: another user's kept record
       Current.reset
       expect(described_class.next_position).to eq(0)
     end
