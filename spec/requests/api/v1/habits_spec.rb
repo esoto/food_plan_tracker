@@ -32,7 +32,7 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
 
   describe "POST /api/v1/habits" do
     it "appends at the end of the position list" do
-      create(:checklist_template, label: "First", position: 0)
+      create(:checklist_template, label: "First", position: 0, user: Current.user)
 
       post "/api/v1/habits", params: { habit: { label: "Second" } }.to_json, headers: auth_headers
 
@@ -64,9 +64,9 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
 
   describe "PATCH /api/v1/habits/:id/restore" do
     it "restores at the end of the position list" do
-      create(:checklist_template, label: "A", position: 0)
-      create(:checklist_template, label: "B", position: 1)
-      restored = create(:checklist_template, label: "Old", position: 2, discarded_at: 1.day.ago)
+      create(:checklist_template, label: "A", position: 0, user: Current.user)
+      create(:checklist_template, label: "B", position: 1, user: Current.user)
+      restored = create(:checklist_template, label: "Old", position: 2, discarded_at: 1.day.ago, user: Current.user)
 
       patch "/api/v1/habits/#{restored.id}/restore", headers: auth_headers
 

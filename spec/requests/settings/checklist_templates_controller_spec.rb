@@ -34,7 +34,7 @@ RSpec.describe Settings::ChecklistTemplatesController, type: :request do
   describe "POST /settings/habits" do
     it "creates a template with auto-incremented position" do
       ChecklistTemplate.delete_all
-      create(:checklist_template, label: "First", position: 0)
+      create(:checklist_template, label: "First", position: 0, user: Current.user)
 
       expect {
         post settings_habits_path, params: { checklist_template: { label: "Second" } }
@@ -82,9 +82,9 @@ RSpec.describe Settings::ChecklistTemplatesController, type: :request do
   describe "PATCH /settings/habits/:id/restore" do
     it "restores a discarded template at the end of the position list" do
       ChecklistTemplate.delete_all
-      create(:checklist_template, label: "A", position: 0)
-      create(:checklist_template, label: "B", position: 1)
-      restored = create(:checklist_template, label: "Old", position: 2, discarded_at: 1.day.ago)
+      create(:checklist_template, label: "A", position: 0, user: Current.user)
+      create(:checklist_template, label: "B", position: 1, user: Current.user)
+      restored = create(:checklist_template, label: "Old", position: 2, discarded_at: 1.day.ago, user: Current.user)
 
       patch restore_settings_habit_path(restored)
 
