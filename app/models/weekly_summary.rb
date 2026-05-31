@@ -1,12 +1,13 @@
 class WeeklySummary
   attr_reader :start_date, :end_date
 
-  def self.rolling_7_days(today: Date.current)
-    new((today - 6)..today)
+  def self.rolling_7_days(today: Date.current, user: Current.user)
+    new((today - 6)..today, user: user)
   end
 
-  def initialize(date_range)
+  def initialize(date_range, user: Current.user)
     @range      = date_range
+    @user       = user
     @start_date = date_range.first
     @end_date   = date_range.last
   end
@@ -18,7 +19,7 @@ class WeeklySummary
     # archiving a habit today doesn't retroactively shift past percentages.
     checked_per_log = ChecklistCompletion.where(daily_log: logs, checked: true).group(:daily_log_id).count
     pcts = logs.map do |l|
-      total = ChecklistTemplate.kept_on(l.date).count
+      total = ChecklistTemplate.for_user(@user).kept_on(l.date).count
       next 0 if total.zero?
 
       checked_per_log.fetch(l.id, 0) * 100.0 / total
@@ -43,7 +44,7 @@ class WeeklySummary
   def supplement_completion_pct
     # Per-day expected from supplements active on that date — same rationale
     # as adherence_pct: don't rewrite history when one is archived.
-    expected = @range.sum { |d| Supplement.kept_on(d).count }
+    expected = @range.sum { |d| Supplement.for_user(@user).kept_on(d).count }
     return nil if expected.zero?
 
     completed = SupplementCompletion.where(daily_log: logs).count
@@ -53,11 +54,11 @@ class WeeklySummary
   private
 
   def logs
-    @logs ||= DailyLog.where(date: @range).includes(plan: :meals).to_a
+    @logs ||= DailyLog.for_user(@user).where(date: @range).includes(plan: :meals).to_a
   end
 
   def weight_goal
-    @weight_goal ||= Goal.find_by(metric: Goal.metrics[:weight_kg])
+    @weight_goal ||= Goal.for_user(@user).find_by(metric: Goal.metrics[:weight_kg])
   end
 
   def start_weight

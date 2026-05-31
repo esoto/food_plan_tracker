@@ -38,6 +38,7 @@ RSpec.describe WeeklySummary, type: :model do
   let!(:supp_b) { Supplement.create!(name: "B", dose: "1g", user: user) }
 
   before do
+    Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
     ChecklistTemplate.delete_all
     travel_to Time.zone.local(2026, 4, 25, 12, 0)
   end
@@ -50,9 +51,28 @@ RSpec.describe WeeklySummary, type: :model do
       expect(summary.start_date).to eq(Date.new(2026, 4, 20))
       expect(summary.end_date).to eq(Date.new(2026, 4, 26))
     end
+
+    it "defaults to Current.user when no user is provided" do
+      summary = WeeklySummary.rolling_7_days
+      expect(summary.instance_variable_get(:@user)).to eq(user)
+    end
   end
 
   describe "#adherence_pct" do
+    it "excludes checklist templates belonging to other users" do
+      user_b = create(:user)
+      ChecklistTemplate.create!(label: "Other", position: 1, user: user_b)
+
+      ChecklistTemplate.create!(label: "Mine", position: 1, user: user)
+      log = DailyLog.create!(date: Date.current, plan: plan)
+      log.checklist_completions.create!(checklist_template: ChecklistTemplate.where(label: "Mine").first, checked: true)
+
+      summary = WeeklySummary.rolling_7_days(user: user)
+      # 1 checked, 1 total (mine). 1/1 = 100%.
+      # If unscoped, it would be 1 checked, 2 total. 1/2 = 50%.
+      expect(summary.adherence_pct).to eq(100)
+    end
+
     it "averages each daily log's checklist_adherence_pct" do
       ChecklistTemplate.create!(label: "X", position: 1, user: user)
       ChecklistTemplate.create!(label: "Y", position: 2, user: user)
@@ -105,6 +125,15 @@ RSpec.describe WeeklySummary, type: :model do
   end
 
   describe "#weight_delta_kg" do
+    it "excludes weight goals belonging to other users" do
+      user_b = create(:user)
+      Goal.create!(metric: :weight_kg, user: user_b, display_name: "Weight B", unit: "kg", direction: :down, starting_value: 100.0, target_value: 90.0)
+
+      summary = WeeklySummary.rolling_7_days(user: user)
+      expect(summary.send(:weight_goal)).to eq(weight_goal)
+      expect(summary.send(:weight_goal).user).to eq(user)
+    end
+
     it "returns end-weight minus start-weight" do
       weight_goal.biomarker_entries.create!(recorded_on: Date.current - 6, value: 86.0)
       weight_goal.biomarker_entries.create!(recorded_on: Date.current,     value: 85.4)
@@ -136,6 +165,22 @@ RSpec.describe WeeklySummary, type: :model do
       expect(summary.meal_completion_pct).to eq(75)
     end
 
+    it "excludes logs belonging to other users" do
+      user_b = create(:user)
+      plan_b = Plan.create!(slug: "active", user: user_b, name: "B", target_kcal: 2000, target_protein_g: 180, target_carbs_g: 180, target_fat_g: 70)
+      DailyLog.create!(date: Date.current, plan: plan_b, user: user_b)
+
+      summary = WeeklySummary.rolling_7_days(user: user)
+      expect(summary.send(:logs)).to be_empty
+    end
+
+    it "includes logs belonging to the requested user" do
+      log = DailyLog.create!(date: Date.current, plan: plan)
+      summary = WeeklySummary.rolling_7_days(user: user)
+      expect(summary.send(:logs)).to include(log)
+    end
+
+
     it "follows each day's plan when the plan changes mid-week" do
       log1 = DailyLog.create!(date: Date.current - 1, plan: plan)
       log1.meal_completions.create!(meal: meal_a, completed_at: 1.day.ago)
@@ -154,6 +199,21 @@ RSpec.describe WeeklySummary, type: :model do
   end
 
   describe "#supplement_completion_pct" do
+    it "excludes supplements belonging to other users" do
+      Supplement.delete_all
+      user_b = create(:user)
+      Supplement.create!(name: "Other", dose: "1g", user: user_b)
+
+      mine = Supplement.create!(name: "Mine", dose: "1g", user: user)
+      log = DailyLog.create!(date: Date.current, plan: plan)
+      log.supplement_completions.create!(supplement: mine, taken_at: Time.current)
+
+      summary = WeeklySummary.rolling_7_days(user: user)
+      # 1 completion, 1 expected (mine) * 7 days = 7. 1/7 = 14.28% -> 14%.
+      # If unscoped, 2 total * 7 = 14. 1/14 = 7.14% -> 7%.
+      expect(summary.supplement_completion_pct).to eq(14)
+    end
+
     it "totals supplement_completions over Supplement.count * days_in_window" do
       log1 = DailyLog.create!(date: Date.current - 1, plan: plan)
       log1.supplement_completions.create!(supplement: supp_a, taken_at: 1.day.ago)
