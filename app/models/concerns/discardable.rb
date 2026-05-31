@@ -9,6 +9,9 @@ module Discardable
     # or discarded after the day ended. Use this for historical adherence
     # denominators so archiving a record doesn't retroactively shift past
     # percentages.
+    #
+    # NOT user-scoped on its own. Callers MUST chain it after for_user:
+    #   Model.for_user(user).kept_on(date)
     scope :kept_on, ->(date) {
       where("discarded_at IS NULL OR discarded_at > ?", date.end_of_day)
     }

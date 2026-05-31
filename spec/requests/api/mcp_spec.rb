@@ -367,7 +367,7 @@ RSpec.describe "POST /mcp", type: :request do
       before { ChecklistTemplate.delete_all }
 
       it "create_habit appends at the end of the position list" do
-        create(:checklist_template, label: "First", position: 0)
+        create(:checklist_template, label: "First", position: 0, user: Current.user)
 
         result = rpc("tools/call", { name: "create_habit", arguments: { label: "Second" } })["result"]
         payload = JSON.parse(result["content"].first["text"])

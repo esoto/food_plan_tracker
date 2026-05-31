@@ -73,6 +73,21 @@ RSpec.describe Discardable do
     end
   end
 
+  describe ".kept_on cross-tenant isolation" do
+    it "excludes other users' records when chained after for_user" do
+      user_a = create(:user)
+      user_b = create(:user)
+      mine     = create(:supplement, user: user_a)
+      mine_old = create(:supplement, user: user_a, discarded_at: 1.hour.ago)
+      create(:supplement, user: user_b)
+
+      results = Supplement.for_user(user_a).kept_on(Date.current)
+
+      expect(results).to contain_exactly(mine)
+      expect(results).not_to include(mine_old)
+    end
+  end
+
   describe "predicates" do
     it "discarded? reflects state" do
       expect(record.discarded?).to be false

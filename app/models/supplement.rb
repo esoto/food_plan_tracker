@@ -19,7 +19,7 @@ class Supplement < ApplicationRecord
 
     transaction do
       (requested - existing.keys).each do |slot|
-        next_position = (SupplementSchedule.where(time_slot: slot).maximum(:position) || -1) + 1
+        next_position = (SupplementSchedule.for_user(user).where(time_slot: slot).maximum(:position) || -1) + 1
         supplement_schedules.create!(time_slot: slot, position: next_position)
       end
       (existing.keys - requested.to_a).each do |slot|

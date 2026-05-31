@@ -111,5 +111,32 @@ RSpec.describe PushNotifier do
         described_class.broadcast(title: "x", body: "y")
       }.to raise_error(PushNotifier::NotConfiguredError)
     end
+
+    it "only notifies the recipient's subscriptions, not other users'" do
+      user_a = create(:user)
+      user_b = create(:user)
+      create(:push_subscription, user: user_a, endpoint: "https://push.example/A")
+      create(:push_subscription, user: user_b, endpoint: "https://push.example/B")
+
+      ENV["VAPID_PUBLIC_KEY"]  = "PUB"
+      ENV["VAPID_PRIVATE_KEY"] = "PRV"
+
+      expect(WebPush).to receive(:payload_send)
+        .with(hash_including(endpoint: "https://push.example/A")).once.and_return(true)
+      expect(WebPush).not_to receive(:payload_send)
+        .with(hash_including(endpoint: "https://push.example/B"))
+
+      described_class.broadcast(title: "Hi", body: "Msg", user: user_a)
+    end
+
+    it "notifies nobody and logs a warning when no user is resolved" do
+      Current.reset
+      expect(WebPush).not_to receive(:payload_send)
+      expect(Rails.logger).to receive(:warn).with(/no user resolved/)
+
+      expect {
+        expect(described_class.broadcast(title: "x", body: "y")).to eq(sent: 0, pruned: 0)
+      }.not_to change(NotificationDelivery, :count)
+    end
   end
 end

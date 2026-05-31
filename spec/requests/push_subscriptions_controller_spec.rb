@@ -78,6 +78,37 @@ RSpec.describe PushSubscriptionsController, type: :request do
     end
   end
 
+  describe "cross-tenant isolation" do
+    it "POST does not take over another user's subscription by endpoint" do
+      other = create(:user)
+      shared = "https://push.example/shared"
+      PushSubscription.create!(endpoint: shared, p256dh_key: "orig", auth_key: "orig", user: other)
+
+      # The signed-in user posts the same endpoint. With scoping, the controller
+      # does not find the other user's record; it initialises a new one and hits
+      # the DB unique constraint rather than overwriting the existing record.
+      post "/push_subscriptions",
+           params: { endpoint: shared, keys: { p256dh: "new", auth: "new" } }.to_json,
+           headers: { "Content-Type" => "application/json" }
+
+      expect(response).to have_http_status(:conflict)
+      # Regardless of the response status, the other user's keys must be intact.
+      expect(PushSubscription.find_by(endpoint: shared, user: other).p256dh_key).to eq("orig")
+    end
+
+    it "DELETE does not destroy another user's subscription" do
+      other = create(:user)
+      sub = PushSubscription.create!(endpoint: "https://push.example/victim",
+                                     p256dh_key: "x", auth_key: "y", user: other)
+
+      delete "/push_subscriptions",
+             params: { endpoint: sub.endpoint }.to_json,
+             headers: { "Content-Type" => "application/json" }
+
+      expect(PushSubscription.exists?(sub.id)).to be true
+    end
+  end
+
   describe "POST /push_subscriptions/test" do
     it "returns 503 when VAPID keys are missing" do
       allow(PushNotifier).to receive(:configured?).and_return(false)
