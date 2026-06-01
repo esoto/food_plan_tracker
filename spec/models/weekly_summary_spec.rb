@@ -126,17 +126,17 @@ RSpec.describe WeeklySummary, type: :model do
 
   describe "#weight_delta_kg" do
     it "excludes weight goals and entries belonging to other users" do
+      weight_goal.destroy! # remove user's own goal to ensure any result is a leak
+
       user_b = create(:user)
       goal_b = Goal.create!(metric: :weight_kg, user: user_b, display_name: "Weight B", unit: "kg", direction: :down, starting_value: 100.0, target_value: 90.0)
       goal_b.biomarker_entries.create!(recorded_on: Date.current - 6, value: 100.0)
       goal_b.biomarker_entries.create!(recorded_on: Date.current,     value: 95.0)
 
-      weight_goal.biomarker_entries.create!(recorded_on: Date.current - 6, value: 86.0)
-      weight_goal.biomarker_entries.create!(recorded_on: Date.current,     value: 85.4)
-
       summary = WeeklySummary.rolling_7_days(user: user)
-      # The result must be -0.6 based on user's goals, ignoring user_b's 100.0 -> 95.0 (-5.0)
-      expect(summary.weight_delta_kg).to eq(-0.6)
+      # User has no goal, so result must be nil.
+      # If unscoped, it would pick up goal_b and return -5.0.
+      expect(summary.weight_delta_kg).to be_nil
     end
 
     it "returns end-weight minus start-weight" do
