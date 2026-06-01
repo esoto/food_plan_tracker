@@ -351,7 +351,7 @@ GEM
       websocket (~> 1.0)
     shoulda-matchers (7.0.1)
       activesupport (>= 7.1)
-    solid_cable (3.0.12)
+    solid_cable (4.0.0)
       actioncable (>= 7.2)
       activejob (>= 7.2)
       activerecord (>= 7.2)
