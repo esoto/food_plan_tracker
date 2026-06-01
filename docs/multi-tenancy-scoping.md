@@ -87,11 +87,13 @@ end
 | `Meal` | Model | Scoped | `Tenantable` | |
 | `MealItem` | Model | Scoped | `Tenantable` | |
 | `LoggedFood` | Model | Scoped | `Tenantable` | |
-| `MealCompletion` | Model | Scoped | `Tenantable` | |
-| `SupplementCompletion` | Model | Scoped | `Tenantable` | |
-| `ChecklistCompletion` | Model | Scoped | `Tenantable` | |
+| `MealCompletion` | Model | Scoped | via parent (`daily_log`) | No `user_id`; reached through a `for_user`-scoped `DailyLog` |
+| `SupplementCompletion` | Model | Scoped | via parent (`daily_log`) | No `user_id`; reached through a `for_user`-scoped `DailyLog` |
+| `ChecklistCompletion` | Model | Scoped | via parent (`daily_log`) | No `user_id`; reached through a `for_user`-scoped `DailyLog` |
+| `BiomarkerEntry` | Model | Scoped | `Tenantable` | |
+| `SupplementSchedule` | Model | Scoped | `Tenantable` | |
 | `PushSubscription` | Model | Scoped | `Tenantable` | |
-| `NotificationDelivery` | Model | Scoped | `Tenantable` | |
+| `NotificationDelivery` | Model | Scoped | Manual `for_user` scope | Not `Tenantable`; declares its own `for_user` scope |
 | `WeeklySummary` | PORO | Scoped | `@user` threading | Verified PER-569 |
 | `Food` | Model | **Global** | N/A | Shared library |
 | `ApiToken` | Model | Scoped | `Tenantable` | `authenticate` remains global digest lookup |
