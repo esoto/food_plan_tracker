@@ -91,7 +91,8 @@ end
 | `SupplementCompletion` | Model | Scoped | `Tenantable` | |
 | `ChecklistCompletion` | Model | Scoped | `Tenantable` | |
 | `PushSubscription` | Model | Scoped | `Tenantable` | |
-| `Notification` | Model | Scoped | `Tenantable` | |
-| `Food` | Model | **Global** | N/A | Shared library |
-| `ApiToken` | Model | **Global** | Manual | Auth lookup |
+| `NotificationDelivery` | Model | Scoped | `Tenantable` | |
 | `WeeklySummary` | PORO | Scoped | `@user` threading | Verified PER-569 |
+| `Food` | Model | **Global** | N/A | Shared library |
+| `ApiToken` | Model | Scoped | `Tenantable` | `authenticate` remains global digest lookup |
+| `User`, `Session`, `Current`, `ApplicationRecord` | N/A | N/A | N/A | no tenant queries |

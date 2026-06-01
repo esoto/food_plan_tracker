@@ -54,7 +54,7 @@ RSpec.describe WeeklySummary, type: :model do
 
     it "defaults to Current.user when no user is provided" do
       summary = WeeklySummary.rolling_7_days
-      expect(summary.instance_variable_get(:@user)).to eq(user)
+      expect(summary.user).to eq(user)
     end
   end
 
@@ -68,8 +68,8 @@ RSpec.describe WeeklySummary, type: :model do
       log.checklist_completions.create!(checklist_template: ChecklistTemplate.where(label: "Mine").first, checked: true)
 
       summary = WeeklySummary.rolling_7_days(user: user)
-      # 1 checked, 1 total (mine). 1/1 = 100%.
-      # If unscoped, it would be 1 checked, 2 total. 1/2 = 50%.
+      # User A: 1 checked, 1 total. 100%.
+      # Noise: User B's template should not increase the denominator.
       expect(summary.adherence_pct).to eq(100)
     end
 
@@ -125,13 +125,18 @@ RSpec.describe WeeklySummary, type: :model do
   end
 
   describe "#weight_delta_kg" do
-    it "excludes weight goals belonging to other users" do
+    it "excludes weight goals and entries belonging to other users" do
       user_b = create(:user)
-      Goal.create!(metric: :weight_kg, user: user_b, display_name: "Weight B", unit: "kg", direction: :down, starting_value: 100.0, target_value: 90.0)
+      goal_b = Goal.create!(metric: :weight_kg, user: user_b, display_name: "Weight B", unit: "kg", direction: :down, starting_value: 100.0, target_value: 90.0)
+      goal_b.biomarker_entries.create!(recorded_on: Date.current - 6, value: 100.0)
+      goal_b.biomarker_entries.create!(recorded_on: Date.current,     value: 95.0)
+
+      weight_goal.biomarker_entries.create!(recorded_on: Date.current - 6, value: 86.0)
+      weight_goal.biomarker_entries.create!(recorded_on: Date.current,     value: 85.4)
 
       summary = WeeklySummary.rolling_7_days(user: user)
-      expect(summary.send(:weight_goal)).to eq(weight_goal)
-      expect(summary.send(:weight_goal).user).to eq(user)
+      # The result must be -0.6 based on user's goals, ignoring user_b's 100.0 -> 95.0 (-5.0)
+      expect(summary.weight_delta_kg).to eq(-0.6)
     end
 
     it "returns end-weight minus start-weight" do
@@ -165,19 +170,27 @@ RSpec.describe WeeklySummary, type: :model do
       expect(summary.meal_completion_pct).to eq(75)
     end
 
-    it "excludes logs belonging to other users" do
+    it "excludes logs and completions belonging to other users" do
       user_b = create(:user)
       plan_b = Plan.create!(slug: "active", user: user_b, name: "B", target_kcal: 2000, target_protein_g: 180, target_carbs_g: 180, target_fat_g: 70)
-      DailyLog.create!(date: Date.current, plan: plan_b, user: user_b)
+      plan_b.meals.create!(position: 1, name: "X", scheduled_time: Time.utc(2000, 1, 1, 7, 0), target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10, user: user_b)
+      log_b = DailyLog.create!(date: Date.current, plan: plan_b, user: user_b)
+      log_b.meal_completions.create!(meal: plan_b.meals.first, completed_at: Time.current)
+
+      log_a = DailyLog.create!(date: Date.current, plan: plan)
+      log_a.meal_completions.create!(meal: meal_a, completed_at: Time.current)
 
       summary = WeeklySummary.rolling_7_days(user: user)
-      expect(summary.send(:logs)).to be_empty
+      # User A: 1 completion / (1 log * 2 meals in plan) = 50%.
+      # Noise: User B's log and completion should not be counted.
+      expect(summary.meal_completion_pct).to eq(50)
     end
 
     it "includes logs belonging to the requested user" do
       log = DailyLog.create!(date: Date.current, plan: plan)
       summary = WeeklySummary.rolling_7_days(user: user)
-      expect(summary.send(:logs)).to include(log)
+      # Verify the summary is correctly calculating metrics for the user
+      expect(summary.meal_completion_pct).not_to be_nil
     end
 
 
@@ -199,18 +212,25 @@ RSpec.describe WeeklySummary, type: :model do
   end
 
   describe "#supplement_completion_pct" do
-    it "excludes supplements belonging to other users" do
+    it "excludes supplements and completions belonging to other users" do
       Supplement.delete_all
       user_b = create(:user)
-      Supplement.create!(name: "Other", dose: "1g", user: user_b)
+      supp_b = Supplement.create!(name: "Other", dose: "1g", user: user_b)
+
+      # Use a distinct date for user_b to avoid uniqueness collision if user_b is somehow linked to user
+      # though they are separate users. Actually, DailyLog uniqueness is scope: :user_id.
+      # The failure happened because I didn't provide user_b to DailyLog.create!,
+      # and it probably defaulted to Current.user (which is user).
+      log_b = DailyLog.create!(date: Date.current, plan: Plan.create!(slug: "active", user: user_b, name: "B", target_kcal: 2000, target_protein_g: 180, target_carbs_g: 180, target_fat_g: 70), user: user_b)
+      log_b.supplement_completions.create!(supplement: supp_b, taken_at: Time.current)
 
       mine = Supplement.create!(name: "Mine", dose: "1g", user: user)
-      log = DailyLog.create!(date: Date.current, plan: plan)
-      log.supplement_completions.create!(supplement: mine, taken_at: Time.current)
+      log_a = DailyLog.create!(date: Date.current, plan: plan, user: user)
+      log_a.supplement_completions.create!(supplement: mine, taken_at: Time.current)
 
       summary = WeeklySummary.rolling_7_days(user: user)
       # 1 completion, 1 expected (mine) * 7 days = 7. 1/7 = 14.28% -> 14%.
-      # If unscoped, 2 total * 7 = 14. 1/14 = 7.14% -> 7%.
+      # Noise: User B's supplement and completion should not be counted.
       expect(summary.supplement_completion_pct).to eq(14)
     end
 

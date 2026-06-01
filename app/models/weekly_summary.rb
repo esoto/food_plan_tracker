@@ -1,5 +1,5 @@
 class WeeklySummary
-  attr_reader :start_date, :end_date
+  attr_reader :start_date, :end_date, :user
 
   def self.rolling_7_days(today: Date.current, user: Current.user)
     new((today - 6)..today, user: user)
@@ -18,8 +18,13 @@ class WeeklySummary
     # Per-day denominator from templates that were active on that date — so
     # archiving a habit today doesn't retroactively shift past percentages.
     checked_per_log = ChecklistCompletion.where(daily_log: logs, checked: true).group(:daily_log_id).count
+
+    totals_per_date = logs.each_with_object(Hash.new(0)) do |l, h|
+      h[l.date] = ChecklistTemplate.for_user(@user).kept_on(l.date).count
+    end
+
     pcts = logs.map do |l|
-      total = ChecklistTemplate.for_user(@user).kept_on(l.date).count
+      total = totals_per_date[l.date] || 0
       next 0 if total.zero?
 
       checked_per_log.fetch(l.id, 0) * 100.0 / total
