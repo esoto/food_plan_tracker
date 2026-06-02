@@ -9,6 +9,6 @@ class ExchangesController < ApplicationController
 
     # When the user reached this page from /days/:date, daily_log_id rides
     # on the URL so the "+ Log" forms target that day instead of today.
-    @target_log = DailyLog.find_by(id: params[:daily_log_id]) if params[:daily_log_id].present?
+    @target_log = Current.user.daily_logs.find_by(id: params[:daily_log_id]) if params[:daily_log_id].present?
   end
 end
