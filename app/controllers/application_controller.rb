@@ -18,7 +18,7 @@ class ApplicationController < ActionController::Base
   # otherwise default to today.
   def daily_log_from_params
     if params[:daily_log_id].present?
-      DailyLog.find(params[:daily_log_id])
+      Current.user.daily_logs.find(params[:daily_log_id])
     else
       today_log
     end
@@ -35,7 +35,7 @@ class ApplicationController < ActionController::Base
   def fibrotina_due?
     return false unless authenticated?
 
-    fibrotina = Supplement.kept.find_by("name ILIKE ?", "Fibrotina%")
+    fibrotina = Supplement.for_user(Current.user).kept.find_by("name ILIKE ?", "Fibrotina%")
     return false unless fibrotina
 
     # If already taken today, never show the banner (covers both real window

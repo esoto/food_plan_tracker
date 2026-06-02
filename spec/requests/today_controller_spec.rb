@@ -40,5 +40,21 @@ RSpec.describe TodayController, type: :request do
 
       expect(response.body).not_to include("+ Log a biomarker")
     end
+
+    describe "fibrotina_due? cross-tenant (PER-556 helper)" do
+      it "does not consider another user's Fibrotina supplement" do
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+        other = create(:user)
+        create(:supplement, name: "Fibrotina (fenofibrate)", user: other)
+
+        travel_to Time.zone.local(2026, 4, 25, 19, 30) do  # inside the fibrotina window
+          get root_path
+        end
+
+        expect(response.body).not_to include("Fibrotina time")
+      end
+    end
   end
 end

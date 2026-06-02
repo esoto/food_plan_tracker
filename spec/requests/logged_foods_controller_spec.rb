@@ -29,6 +29,21 @@ RSpec.describe LoggedFoodsController, type: :request do
       post logged_foods_path, params: { food_id: food.id, quantity_grams: 100 }
       expect(response).to redirect_to(root_path)
     end
+
+    describe "daily_log_from_params cross-tenant (PER-556 helper)" do
+      it "returns 404 when daily_log_id belongs to another user" do
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        other  = create(:user)
+        plan_b = create(:plan, user: other)
+        log_b  = create(:daily_log, user: other, plan: plan_b)
+        food   = create(:food)
+
+        post logged_foods_path, params: { daily_log_id: log_b.id, food_id: food.id, quantity_grams: 100 }
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
   end
 
   describe "PATCH /logged_foods/:id" do
