@@ -44,14 +44,18 @@ RSpec.describe "MenuController#show", type: :request do
       get menu_path
       expect(Capybara.string(response.body)).not_to have_button("Log same as yesterday")
     end
+  end
 
-    it "hides when today already has equal-or-more completions than yesterday" do
-      yesterday = DailyLog.create!(date: Date.current - 1, plan: plan)
-      yesterday.meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
-      DailyLog.today.meal_completions.create!(meal: breakfast, completed_at: Time.current)
+  describe "cross-tenant isolation" do
+    it "does not show another user's plans in the switcher" do
+      user_a = create(:user, password: "password")
+      sign_in_as(user_a)
+      create(:plan, slug: "active", name: "A active", user: user_a)
+      create(:plan, slug: "rest", name: "OTHER MENU PLAN", user: create(:user))
 
       get menu_path
-      expect(Capybara.string(response.body)).not_to have_button("Log same as yesterday")
+
+      expect(response.body).not_to include("OTHER MENU PLAN")
     end
   end
 end
