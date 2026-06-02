@@ -23,4 +23,32 @@ RSpec.describe DailyLogsController, type: :request do
       expect(daily_log.reload.notes).to eq("")
     end
   end
+
+  describe "cross-tenant isolation" do
+    it "PATCH on another user's daily_log returns 404" do
+      user_a = create(:user, password: "password")
+      sign_in_as(user_a)
+      other  = create(:user)
+      plan_b = create(:plan, user: other)
+      log_b  = create(:daily_log, user: other, plan: plan_b, notes: "private")
+
+      patch daily_log_path(log_b), params: { daily_log: { notes: "hijacked" } }
+
+      expect(response).to have_http_status(:not_found)
+      expect(log_b.reload.notes).to eq("private")
+    end
+
+    it "rejects a plan_id belonging to another user" do
+      user_a = create(:user, password: "password")
+      sign_in_as(user_a)
+      plan_a = create(:plan, slug: "active", user: user_a)
+      log_a  = create(:daily_log, user: user_a, plan: plan_a)
+      foreign_plan = create(:plan, user: create(:user))
+
+      patch daily_log_path(log_a), params: { daily_log: { plan_id: foreign_plan.id } }
+
+      expect(response).to have_http_status(:not_found)
+      expect(log_a.reload.plan_id).to eq(plan_a.id)
+    end
+  end
 end
