@@ -56,5 +56,23 @@ RSpec.describe TodayController, type: :request do
         expect(response.body).not_to include("Fibrotina time")
       end
     end
+
+    describe "cross-tenant isolation" do
+      it "excludes another user's plans, goals, and weight entries" do
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", name: "A active", user: user_a)
+
+        other = create(:user)
+        create(:plan, slug: "rest", name: "OTHER REST PLAN", user: other)
+        create(:goal, :weight, :with_measurement, display_name: "OTHER WEIGHT GOAL", user: other)
+
+        get root_path
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).not_to include("OTHER REST PLAN")
+        expect(response.body).not_to include("OTHER WEIGHT GOAL")
+      end
+    end
   end
 end
