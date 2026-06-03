@@ -12,7 +12,7 @@ module Api
       end
 
       def destroy
-        entry = LoggedFood.find(params[:id])
+        entry = Current.user.logged_foods.find(params[:id])
         log = entry.daily_log
         entry.destroy!
         render json: { ok: true, day: serialize_day(log.reload) }
