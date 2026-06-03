@@ -1,6 +1,6 @@
 class SettingsController < ApplicationController
   def show
-    @plans = Plan.ordered.includes(:meals)
-    @goals = Goal.includes(:biomarker_entries)
+    @plans = Current.user.plans.ordered.includes(:meals)
+    @goals = Goal.for_user(Current.user).includes(:biomarker_entries)
   end
 end

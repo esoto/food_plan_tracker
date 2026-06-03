@@ -39,4 +39,19 @@ RSpec.describe ExchangesController, type: :request do
       expect(response.body).to include(@chicken.name)
     end
   end
+
+  describe "cross-tenant isolation on daily_log_id" do
+    it "ignores a daily_log_id belonging to another user" do
+      user_a = create(:user, password: "password")
+      sign_in_as(user_a)
+      other  = create(:user)
+      plan_b = create(:plan, user: other)
+      log_b  = create(:daily_log, user: other, plan: plan_b)
+
+      get exchanges_path, params: { daily_log_id: log_b.id }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("daily_log_id=#{log_b.id}")
+    end
+  end
 end

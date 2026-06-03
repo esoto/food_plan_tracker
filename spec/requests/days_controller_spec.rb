@@ -34,4 +34,18 @@ RSpec.describe DaysController, type: :request do
       expect(response.body).to match(/data-action="blur-(>|&gt;)auto-submit#submit"/)
     end
   end
+
+  describe "cross-tenant isolation" do
+    it "does not show another user's plans" do
+      user_a = create(:user, password: "password")
+      sign_in_as(user_a)
+      create(:plan, slug: "active", name: "A active", user: user_a)
+      create(:plan, slug: "rest", name: "OTHER DAYS PLAN", user: create(:user))
+
+      get day_path(Date.current - 2)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("OTHER DAYS PLAN")
+    end
+  end
 end

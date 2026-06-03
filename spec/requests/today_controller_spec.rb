@@ -40,5 +40,52 @@ RSpec.describe TodayController, type: :request do
 
       expect(response.body).not_to include("+ Log a biomarker")
     end
+
+    describe "fibrotina_due? cross-tenant (PER-556 helper)" do
+      it "does not consider another user's Fibrotina supplement" do
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+        other = create(:user)
+        create(:supplement, name: "Fibrotina (fenofibrate)", user: other)
+
+        travel_to Time.zone.local(2026, 4, 25, 19, 30) do  # inside the fibrotina window
+          get root_path
+        end
+
+        expect(response.body).not_to include("Fibrotina time")
+      end
+
+      it "does consider the current user's Fibrotina supplement" do
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+        create(:supplement, name: "Fibrotina (fenofibrate)", user: user_a)
+
+        travel_to Time.zone.local(2026, 4, 25, 19, 30) do  # inside the fibrotina window
+          get root_path
+        end
+
+        expect(response.body).to include("Fibrotina time")
+      end
+    end
+
+    describe "cross-tenant isolation" do
+      it "excludes another user's plans, goals, and weight entries" do
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", name: "A active", user: user_a)
+
+        other = create(:user)
+        create(:plan, slug: "rest", name: "OTHER REST PLAN", user: other)
+        create(:goal, :weight, :with_measurement, display_name: "OTHER WEIGHT GOAL", user: other)
+
+        get root_path
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).not_to include("OTHER REST PLAN")
+        expect(response.body).not_to include("OTHER WEIGHT GOAL")
+      end
+    end
   end
 end

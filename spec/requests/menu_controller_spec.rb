@@ -54,4 +54,17 @@ RSpec.describe "MenuController#show", type: :request do
       expect(Capybara.string(response.body)).not_to have_button("Log same as yesterday")
     end
   end
+
+  describe "cross-tenant isolation" do
+    it "does not show another user's plans in the switcher" do
+      user_a = create(:user, password: "password")
+      sign_in_as(user_a)
+      create(:plan, slug: "active", name: "A active", user: user_a)
+      create(:plan, slug: "rest", name: "OTHER MENU PLAN", user: create(:user))
+
+      get menu_path
+
+      expect(response.body).not_to include("OTHER MENU PLAN")
+    end
+  end
 end
