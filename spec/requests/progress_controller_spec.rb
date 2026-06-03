@@ -88,15 +88,19 @@ RSpec.describe "ProgressController#show", type: :request do
       create(:plan, slug: "active", user: user_a)
 
       other  = create(:user)
-      goal_b = create(:goal, display_name: "OTHER GOAL", user: other)
+      # This is the "leak" target: a weight goal for another user
+      goal_b = create(:goal,
+                     metric: :weight_kg,
+                     display_name: "LEAKY WEIGHT",
+                     user: other)
       goal_b.biomarker_entries.create!(recorded_on: Date.current - 6, value: 90.0, user: other)
       goal_b.biomarker_entries.create!(recorded_on: Date.current,     value: 88.0, user: other)
 
       get progress_path
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).not_to include("OTHER GOAL")
+      expect(response.body).not_to include("LEAKY WEIGHT")
+      expect(response.body).not_to include("↓ 2.0 kg") # Value from goal_b
     end
   end
-
 end

@@ -44,6 +44,15 @@ RSpec.describe "MenuController#show", type: :request do
       get menu_path
       expect(Capybara.string(response.body)).not_to have_button("Log same as yesterday")
     end
+
+    it "hides when today already has equal-or-more completions than yesterday" do
+      yesterday = DailyLog.create!(date: Date.current - 1, plan: plan)
+      yesterday.meal_completions.create!(meal: breakfast, completed_at: 1.day.ago)
+      DailyLog.today.meal_completions.create!(meal: breakfast, completed_at: Time.current)
+
+      get menu_path
+      expect(Capybara.string(response.body)).not_to have_button("Log same as yesterday")
+    end
   end
 
   describe "cross-tenant isolation" do

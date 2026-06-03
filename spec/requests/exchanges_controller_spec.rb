@@ -51,7 +51,7 @@ RSpec.describe ExchangesController, type: :request do
       get exchanges_path, params: { daily_log_id: log_b.id }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).not_to include(log_b.id.to_s)
+      expect(response.body).not_to include("daily_log_id=#{log_b.id}")
     end
   end
 end

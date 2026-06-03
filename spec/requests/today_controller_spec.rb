@@ -55,6 +55,19 @@ RSpec.describe TodayController, type: :request do
 
         expect(response.body).not_to include("Fibrotina time")
       end
+
+      it "does consider the current user's Fibrotina supplement" do
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+        create(:supplement, name: "Fibrotina (fenofibrate)", user: user_a)
+
+        travel_to Time.zone.local(2026, 4, 25, 19, 30) do  # inside the fibrotina window
+          get root_path
+        end
+
+        expect(response.body).to include("Fibrotina time")
+      end
     end
 
     describe "cross-tenant isolation" do

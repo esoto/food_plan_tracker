@@ -22,6 +22,17 @@ RSpec.describe DaysController, type: :request do
       expect(response.body).to include("Log a food on this day")
       expect(response.body).to include("/exchanges?daily_log_id=#{past.id}")
     end
+
+    it "renders the inline quantity edit form for each existing logged food" do
+      past = DailyLog.create!(date: past_date, plan: plan)
+      past.logged_foods.create!(food: food, quantity_grams: 75, logged_at: past_date.to_time)
+
+      get day_path(past_date)
+
+      expect(response.body).to include('name="logged_food[quantity_grams]"')
+      expect(response.body).to include('data-controller="auto-submit"')
+      expect(response.body).to match(/data-action="blur-(>|&gt;)auto-submit#submit"/)
+    end
   end
 
   describe "cross-tenant isolation" do
