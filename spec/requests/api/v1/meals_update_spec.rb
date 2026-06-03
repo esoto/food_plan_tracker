@@ -3,9 +3,9 @@ require "rails_helper"
 RSpec.describe "Api::V1::MealsController#update", type: :request do
   before { stub_api_token }
 
-  let(:plan) { create(:plan) }
+  let(:plan) { create(:plan, user: Current.user) }
   let(:meal) do
-    create(:meal, plan: plan, name: "Breakfast",
+    create(:meal, plan: plan, user: Current.user, name: "Breakfast",
            target_kcal: 500, target_protein_g: 40, target_carbs_g: 50, target_fat_g: 18,
            scheduled_time: Time.utc(2000, 1, 1, 7, 0))
   end
@@ -66,6 +66,19 @@ RSpec.describe "Api::V1::MealsController#update", type: :request do
 
     it "404s when the meal id doesn't exist" do
       patch "/api/v1/meals/999999", params: { meal: { target_kcal: 600 } }.to_json, headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "cross-tenant isolation" do
+    let(:user_a) { Current.user }
+    let(:user_b) { create(:user) }
+
+    it "returns 404 for another user's meal" do
+      b_meal = create(:meal, plan: create(:plan, user: user_b), user: user_b)
+      patch "/api/v1/meals/#{b_meal.id}",
+            params: { meal: { name: "x" } }.to_json,
+            headers: auth_headers
       expect(response).to have_http_status(:not_found)
     end
   end

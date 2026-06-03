@@ -5,7 +5,7 @@ module Api
 
       def index
         plan = if params[:plan].present?
-          Plan.find_by!(slug: params[:plan])
+          Plan.find_by_slug!(params[:plan], user: Current.user)
         else
           daily_log_for(params[:date]).plan
         end
@@ -15,7 +15,7 @@ module Api
       end
 
       def update
-        meal = Meal.find(params[:id])
+        meal = Current.user.meals.find(params[:id])
         meal.update!(meal_params)
         render json: { meal: serialize_meal(meal.reload) }
       rescue Meal::InvalidScheduledTime => e
