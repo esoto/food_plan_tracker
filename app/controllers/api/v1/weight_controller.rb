@@ -4,7 +4,7 @@ module Api
       include Api::Concerns::DaySerializer
 
       def create
-        goal = Goal.find_by!(metric: Goal.metrics[:weight_kg])
+        goal = Goal.find_by_metric!(Goal.metrics[:weight_kg], user: Current.user)
         date = params[:date].present? ? Date.parse(params[:date].to_s) : Date.current
         value = params.require(:value)
 
