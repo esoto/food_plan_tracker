@@ -105,4 +105,34 @@ RSpec.describe "Api::V1::MealItems", type: :request do
       expect(response.parsed_body).to eq({ "removed" => true, "id" => item.id })
     end
   end
+
+  describe "cross-tenant isolation" do
+    let(:user_b) { create(:user) }
+    let(:b_meal) { create(:meal, plan: create(:plan, user: user_b), user: user_b) }
+
+    it "GET items for another user's meal returns 404" do
+      get "/api/v1/meals/#{b_meal.id}/items", headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "POST item to another user's meal returns 404" do
+      food = create(:food)
+      post "/api/v1/meals/#{b_meal.id}/items",
+           params: { meal_item: { food_id: food.id, quantity_grams: 10 } }.to_json, headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "PATCH another user's meal_item returns 404" do
+      item = create(:meal_item, meal: b_meal)
+      patch "/api/v1/meal_items/#{item.id}", params: { meal_item: { quantity_grams: 5 } }.to_json, headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "DELETE another user's meal_item returns 404 and does not destroy it" do
+      item = create(:meal_item, meal: b_meal)
+      delete "/api/v1/meal_items/#{item.id}", headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+      expect(MealItem.exists?(item.id)).to be(true)
+    end
+  end
 end
