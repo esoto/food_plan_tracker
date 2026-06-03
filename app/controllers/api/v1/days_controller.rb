@@ -9,7 +9,7 @@ module Api
 
       def update_plan
         log = daily_log_for(params[:date])
-        plan = Plan.find_by!(slug: params.require(:slug))
+        plan = Plan.find_by_slug!(params.require(:slug), user: Current.user)
         log.update!(plan: plan)
         render json: serialize_day(log.reload)
       end
