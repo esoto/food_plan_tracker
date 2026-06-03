@@ -5,7 +5,7 @@ module Api
 
       def create
         log = daily_log_for(params[:date])
-        meal = Meal.find(params[:meal_id])
+        meal = Current.user.meals.find(params[:meal_id])
         log.meal_completions.find_or_create_by!(meal: meal) { |mc| mc.completed_at = Time.current }
         render json: { ok: true, day: serialize_day(log.reload) }, status: :created
       end
@@ -19,13 +19,13 @@ module Api
 
       def copy_yesterday
         target_date = params[:date].present? ? Date.parse(params[:date].to_s) : Date.current
-        yesterday = DailyLog.find_by(date: target_date - 1)
+        yesterday = Current.user.daily_logs.find_by(date: target_date - 1)
 
         if yesterday.nil?
           return render json: { error: "no_yesterday_log" }, status: :unprocessable_entity
         end
 
-        existing_today = DailyLog.find_by(date: target_date)
+        existing_today = Current.user.daily_logs.find_by(date: target_date)
         if existing_today && !existing_today.can_copy_from?(yesterday)
           return render json: { error: "plan_mismatch", today_plan: existing_today.plan.slug, yesterday_plan: yesterday.plan.slug }, status: :unprocessable_entity
         end

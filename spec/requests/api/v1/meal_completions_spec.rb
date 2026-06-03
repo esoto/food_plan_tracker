@@ -27,4 +27,15 @@ RSpec.describe "Api::V1::MealCompletionsController", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body["day"]["completed_meal_ids"]).not_to include(meal.id)
   end
+
+  describe "cross-tenant isolation" do
+    let(:user_b) { create(:user) }
+    let(:b_meal) { create(:meal, plan: create(:plan, user: user_b), user: user_b) }
+
+    it "completing another user's meal returns 404" do
+      post "/api/v1/meals/#{b_meal.id}/complete",
+           params: { date: Date.current.iso8601 }.to_json, headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end

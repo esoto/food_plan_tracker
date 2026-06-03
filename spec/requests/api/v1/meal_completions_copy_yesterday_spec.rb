@@ -106,4 +106,19 @@ RSpec.describe "POST /api/v1/meal_completions/copy_yesterday", type: :request do
     expect(response.parsed_body["copied"]).to eq(1)
     expect(DailyLog.find_by(date: target_date).meal_completions.count).to eq(1)
   end
+
+  describe "cross-tenant isolation" do
+    let(:user_b) { create(:user) }
+
+    it "does not copy another user's yesterday completions" do
+      b_plan = create(:plan, user: user_b)
+      create(:daily_log, user: user_b, plan: b_plan, date: Date.current - 1)
+      # Current.user (user_a) has NO yesterday log.
+      post "/api/v1/meal_completions/copy_yesterday",
+           params: { date: Date.current.iso8601 }.to_json, headers: auth_headers
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body["error"]).to eq("no_yesterday_log")
+    end
+  end
 end
