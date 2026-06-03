@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Api::V1::PlansController#update", type: :request do
   before { stub_api_token }
 
-  let(:plan) { create(:plan, target_kcal: 2000, target_protein_g: 180, target_carbs_g: 180, target_fat_g: 80) }
+  let(:plan) { create(:plan, user: Current.user, target_kcal: 2000, target_protein_g: 180, target_carbs_g: 180, target_fat_g: 80) }
 
   describe "PATCH /api/v1/plans/:id" do
     it "updates macro targets and returns the serialized plan" do
@@ -47,6 +47,18 @@ RSpec.describe "Api::V1::PlansController#update", type: :request do
     it "404s when the plan id doesn't exist" do
       patch "/api/v1/plans/999999", params: { plan: { target_kcal: 2100 } }.to_json, headers: auth_headers
       expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "cross-tenant isolation" do
+    let(:user_a) { Current.user }
+    let(:user_b) { create(:user) }
+
+    it "returns 404 for another user's plan" do
+      b = create(:plan, user: user_b)
+      patch "/api/v1/plans/#{b.id}", params: { plan: { target_kcal: 1 } }.to_json, headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+      expect(b.reload.target_kcal).not_to eq(1)
     end
   end
 end

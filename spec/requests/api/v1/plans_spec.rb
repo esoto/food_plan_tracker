@@ -15,4 +15,21 @@ RSpec.describe "GET /api/v1/plans", type: :request do
     expect(plans.map { |p| p["slug"] }).to eq(%w[exercise active rest])
     expect(plans.first).to include("target_kcal", "target_protein_g", "target_carbs_g", "target_fat_g")
   end
+
+  describe "cross-tenant isolation" do
+    let(:user_a) { Current.user }
+    let(:user_b) { create(:user) }
+
+    it "does not return another user's plans" do
+      _a = seed_plan(slug: "exercise", user: user_a)
+      user_b_plan = seed_plan(slug: "exercise", user: user_b)
+      get "/api/v1/plans", headers: auth_headers
+      plans = response.parsed_body["plans"]
+      # Scoped query returns at most one plan per canonical slug (user_a's three).
+      # If the controller is unscoped, it would also return user_b's "exercise" plan,
+      # producing a duplicate-slug result that this assertion rejects.
+      expect(plans.map { |p| p["slug"] }).to eq(%w[exercise active rest])
+      expect(plans.map { |p| p["id"] }).not_to include(user_b_plan.id)
+    end
+  end
 end

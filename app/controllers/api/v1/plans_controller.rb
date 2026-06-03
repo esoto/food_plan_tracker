@@ -4,11 +4,11 @@ module Api
       include Api::Concerns::DaySerializer
 
       def index
-        render json: { plans: Plan.ordered.map { |p| serialize_plan(p) } }
+        render json: { plans: Current.user.plans.ordered.map { |p| serialize_plan(p) } }
       end
 
       def update
-        plan = Plan.find(params[:id])
+        plan = Current.user.plans.find(params[:id])
         plan.update!(plan_params)
         render json: { plan: serialize_plan(plan) }
       end
