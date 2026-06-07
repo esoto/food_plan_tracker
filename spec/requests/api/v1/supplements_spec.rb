@@ -105,10 +105,11 @@ RSpec.describe "Api::V1::SupplementsController", type: :request do
       expect(names).not_to include("Theirs")
     end
 
-    it "PATCH another user's supplement returns 404" do
-      b = create(:supplement, user: user_b)
+    it "PATCH another user's supplement returns 404 and does not mutate it" do
+      b = create(:supplement, user: user_b, name: "Original")
       patch "/api/v1/supplements/#{b.id}", params: { supplement: { name: "x" } }.to_json, headers: auth_headers
       expect(response).to have_http_status(:not_found)
+      expect(b.reload.name).to eq("Original")
     end
 
     it "DELETE another user's supplement returns 404 and does not discard it" do

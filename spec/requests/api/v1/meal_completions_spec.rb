@@ -32,10 +32,11 @@ RSpec.describe "Api::V1::MealCompletionsController", type: :request do
     let(:user_b) { create(:user) }
     let(:b_meal) { create(:meal, plan: create(:plan, user: user_b), user: user_b) }
 
-    it "completing another user's meal returns 404" do
+    it "completing another user's meal returns 404 and does not create a completion" do
       post "/api/v1/meals/#{b_meal.id}/complete",
            params: { date: Date.current.iso8601 }.to_json, headers: auth_headers
       expect(response).to have_http_status(:not_found)
+      expect(MealCompletion.where(meal: b_meal).count).to eq(0)
     end
   end
 end

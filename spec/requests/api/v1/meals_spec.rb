@@ -71,13 +71,14 @@ RSpec.describe "GET /api/v1/meals", type: :request do
     it "resolves the authenticated user's plan when both users share a slug" do
       # Create user_b's plan FIRST so it has the lower id — if the controller
       # is unscoped, find_by! returns user_b's plan (load-bearing RED).
-      create(:plan, user: user_b, slug: "exercise", name: "B exercise")
+      b_plan = create(:plan, user: user_b, slug: "exercise", name: "B exercise")
       a_plan = create(:plan, user: user_a, slug: "exercise", name: "A exercise")
 
       get "/api/v1/meals?plan=exercise", headers: auth_headers
 
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body.dig("plan", "id")).to eq(a_plan.id)
+      expect(response.parsed_body.dig("plan", "id")).not_to eq(b_plan.id)
     end
   end
 end

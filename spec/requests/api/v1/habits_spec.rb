@@ -91,7 +91,7 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
       expect(labels).not_to include("Theirs")
     end
 
-    it "PATCH another user's habit returns 404" do
+    it "PATCH another user's habit returns 404 and does not mutate it" do
       b = create(:checklist_template, label: "Theirs", position: 0, user: user_b)
 
       patch "/api/v1/habits/#{b.id}",
@@ -99,6 +99,7 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
             headers: auth_headers
 
       expect(response).to have_http_status(:not_found)
+      expect(b.reload.label).to eq("Theirs")
     end
 
     it "DELETE another user's habit returns 404 and does not discard it" do

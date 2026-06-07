@@ -115,17 +115,19 @@ RSpec.describe "Api::V1::MealItems", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it "POST item to another user's meal returns 404" do
+    it "POST item to another user's meal returns 404 and does not create an item" do
       food = create(:food)
       post "/api/v1/meals/#{b_meal.id}/items",
            params: { meal_item: { food_id: food.id, quantity_grams: 10 } }.to_json, headers: auth_headers
       expect(response).to have_http_status(:not_found)
+      expect(MealItem.where(meal: b_meal).count).to eq(0)
     end
 
-    it "PATCH another user's meal_item returns 404" do
-      item = create(:meal_item, meal: b_meal)
+    it "PATCH another user's meal_item returns 404 and does not mutate it" do
+      item = create(:meal_item, meal: b_meal, quantity_grams: 100)
       patch "/api/v1/meal_items/#{item.id}", params: { meal_item: { quantity_grams: 5 } }.to_json, headers: auth_headers
       expect(response).to have_http_status(:not_found)
+      expect(item.reload.quantity_grams).to eq(100)
     end
 
     it "DELETE another user's meal_item returns 404 and does not destroy it" do

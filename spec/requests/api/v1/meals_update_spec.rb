@@ -74,12 +74,13 @@ RSpec.describe "Api::V1::MealsController#update", type: :request do
     let(:user_a) { Current.user }
     let(:user_b) { create(:user) }
 
-    it "returns 404 for another user's meal" do
-      b_meal = create(:meal, plan: create(:plan, user: user_b), user: user_b)
+    it "returns 404 for another user's meal and does not mutate it" do
+      b_meal = create(:meal, plan: create(:plan, user: user_b), user: user_b, name: "Original")
       patch "/api/v1/meals/#{b_meal.id}",
             params: { meal: { name: "x" } }.to_json,
             headers: auth_headers
       expect(response).to have_http_status(:not_found)
+      expect(b_meal.reload.name).to eq("Original")
     end
   end
 end
