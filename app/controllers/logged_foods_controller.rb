@@ -11,7 +11,7 @@ class LoggedFoodsController < ApplicationController
   # user clears the field and tabs away. Catch the validation failure and
   # surface a flash instead of crashing back to a 500.
   def update
-    entry = LoggedFood.find(params[:id])
+    entry = Current.user.logged_foods.find(params[:id])
     entry.update!(logged_food_params)
     redirect_to destination_for(entry.daily_log), notice: "Quantity updated"
   rescue ActiveRecord::RecordInvalid => e
@@ -19,7 +19,7 @@ class LoggedFoodsController < ApplicationController
   end
 
   def destroy
-    entry = LoggedFood.find(params[:id])
+    entry = Current.user.logged_foods.find(params[:id])
     log = entry.daily_log
     entry.destroy!
     redirect_to destination_for(log), notice: "Removed"

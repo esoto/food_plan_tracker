@@ -2,7 +2,7 @@ class SupplementCompletionsController < ApplicationController
   before_action :set_daily_log, only: :create
 
   def create
-    supplement = Supplement.kept.find(params[:supplement_id])
+    supplement = Current.user.supplements.kept.find(params[:supplement_id])
     completion = @daily_log.supplement_completions.find_or_create_by!(supplement: supplement) { |sc| sc.taken_at = Time.current }
     sync_related_habit(supplement, checked: true)
     if params[:source] == "reminder"
@@ -12,7 +12,7 @@ class SupplementCompletionsController < ApplicationController
   end
 
   def destroy
-    completion = SupplementCompletion.find(params[:id])
+    completion = SupplementCompletion.where(daily_log: Current.user.daily_logs).find(params[:id])
     supplement = completion.supplement
     daily_log  = completion.daily_log
     completion.destroy!
@@ -33,7 +33,7 @@ class SupplementCompletionsController < ApplicationController
   def sync_related_habit(supplement, checked:, daily_log: @daily_log)
     return unless supplement.name.match?(/Fibrotina/i)
 
-    template = ChecklistTemplate.kept.find_by("label ILIKE ?", "%Fibrotina%")
+    template = Current.user.checklist_templates.kept.find_by("label ILIKE ?", "%Fibrotina%")
     return unless template
 
     completion = daily_log.checklist_completions.find_or_initialize_by(checklist_template: template)

@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe LoggedFoodsController, type: :request do
   let!(:user) { create(:user) }
-  let!(:plan) { seed_plan(slug: "active") }
+  let!(:plan) { seed_plan(slug: "active", user: user) }
   let!(:food) { seed_food(name: "Whole eggs", category: "protein", serving_grams: 50, kcal: 78, protein_g: 6, carbs_g: 1, fat_g: 5) }
 
   before { sign_in_as(user) }
@@ -108,6 +108,49 @@ RSpec.describe LoggedFoodsController, type: :request do
       delete logged_food_path(entry)
 
       expect(LoggedFood.where(id: entry.id)).to be_empty
+      expect(response).to redirect_to(day_path(past.date))
+    end
+
+    it "returns 404 and preserves another user's logged_food (cross-tenant destroy)" do
+      user_b = create(:user)
+      plan_b = create(:plan, user: user_b)
+      log_b  = create(:daily_log, user: user_b, plan: plan_b, date: Date.current)
+      food_b = create(:food)
+      entry = create(:logged_food, daily_log: log_b, food: food_b, user: user_b,
+                                   quantity_grams: 50, logged_at: Time.current)
+
+      expect {
+        delete logged_food_path(entry)
+      }.not_to change(LoggedFood, :count)
+
+      expect(response).to have_http_status(:not_found)
+      expect(entry.reload).to be_persisted
+    end
+  end
+
+  describe "PATCH /logged_foods/:id cross-tenant" do
+    it "returns 404 and preserves another user's logged_food quantity" do
+      user_b = create(:user)
+      plan_b = create(:plan, user: user_b)
+      log_b  = create(:daily_log, user: user_b, plan: plan_b, date: Date.current)
+      food_b = create(:food)
+      entry = create(:logged_food, daily_log: log_b, food: food_b, user: user_b,
+                                   quantity_grams: 50, logged_at: Time.current)
+
+      patch logged_food_path(entry), params: { logged_food: { quantity_grams: 999 } }
+
+      expect(response).to have_http_status(:not_found)
+      expect(entry.reload.quantity_grams.to_i).to eq(50)
+    end
+
+    it "POSITIVE CONTROL: PATCH on the user's own past-day logged_food still works" do
+      past = DailyLog.create!(date: Date.current - 2, plan: plan)
+      entry = past.logged_foods.create!(food: food, user: user,
+                                        quantity_grams: 50, logged_at: 2.days.ago)
+
+      patch logged_food_path(entry), params: { logged_food: { quantity_grams: 175 } }
+
+      expect(entry.reload.quantity_grams.to_i).to eq(175)
       expect(response).to redirect_to(day_path(past.date))
     end
   end

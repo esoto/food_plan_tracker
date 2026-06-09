@@ -1,5 +1,101 @@
 require "rails_helper"
 
+RSpec.describe MealCompletionsController, type: :request do
+  describe "POST /meal_completions" do
+    let(:plan) { create(:plan, user: Current.user) }
+    let(:meal) do
+      plan.meals.create!(position: 1, name: "Breakfast",
+                         scheduled_time: Time.utc(2000, 1, 1, 7, 0),
+                         target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10)
+    end
+    let(:daily_log) { create(:daily_log, user: Current.user, plan: plan, date: Date.current) }
+
+    before { sign_in_as }
+
+    it "creates a completion for the user's own meal" do
+      expect {
+        post meal_completions_path, params: { meal_id: meal.id, daily_log_id: daily_log.id }
+      }.to change { daily_log.meal_completions.count }.from(0).to(1)
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "returns 404 when meal_id belongs to another user" do
+      user_b = create(:user)
+      plan_b = create(:plan, user: user_b)
+      meal_b = create(:meal, user: user_b, plan: plan_b)
+
+      expect {
+        post meal_completions_path, params: { meal_id: meal_b.id, daily_log_id: daily_log.id }
+      }.not_to change(MealCompletion, :count)
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "returns 404 when daily_log_id belongs to another user" do
+      user_b = create(:user)
+      plan_b = create(:plan, user: user_b)
+      _log_b = create(:daily_log, user: user_b, plan: plan_b, date: Date.current)
+
+      expect {
+        post meal_completions_path, params: { meal_id: meal.id, daily_log_id: _log_b.id }
+      }.not_to change(MealCompletion, :count)
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "DELETE /meal_completions/:id" do
+    let(:plan) { create(:plan, user: Current.user) }
+    let(:meal) do
+      plan.meals.create!(position: 1, name: "Breakfast",
+                         scheduled_time: Time.utc(2000, 1, 1, 7, 0),
+                         target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10)
+    end
+    let(:daily_log) { create(:daily_log, user: Current.user, plan: plan, date: Date.current) }
+
+    before { sign_in_as }
+
+    it "deletes the user's own completion and renders the meal card partial" do
+      completion = create(:meal_completion, daily_log: daily_log, meal: meal)
+
+      expect {
+        delete meal_completion_path(completion)
+      }.to change { daily_log.meal_completions.count }.from(1).to(0)
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "POSITIVE CONTROL: destroy on a past-day completion still works" do
+      past_plan = create(:plan, slug: "active-past", user: Current.user, name: "Past plan")
+      past_log = create(:daily_log, user: Current.user, plan: past_plan, date: 3.days.ago.to_date)
+      past_meal = create(:meal, user: Current.user, plan: past_plan)
+      completion = create(:meal_completion, daily_log: past_log, meal: past_meal)
+
+      expect {
+        delete meal_completion_path(completion)
+      }.to change { past_log.meal_completions.count }.from(1).to(0)
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "returns 404 and preserves another user's completion" do
+      user_b = create(:user)
+      plan_b = create(:plan, user: user_b)
+      log_b = create(:daily_log, user: user_b, plan: plan_b, date: 1.day.ago.to_date)
+      meal_b = create(:meal, user: user_b, plan: plan_b)
+      completion = create(:meal_completion, daily_log: log_b, meal: meal_b)
+
+      expect {
+        delete meal_completion_path(completion)
+      }.not_to change { MealCompletion.count }
+
+      expect(response).to have_http_status(:not_found)
+      expect(completion.reload).to be_persisted
+    end
+  end
+end
+
 RSpec.describe "MealCompletionsController#copy_yesterday", type: :request do
   let(:plan) { seed_plan(slug: "active") }
   let(:other_plan) { seed_plan(slug: "exercise", target_kcal: 2200) }
