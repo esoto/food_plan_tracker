@@ -4,7 +4,7 @@ RSpec.describe MealCompletionsController, type: :request do
   describe "POST /meal_completions" do
     let(:plan) { create(:plan, user: Current.user) }
     let(:meal) do
-      plan.meals.create!(position: 1, name: "Breakfast",
+      plan.meals.create!(position: 1, name: "Breakfast", user: Current.user,
                          scheduled_time: Time.utc(2000, 1, 1, 7, 0),
                          target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10)
     end
@@ -48,7 +48,7 @@ RSpec.describe MealCompletionsController, type: :request do
   describe "DELETE /meal_completions/:id" do
     let(:plan) { create(:plan, user: Current.user) }
     let(:meal) do
-      plan.meals.create!(position: 1, name: "Breakfast",
+      plan.meals.create!(position: 1, name: "Breakfast", user: Current.user,
                          scheduled_time: Time.utc(2000, 1, 1, 7, 0),
                          target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10)
     end

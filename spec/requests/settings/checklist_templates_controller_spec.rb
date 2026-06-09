@@ -203,5 +203,22 @@ RSpec.describe Settings::ChecklistTemplatesController, type: :request do
       # Sanity: user A's own template is also untouched.
       expect(b1.reload.position).to eq(0)
     end
+
+    it "move_down on another user's template returns 404 and does not change positions" do
+      ChecklistTemplate.delete_all
+      c1 = create(:checklist_template, label: "C1", position: 0, user: user_b)
+      c2 = create(:checklist_template, label: "C2", position: 1, user: user_b)
+      d1 = create(:checklist_template, label: "D1", position: 0, user: Current.user)
+
+      patch move_down_settings_habit_path(c1)
+
+      expect(response).to have_http_status(:not_found)
+      # The other user's siblings must be UNCHANGED — the leak would otherwise
+      # let user A swap positions on user B's templates via move_down.
+      expect(c1.reload.position).to eq(0)
+      expect(c2.reload.position).to eq(1)
+      # Sanity: user A's own template is also untouched.
+      expect(d1.reload.position).to eq(0)
+    end
   end
 end

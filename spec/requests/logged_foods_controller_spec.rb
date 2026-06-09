@@ -144,7 +144,7 @@ RSpec.describe LoggedFoodsController, type: :request do
     end
 
     it "POSITIVE CONTROL: PATCH on the user's own past-day logged_food still works" do
-      past = DailyLog.create!(date: Date.current - 2, plan: plan)
+      past = DailyLog.create!(date: Date.current - 2, plan: plan, user: user)
       entry = past.logged_foods.create!(food: food, user: user,
                                         quantity_grams: 50, logged_at: 2.days.ago)
 

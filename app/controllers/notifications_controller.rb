@@ -1,7 +1,7 @@
 class NotificationsController < ApplicationController
   # Per-tenant: each user only sees their own subscriptions + deliveries.
   def show
-    @subscriptions = Current.user.push_subscriptions.order(created_at: :desc)
+    @subscriptions = Current.user.push_subscriptions.order(created_at: :desc).to_a
     @recent_deliveries = Current.user.notification_deliveries.recent(20)
     @subscription_count = @subscriptions.size
     @plan = today_log&.plan
