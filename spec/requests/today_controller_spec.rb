@@ -85,8 +85,8 @@ RSpec.describe TodayController, type: :request do
         get root_path
 
         expect(response).to have_http_status(:ok)
-        # Own goal's target value should be visible
-        expect(response.body).to include("65")
+        # Own goal's target value should be visible (exact partial output)
+        expect(response.body).to include("Goal: 65.0 kg")
         # Foreign goal's target value should NOT be visible
         expect(response.body).not_to include("987.5")
         # Own goal id should be in the hidden field
