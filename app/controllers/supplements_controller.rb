@@ -1,13 +1,14 @@
 class SupplementsController < ApplicationController
   def show
     @daily_log = today_log
-    @grouped = SupplementSchedule
+    kept_supplements = Current.user.supplements.kept
+    @grouped = Current.user.supplement_schedules
       .joins(:supplement)
-      .merge(Supplement.kept)
+      .merge(kept_supplements)
       .includes(:supplement)
       .order(:time_slot, :position)
       .group_by(&:time_slot)
     @taken_ids = @daily_log.supplement_completions.pluck(:supplement_id)
-    @critical_warnings = Supplement.kept.where(critical: true)
+    @critical_warnings = kept_supplements.where(critical: true)
   end
 end

@@ -20,8 +20,8 @@
       Checking subscription status…
     </p>
     <p class="text-xs text-slate-400 mt-2">
-      <strong><%= PushSubscription.count %></strong>
-      <%= "subscription".pluralize(PushSubscription.count) %> registered server-side.
+      <strong><%= @subscription_count %></strong>
+      <%= "subscription".pluralize(@subscription_count) %> registered server-side.
     </p>
   <% else %>
     <p class="text-sm text-rose-700">

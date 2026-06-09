@@ -1,6 +1,6 @@
 class PlansController < ApplicationController
   def update
-    plan = Plan.find(params[:id])
+    plan = Current.user.plans.find(params[:id])
     if plan.update(plan_params)
       redirect_to settings_path, notice: "#{plan.name} targets updated.", status: :see_other
     else

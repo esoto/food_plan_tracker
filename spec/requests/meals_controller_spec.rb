@@ -1,10 +1,10 @@
 require "rails_helper"
 
 RSpec.describe MealsController, type: :request do
-  let(:plan) { create(:plan) }
+  let(:plan) { create(:plan, user: Current.user) }
   let(:meal) do
     plan.meals.create!(
-      position: 1, name: "Breakfast",
+      user: Current.user, position: 1, name: "Breakfast",
       scheduled_time: Time.utc(2000, 1, 1, 7, 0),
       target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10
     )
@@ -35,6 +35,25 @@ RSpec.describe MealsController, type: :request do
       expect(response).to have_http_status(:see_other)
       expect(flash[:alert]).to be_present
       expect(meal.reload.name).to eq("Breakfast")
+    end
+  end
+
+  describe "cross-tenant isolation" do
+    let(:user_b) { create(:user) }
+
+    it "PATCH another user's meal returns 404 and does not mutate it" do
+      b_plan = create(:plan, user: user_b)
+      b_meal = b_plan.meals.create!(
+        user: user_b, position: 1, name: "Original",
+        scheduled_time: Time.utc(2000, 1, 1, 7, 0),
+        target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10
+      )
+      patch meal_path(b_meal), params: { meal: { name: "Hacked" } }
+
+      expect(response).to have_http_status(:not_found)
+      # Load-bearing: even if a future change adds a rescue_from that turns
+      # RecordNotFound into a 200, the foreign record must not be mutated.
+      expect(b_meal.reload.name).to eq("Original")
     end
   end
 end
