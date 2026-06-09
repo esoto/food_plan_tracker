@@ -4,12 +4,12 @@ module Api
       include Api::Concerns::DaySerializer
 
       def index
-        meal = Meal.find(params[:meal_id])
+        meal = Current.user.meals.find(params[:meal_id])
         render json: { meal_items: meal.meal_items.includes(:food).map { |i| serialize_meal_item(i) } }
       end
 
       def create
-        meal = Meal.find(params[:meal_id])
+        meal = Current.user.meals.find(params[:meal_id])
         attrs = meal_item_params
         # Idempotent: if the meal already has a row for this food, update its
         # quantity instead of creating a duplicate (which would fail the
@@ -24,13 +24,13 @@ module Api
       end
 
       def update
-        item = MealItem.find(params[:id])
+        item = Current.user.meal_items.find(params[:id])
         item.update!(meal_item_params)
         render json: { meal_item: serialize_meal_item(item) }
       end
 
       def destroy
-        item = MealItem.find(params[:id])
+        item = Current.user.meal_items.find(params[:id])
         id = item.id
         item.destroy!
         render json: { removed: true, id: id }

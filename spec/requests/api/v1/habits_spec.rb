@@ -8,9 +8,9 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
 
   describe "GET /api/v1/habits" do
     it "lists kept habits in display order" do
-      create(:checklist_template, label: "B", position: 1)
-      create(:checklist_template, label: "A", position: 0)
-      create(:checklist_template, label: "Old", position: 2, discarded_at: 1.day.ago)
+      create(:checklist_template, label: "B", position: 1, user: Current.user)
+      create(:checklist_template, label: "A", position: 0, user: Current.user)
+      create(:checklist_template, label: "Old", position: 2, discarded_at: 1.day.ago, user: Current.user)
 
       get "/api/v1/habits", headers: auth_headers
 
@@ -20,8 +20,8 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
     end
 
     it "returns archived list when archived=true" do
-      create(:checklist_template, label: "Active", position: 0)
-      create(:checklist_template, label: "Old", position: 1, discarded_at: 1.day.ago)
+      create(:checklist_template, label: "Active", position: 0, user: Current.user)
+      create(:checklist_template, label: "Old", position: 1, discarded_at: 1.day.ago, user: Current.user)
 
       get "/api/v1/habits?archived=true", headers: auth_headers
 
@@ -43,7 +43,7 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
 
   describe "PATCH /api/v1/habits/:id" do
     it "updates fields including position" do
-      template = create(:checklist_template, label: "Old", position: 0)
+      template = create(:checklist_template, label: "Old", position: 0, user: Current.user)
       patch "/api/v1/habits/#{template.id}",
             params: { habit: { label: "New", position: 5 } }.to_json,
             headers: auth_headers
@@ -56,7 +56,7 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
 
   describe "DELETE /api/v1/habits/:id" do
     it "soft-deletes" do
-      template = create(:checklist_template, position: 0)
+      template = create(:checklist_template, position: 0, user: Current.user)
       delete "/api/v1/habits/#{template.id}", headers: auth_headers
       expect(template.reload.discarded_at).to be_present
     end
@@ -72,6 +72,53 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
 
       expect(restored.reload.discarded_at).to be_nil
       expect(restored.position).to eq(2)
+    end
+  end
+
+  describe "cross-tenant isolation" do
+    # NOTE: each `it` block creates user_b's records locally so they survive
+    # the outer `before { ChecklistTemplate.delete_all }` hook.
+    let(:user_b) { create(:user) }
+
+    it "index does not return another user's habits" do
+      create(:checklist_template, label: "Mine", position: 0, user: Current.user)
+      create(:checklist_template, label: "Theirs", position: 1, user: user_b)
+
+      get "/api/v1/habits", headers: auth_headers
+
+      labels = response.parsed_body["habits"].map { |h| h["label"] }
+      expect(labels).to include("Mine")
+      expect(labels).not_to include("Theirs")
+    end
+
+    it "PATCH another user's habit returns 404 and does not mutate it" do
+      b = create(:checklist_template, label: "Theirs", position: 0, user: user_b)
+
+      patch "/api/v1/habits/#{b.id}",
+            params: { habit: { label: "x" } }.to_json,
+            headers: auth_headers
+
+      expect(response).to have_http_status(:not_found)
+      expect(b.reload.label).to eq("Theirs")
+    end
+
+    it "DELETE another user's habit returns 404 and does not discard it" do
+      b = create(:checklist_template, label: "Theirs", position: 0, user: user_b)
+
+      delete "/api/v1/habits/#{b.id}", headers: auth_headers
+
+      expect(response).to have_http_status(:not_found)
+      expect(b.reload.discarded_at).to be_nil
+    end
+
+    it "restore on another user's habit returns 404 and does not restore it" do
+      b = create(:checklist_template, label: "Theirs", position: 0,
+                 discarded_at: 1.day.ago, user: user_b)
+
+      patch "/api/v1/habits/#{b.id}/restore", headers: auth_headers
+
+      expect(response).to have_http_status(:not_found)
+      expect(b.reload.discarded_at).not_to be_nil
     end
   end
 end

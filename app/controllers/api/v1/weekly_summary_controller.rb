@@ -2,7 +2,7 @@ module Api
   module V1
     class WeeklySummaryController < Api::BaseController
       def show
-        summary = WeeklySummary.rolling_7_days
+        summary = WeeklySummary.rolling_7_days(user: Current.user)
 
         render json: {
           window_days: 7,

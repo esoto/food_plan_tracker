@@ -25,4 +25,17 @@ RSpec.describe "Api::V1::LoggedFoodsController", type: :request do
     expect(response).to have_http_status(:ok)
     expect { entry.reload }.to raise_error(ActiveRecord::RecordNotFound)
   end
+
+  describe "cross-tenant isolation" do
+    let(:user_b) { create(:user) }
+
+    it "DELETE another user's logged_food returns 404 and does not destroy it" do
+      b_plan = create(:plan, user: user_b)
+      b_log  = create(:daily_log, user: user_b, plan: b_plan)
+      b_food = create(:logged_food, daily_log: b_log, user: user_b)
+      delete "/api/v1/logged_foods/#{b_food.id}", headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+      expect(LoggedFood.exists?(b_food.id)).to be(true)
+    end
+  end
 end

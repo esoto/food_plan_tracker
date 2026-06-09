@@ -39,4 +39,23 @@ RSpec.describe "Api::V1::DaysController", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "cross-tenant isolation on update_plan" do
+    let(:user_a) { Current.user }
+    let(:user_b) { create(:user) }
+
+    it "assigns the authenticated user's plan when both users share a slug" do
+      user_b_plan = create(:plan, user: user_b, slug: "shared", name: "B shared")
+      user_a_plan = create(:plan, user: user_a, slug: "shared", name: "A shared")
+      date = (Date.current - 1).iso8601
+
+      patch "/api/v1/days/#{date}/plan",
+            params: { slug: "shared" }.to_json,
+            headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.dig("plan", "id")).to eq(user_a_plan.id)
+      expect(DailyLog.find_by(user: user_a, date: date).plan_id).to eq(user_a_plan.id)
+    end
+  end
 end

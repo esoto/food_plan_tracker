@@ -4,32 +4,32 @@ module Api
       include Api::Concerns::DaySerializer
 
       def index
-        scope = params[:archived].to_s == "true" ? Supplement.discarded : Supplement.kept
+        scope = params[:archived].to_s == "true" ? Current.user.supplements.discarded : Current.user.supplements.kept
         scope = scope.includes(:supplement_schedules).order(critical: :desc, name: :asc)
         render json: { supplements: scope.map { |s| serialize_supplement(s) } }
       end
 
       def create
-        supplement = Supplement.create!(supplement_params)
+        supplement = Current.user.supplements.create!(supplement_params)
         supplement.sync_time_slots!(params[:time_slots]) if params.key?(:time_slots)
         render json: { supplement: serialize_supplement(supplement.reload) }, status: :created
       end
 
       def update
-        supplement = Supplement.find(params[:id])
+        supplement = Current.user.supplements.find(params[:id])
         supplement.update!(supplement_params)
         supplement.sync_time_slots!(params[:time_slots]) if params.key?(:time_slots)
         render json: { supplement: serialize_supplement(supplement.reload) }
       end
 
       def destroy
-        supplement = Supplement.find(params[:id])
+        supplement = Current.user.supplements.find(params[:id])
         supplement.discard!
         render json: { supplement: serialize_supplement(supplement) }
       end
 
       def restore
-        supplement = Supplement.find(params[:id])
+        supplement = Current.user.supplements.find(params[:id])
         supplement.restore!
         render json: { supplement: serialize_supplement(supplement) }
       end

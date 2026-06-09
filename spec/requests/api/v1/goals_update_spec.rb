@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Api::V1::GoalsController#update", type: :request do
   before { stub_api_token }
 
-  let(:goal) { create(:goal, :weight, target_value: 80) }
+  let(:goal) { create(:goal, :weight, user: Current.user, target_value: 80) }
 
   describe "PATCH /api/v1/goals/:id" do
     it "updates target_value" do
@@ -43,6 +43,18 @@ RSpec.describe "Api::V1::GoalsController#update", type: :request do
     it "404s when the goal id doesn't exist" do
       patch "/api/v1/goals/999999", params: { goal: { target_value: 78 } }.to_json, headers: auth_headers
       expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "cross-tenant isolation" do
+    let(:user_a) { Current.user }
+    let(:user_b) { create(:user) }
+
+    it "returns 404 for another user's goal" do
+      b = create(:goal, :weight, user: user_b, target_value: 50)
+      patch "/api/v1/goals/#{b.id}", params: { goal: { target_value: 99 } }.to_json, headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+      expect(b.reload.target_value).to eq(50)
     end
   end
 end
