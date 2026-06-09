@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe GoalsController, type: :request do
-  let(:goal) { create(:goal) }
+  let(:goal) { create(:goal, user: Current.user) }
 
   before { sign_in_as }
 
@@ -29,6 +29,20 @@ RSpec.describe GoalsController, type: :request do
         expect(response).to redirect_to(settings_path)
         expect(flash[:alert]).to be_present
       end
+    end
+  end
+
+  describe "cross-tenant isolation" do
+    let(:user_b) { create(:user) }
+
+    it "PATCH another user's goal returns 404 and does not mutate it" do
+      b = create(:goal, user: user_b, target_value: 19.0)
+      patch goal_path(b), params: { goal: { target_value: 99 } }
+
+      expect(response).to have_http_status(:not_found)
+      # Load-bearing: even if a future change adds a rescue_from that turns
+      # RecordNotFound into a 200, the foreign record must not be mutated.
+      expect(b.reload.target_value.to_f).to eq(19.0)
     end
   end
 end

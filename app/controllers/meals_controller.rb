@@ -1,6 +1,6 @@
 class MealsController < ApplicationController
   def update
-    meal = Meal.find(params[:id])
+    meal = Current.user.meals.find(params[:id])
     if meal.update(meal_params)
       redirect_to settings_path, notice: "#{meal.name} updated.", status: :see_other
     else

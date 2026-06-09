@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe PlansController, type: :request do
-  let(:plan) { create(:plan) }
+  let(:plan) { create(:plan, user: Current.user) }
 
   before { sign_in_as }
 
@@ -35,6 +35,20 @@ RSpec.describe PlansController, type: :request do
         patch plan_path(plan), params: { plan: { target_kcal: 0 } }
         expect(plan.reload.target_kcal).to eq(original_kcal)
       end
+    end
+  end
+
+  describe "cross-tenant isolation" do
+    let(:user_b) { create(:user) }
+
+    it "PATCH another user's plan returns 404 and does not mutate it" do
+      b = create(:plan, user: user_b, target_kcal: 2000)
+      patch plan_path(b), params: { plan: { target_kcal: 1 } }
+
+      expect(response).to have_http_status(:not_found)
+      # Load-bearing: even if a future change adds a rescue_from that turns
+      # RecordNotFound into a 200, the foreign record must not be mutated.
+      expect(b.reload.target_kcal).to eq(2000)
     end
   end
 end
