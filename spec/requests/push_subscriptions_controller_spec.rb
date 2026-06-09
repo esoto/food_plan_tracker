@@ -79,21 +79,27 @@ RSpec.describe PushSubscriptionsController, type: :request do
   end
 
   describe "cross-tenant isolation" do
-    it "POST does not take over another user's subscription by endpoint" do
+    it "POST creates a separate row per user (cross-tenant keys not overwritten)" do
       other = create(:user)
-      shared = "https://push.example/shared"
+      shared = "https://push.example/shared-#{SecureRandom.hex(4)}"
       PushSubscription.create!(endpoint: shared, p256dh_key: "orig", auth_key: "orig", user: other)
 
-      # The signed-in user posts the same endpoint. With scoping, the controller
-      # does not find the other user's record; it initialises a new one and hits
-      # the DB unique constraint rather than overwriting the existing record.
+      # The signed-in user posts the same endpoint. With the composite
+      # (user_id, md5(endpoint)) unique index, two users CAN register the
+      # same endpoint — each gets their own row. The foreign row must NOT
+      # be mutated, and a new row must be created for the signed-in user.
       post "/push_subscriptions",
            params: { endpoint: shared, keys: { p256dh: "new", auth: "new" } }.to_json,
            headers: { "Content-Type" => "application/json" }
 
-      expect(response).to have_http_status(:conflict)
-      # Regardless of the response status, the other user's keys must be intact.
+      expect(response).to have_http_status(:created)
+
+      # The other user's row is UNTOUCHED — load-bearing invariant.
       expect(PushSubscription.find_by(endpoint: shared, user: other).p256dh_key).to eq("orig")
+      # A separate row was created for the signed-in user with the new keys.
+      expect(PushSubscription.find_by(endpoint: shared, user: user).p256dh_key).to eq("new")
+      # Exactly two rows exist for this endpoint, one per user.
+      expect(PushSubscription.where(endpoint: shared).count).to eq(2)
     end
 
     it "DELETE does not destroy another user's subscription" do
