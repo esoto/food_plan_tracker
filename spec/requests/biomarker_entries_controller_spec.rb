@@ -28,6 +28,37 @@ RSpec.describe BiomarkerEntriesController, type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Log biomarkers", "Weight", "HDL")
     end
+
+    it "only shows the signed-in user's goals" do
+      user_b = create(:user)
+      _secret_goal_b = create(:goal, user: user_b, metric: :hs_crp,
+                                  display_name: "SECRET_GOAL_B", unit: "mg/L",
+                                  starting_value: 5.0, target_value: 1.0)
+
+      get new_biomarker_entry_path
+
+      expect(response.body).not_to include("SECRET_GOAL_B")
+      # positive control: the signed-in user's own goals ARE shown
+      expect(response.body).to include(weight_goal.display_name)
+      expect(response.body).to include(hdl_goal.display_name)
+    end
+  end
+
+  describe "POST /biomarker_entries" do
+    it "returns 404 when goal_id belongs to another user" do
+      user_b = create(:user)
+      goal_b = create(:goal, user: user_b, metric: :hs_crp,
+                             display_name: "Other user's CRP", unit: "mg/L",
+                             starting_value: 5.0, target_value: 1.0)
+
+      expect {
+        post biomarker_entries_path,
+             params: { biomarker_entry: { goal_id: goal_b.id, value: "1.0" } }
+      }.not_to change(BiomarkerEntry, :count)
+
+      expect(response).to have_http_status(:not_found)
+      expect(goal_b.biomarker_entries.count).to eq(0)
+    end
   end
 
   describe "POST /biomarker_entries/bulk" do
@@ -61,6 +92,23 @@ RSpec.describe BiomarkerEntriesController, type: :request do
 
       expect(response).to redirect_to(new_biomarker_entry_path)
       expect(flash[:alert]).to match(/at least one/)
+    end
+
+    it "silently drops goal_ids not owned by the signed-in user" do
+      user_b = create(:user)
+      goal_b = create(:goal, user: user_b, metric: :hs_crp,
+                             display_name: "Other user's CRP", unit: "mg/L",
+                             starting_value: 5.0, target_value: 1.0)
+
+      expect {
+        post bulk_biomarker_entries_path,
+             params: { recorded_on: Date.current.iso8601,
+                       entries: { weight_goal.id.to_s => "86.4", goal_b.id.to_s => "forged" } }
+      }.to change(BiomarkerEntry, :count).by(1)
+
+      expect(response).to redirect_to(progress_path)
+      expect(goal_b.biomarker_entries.count).to eq(0)
+      expect(BiomarkerEntry.last.goal_id).to eq(weight_goal.id)
     end
   end
 end

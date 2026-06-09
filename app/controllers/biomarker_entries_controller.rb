@@ -1,11 +1,11 @@
 class BiomarkerEntriesController < ApplicationController
   def new
-    @goals = Goal.all
+    @goals = Current.user.goals
     @recorded_on = (params[:date].presence && Date.parse(params[:date])) || Date.current
   end
 
   def create
-    goal = Goal.find(params[:biomarker_entry][:goal_id])
+    goal = Current.user.goals.find(params[:biomarker_entry][:goal_id])
     entry = goal.biomarker_entries.new(
       recorded_on: params[:biomarker_entry][:recorded_on].presence || Date.current,
       value: params[:biomarker_entry][:value]
@@ -30,7 +30,7 @@ class BiomarkerEntriesController < ApplicationController
     end
 
     created = []
-    Goal.where(id: submitted.keys).find_each do |goal|
+    Current.user.goals.where(id: submitted.keys).find_each do |goal|
       value = submitted[goal.id.to_s]
       entry = goal.biomarker_entries.create!(value: value, recorded_on: recorded_on)
       sync_weight_log(goal, entry)
