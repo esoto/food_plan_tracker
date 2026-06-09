@@ -1,9 +1,8 @@
 class NotificationsController < ApplicationController
-  # Lists every PushSubscription regardless of user — single-user app.
-  # If the app ever grows past one user, scope this to current_user.
   def show
-    @subscriptions = PushSubscription.order(created_at: :desc)
-    @recent_deliveries = NotificationDelivery.recent(20)
+    @subscriptions = Current.user.push_subscriptions.order(created_at: :desc)
+    @recent_deliveries = Current.user.notification_deliveries.recent(20)
+    @subscription_count = Current.user.push_subscriptions.count
     @plan = today_log&.plan
 
     # Mirror the guard in ReminderTickerJob: don't crash the page on a
