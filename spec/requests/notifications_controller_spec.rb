@@ -63,6 +63,11 @@ RSpec.describe NotificationsController, type: :request do
 
     it "excludes another user's push subscription" do
       user_b = create(:user)
+      # Positive control: signed-in user has their own subscription that MUST appear.
+      create(:push_subscription, user: user,
+                                 endpoint: "https://mine.example/A",
+                                 p256dh_key: "p", auth_key: "a",
+                                 user_agent: "My Pixel 8")
       create(:push_subscription, user: user_b,
                                  endpoint: "https://attacker.example/push/abc",
                                  p256dh_key: "x", auth_key: "y",
@@ -71,12 +76,17 @@ RSpec.describe NotificationsController, type: :request do
       get notifications_path
 
       expect(response).to have_http_status(:ok)
+      expect(response.body).to include("My Pixel 8")     # positive control
       expect(response.body).not_to include("attacker.example")
       expect(response.body).not_to include("Snoop Pixel 9")
     end
 
     it "excludes another user's notification delivery" do
       user_b = create(:user)
+      # Positive control: signed-in user has their own delivery that MUST appear.
+      NotificationDelivery.create!(title: "🍱 My breakfast reminder",
+                                   body: "Time to log my Breakfast", url: "/menu",
+                                   sent_count: 1, fired_at: 1.minute.ago, user: user)
       create(:notification_delivery, user: user_b,
                                      title: "B's PRIVATE NOTIFICATION",
                                      body: "should-not-leak",
@@ -85,6 +95,7 @@ RSpec.describe NotificationsController, type: :request do
       get notifications_path
 
       expect(response).to have_http_status(:ok)
+      expect(response.body).to include("🍱 My breakfast reminder") # positive control
       expect(response.body).not_to include("B's PRIVATE NOTIFICATION")
       expect(response.body).not_to include("should-not-leak")
     end

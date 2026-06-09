@@ -1,8 +1,9 @@
 class NotificationsController < ApplicationController
+  # Per-tenant: each user only sees their own subscriptions + deliveries.
   def show
     @subscriptions = Current.user.push_subscriptions.order(created_at: :desc)
     @recent_deliveries = Current.user.notification_deliveries.recent(20)
-    @subscription_count = Current.user.push_subscriptions.count
+    @subscription_count = @subscriptions.size
     @plan = today_log&.plan
 
     # Mirror the guard in ReminderTickerJob: don't crash the page on a

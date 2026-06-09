@@ -67,16 +67,23 @@ RSpec.describe "GET /checklist", type: :request do
     end
 
     it "does not include another user's daily logs in the heatmap/last-30-days" do
-      # Set up: signed-in user has 0 daily_logs; user_b has 1 daily_log today.
+      # Set up: signed-in user has 0 daily_logs; user_b has 1 daily_log today
+      # with a checklist_completion on a uniquely-labeled template. The
+      # template's label would render in the heatmap if user_b's log leaked.
       user_b_plan = create(:plan, slug: "exercise-b", name: "B exercise", user: user_b)
-      _b_log = create(:daily_log, user: user_b, plan: user_b_plan, date: Date.current)
+      b_template = create(:checklist_template, label: "FOREIGN_HEATMAP_MARKER",
+                                              position: 0, user: user_b)
+      b_log = create(:daily_log, user: user_b, plan: user_b_plan, date: Date.current)
+      create(:checklist_completion, daily_log: b_log, checklist_template: b_template, checked: true)
 
       get checklist_path
 
-      # The page should render successfully (200), and the foreign daily_log
-      # should not contribute. The heatmap renders cells per date; we just
-      # assert the page is happy with the foreign log present.
       expect(response).to have_http_status(:ok)
+      # The heatmap renders tooltip/title per day; the foreign completion's
+      # template label would surface if user_b's daily_log leaked into
+      # @last_30_logs. A regression to `DailyLog.where(date: ...)` (unscoped)
+      # would include it.
+      expect(response.body).not_to include("FOREIGN_HEATMAP_MARKER")
     end
 
     it "does not inflate streak from another user's daily logs (trap)" do
