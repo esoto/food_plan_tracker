@@ -1,4 +1,3 @@
-<% weight_goal = Goal.find_by(metric: Goal.metrics[:weight_kg]) %>
 <% label = daily_log.date == Date.current ? "Today's weight" : "Weight on #{l(daily_log.date, format: '%b %-d')}" %>
 <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
   <div class="flex items-baseline justify-between">

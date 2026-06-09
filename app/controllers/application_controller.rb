@@ -5,7 +5,7 @@ class ApplicationController < ActionController::Base
 
   stale_when_importmap_changes
 
-  helper_method :today_log, :current_user, :nav_items, :fibrotina_due?
+  helper_method :today_log, :current_user, :nav_items, :fibrotina_due?, :fibrotina_supplement
 
   private
 
@@ -32,15 +32,18 @@ class ApplicationController < ActionController::Base
   # marked as taken today.
   FIBROTINA_WINDOW = (18 * 60 + 45)..(20 * 60 + 45) # 6:45 PM – 8:45 PM
 
+  def fibrotina_supplement
+    @fibrotina_supplement ||= Supplement.for_user(Current.user).kept.find_by("name ILIKE ?", "Fibrotina%")
+  end
+
   def fibrotina_due?
     return false unless authenticated?
 
-    fibrotina = Supplement.for_user(Current.user).kept.find_by("name ILIKE ?", "Fibrotina%")
-    return false unless fibrotina
+    return false unless fibrotina_supplement
 
     # If already taken today, never show the banner (covers both real window
     # and dev preview).
-    return false if today_log.supplement_completions.exists?(supplement: fibrotina)
+    return false if today_log.supplement_completions.exists?(supplement: fibrotina_supplement)
 
     # Dev-only preview override: append ?preview_fibrotina=1 to any URL.
     return true if Rails.env.development? && params[:preview_fibrotina] == "1"

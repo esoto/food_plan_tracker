@@ -4,6 +4,7 @@ class DaysController < ApplicationController
     return redirect_to(root_path) if date == Date.current
 
     @daily_log = DailyLog.for(date, user: Current.user)
+    @weight_goal = Current.user.goals.find_by(metric: :weight_kg)
     @plan = @daily_log.plan
     @plans = Current.user.plans.ordered
     @logged_foods = @daily_log.logged_foods.includes(:food)

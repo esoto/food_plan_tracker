@@ -70,6 +70,109 @@ RSpec.describe TodayController, type: :request do
       end
     end
 
+    describe "weight goal scoping" do
+      it "displays only the current user's weight goal, not another user's (PER-570)" do
+        # Create user_b's weight goal FIRST with distinctive target (foreign record comes first)
+        user_b = create(:user)
+        foreign_weight_goal = create(:goal, :weight, target_value: 987.5, user: user_b)
+
+        # Create current user's weight goal
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+        own_weight_goal = create(:goal, :weight, target_value: 65.0, user: user_a)
+
+        get root_path
+
+        expect(response).to have_http_status(:ok)
+        # Own goal's target value should be visible
+        expect(response.body).to include("65")
+        # Foreign goal's target value should NOT be visible
+        expect(response.body).not_to include("987.5")
+        # Own goal id should be in the hidden field
+        expect(response.body).to include(%Q(value="#{own_weight_goal.id}"))
+        # Foreign goal id should NOT be in the hidden field
+        expect(response.body).not_to include(%Q(value="#{foreign_weight_goal.id}"))
+      end
+
+      it "renders weight section gracefully when current user has no weight goal" do
+        user_b = create(:user)
+        create(:goal, :weight, target_value: 987.5, user: user_b)
+
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+
+        get root_path
+
+        expect(response).to have_http_status(:ok)
+        # Foreign goal value should not appear
+        expect(response.body).not_to include("987.5")
+        # Weight input section should still render
+        expect(response.body).to include("weight")
+      end
+    end
+
+    describe "fibrotina reminder banner" do
+      it "does not show banner for another user's Fibrotina supplement (PER-570 helper scoping)" do
+        # Create user_b's Fibrotina FIRST (foreign record comes first)
+        user_b = create(:user)
+        create(:supplement, name: "Fibrotina B12", user: user_b)
+
+        # Current user has NO fibrotina
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+
+        travel_to Time.zone.local(2026, 4, 25, 19, 30) do  # inside fibrotina window
+          get root_path
+        end
+
+        expect(response.body).not_to include("Fibrotina time")
+      end
+
+      it "shows banner with correct scoped supplement id when both users have Fibrotina (PER-570 partial scoping)" do
+        # Create user_b's Fibrotina FIRST (foreign record comes first)
+        user_b = create(:user)
+        foreign_fibrotina = create(:supplement, name: "Fibrotina (fenofibrate)", user: user_b)
+
+        # Create current user's Fibrotina
+        user_a = create(:user, password: "password")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+        own_fibrotina = create(:supplement, name: "Fibrotina (fenofibrate)", user: user_a)
+
+        travel_to Time.zone.local(2026, 4, 25, 19, 30) do  # inside fibrotina window
+          get root_path
+        end
+
+        expect(response).to have_http_status(:ok)
+        # Banner should be present
+        expect(response.body).to include("Fibrotina time")
+        # Form should post with OWN supplement id
+        expect(response.body).to include("supplement_id=#{own_fibrotina.id}")
+        # Form should NOT post with foreign supplement id
+        expect(response.body).not_to include("supplement_id=#{foreign_fibrotina.id}")
+      end
+
+      it "does not show banner when current user's Fibrotina already taken today" do
+        travel_to Time.zone.local(Date.current.year, Date.current.month, Date.current.day, 19, 30) do
+          user_a = create(:user, password: "password")
+          sign_in_as(user_a)
+          create(:plan, slug: "active", user: user_a)
+          fibrotina = create(:supplement, name: "Fibrotina (fenofibrate)", user: user_a)
+
+          # Create a completion for today
+          daily_log = DailyLog.today(user_a)
+          create(:supplement_completion, daily_log: daily_log, supplement: fibrotina)
+
+          get root_path
+
+          expect(response.body).not_to include("Fibrotina time")
+        end
+      end
+    end
+
     describe "cross-tenant isolation" do
       it "excludes another user's plans, goals, and weight entries" do
         user_a = create(:user, password: "password")
