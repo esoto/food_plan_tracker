@@ -2,20 +2,20 @@ class Settings::ChecklistTemplatesController < ApplicationController
   before_action :set_template, only: %i[edit update destroy restore move_up move_down]
 
   def index
-    @templates = ChecklistTemplate.kept.ordered
+    @templates = Current.user.checklist_templates.kept.ordered
   end
 
   def archived
-    @templates = ChecklistTemplate.discarded.order(:label)
+    @templates = Current.user.checklist_templates.discarded.order(:label)
   end
 
   def new
-    @template = ChecklistTemplate.new(position: ChecklistTemplate.next_position)
+    @template = ChecklistTemplate.new(position: ChecklistTemplate.next_position(user: Current.user))
   end
 
   def create
     @template = ChecklistTemplate.new(template_params)
-    @template.position = ChecklistTemplate.next_position
+    @template.position = ChecklistTemplate.next_position(user: Current.user)
     if @template.save
       redirect_to settings_habits_path, notice: "Added \"#{@template.label}\""
     else
@@ -57,7 +57,7 @@ class Settings::ChecklistTemplatesController < ApplicationController
   private
 
   def set_template
-    @template = ChecklistTemplate.find(params[:id])
+    @template = Current.user.checklist_templates.find(params[:id])
   end
 
   def template_params
@@ -67,7 +67,7 @@ class Settings::ChecklistTemplatesController < ApplicationController
   # Swap the `position` value with the adjacent kept template. Position is the
   # only column changed — IDs and FKs are untouched.
   def swap_position(template, direction:)
-    siblings = ChecklistTemplate.kept.ordered.to_a
+    siblings = Current.user.checklist_templates.kept.ordered.to_a
     idx = siblings.index { |t| t.id == template.id }
     return unless idx
 

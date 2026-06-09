@@ -2,11 +2,11 @@ class Settings::SupplementsController < ApplicationController
   before_action :set_supplement, only: %i[edit update destroy restore]
 
   def index
-    @supplements = Supplement.kept.order(critical: :desc, name: :asc).includes(:supplement_schedules)
+    @supplements = Current.user.supplements.kept.order(critical: :desc, name: :asc).includes(:supplement_schedules)
   end
 
   def archived
-    @supplements = Supplement.discarded.order(:name)
+    @supplements = Current.user.supplements.discarded.order(:name)
   end
 
   def new
@@ -48,7 +48,7 @@ class Settings::SupplementsController < ApplicationController
   private
 
   def set_supplement
-    @supplement = Supplement.find(params[:id])
+    @supplement = Current.user.supplements.find(params[:id])
   end
 
   def supplement_params

@@ -6,8 +6,8 @@ RSpec.describe Settings::ChecklistTemplatesController, type: :request do
   describe "GET /settings/habits" do
     it "lists kept templates and excludes discarded" do
       ChecklistTemplate.delete_all
-      create(:checklist_template, label: "Drink water", position: 0)
-      create(:checklist_template, label: "Old habit", position: 1, discarded_at: 1.day.ago)
+      create(:checklist_template, label: "Drink water", position: 0, user: Current.user)
+      create(:checklist_template, label: "Old habit", position: 1, discarded_at: 1.day.ago, user: Current.user)
 
       get settings_habits_path
 
@@ -20,8 +20,8 @@ RSpec.describe Settings::ChecklistTemplatesController, type: :request do
   describe "GET /settings/habits/archived" do
     it "lists only discarded templates" do
       ChecklistTemplate.delete_all
-      create(:checklist_template, label: "Drink water", position: 0)
-      create(:checklist_template, label: "Old habit", position: 1, discarded_at: 1.day.ago)
+      create(:checklist_template, label: "Drink water", position: 0, user: Current.user)
+      create(:checklist_template, label: "Old habit", position: 1, discarded_at: 1.day.ago, user: Current.user)
 
       get archived_settings_habits_path
 
@@ -51,7 +51,7 @@ RSpec.describe Settings::ChecklistTemplatesController, type: :request do
 
   describe "PATCH /settings/habits/:id" do
     it "updates label, description, icon" do
-      template = create(:checklist_template, label: "Old", position: 0)
+      template = create(:checklist_template, label: "Old", position: 0, user: Current.user)
       patch settings_habit_path(template), params: {
         checklist_template: { label: "New", description: "x", icon: "💧" }
       }
@@ -65,9 +65,9 @@ RSpec.describe Settings::ChecklistTemplatesController, type: :request do
 
   describe "DELETE /settings/habits/:id" do
     it "soft-deletes and preserves completion records" do
-      template = create(:checklist_template, position: 0)
-      plan = create(:plan)
-      log = create(:daily_log, plan: plan)
+      template = create(:checklist_template, position: 0, user: Current.user)
+      plan = create(:plan, user: template.user)
+      log = create(:daily_log, plan: plan, user: template.user)
       completion = create(:checklist_completion, checklist_template: template, daily_log: log)
 
       expect {
@@ -97,9 +97,9 @@ RSpec.describe Settings::ChecklistTemplatesController, type: :request do
     let!(:templates) do
       ChecklistTemplate.delete_all
       [
-        create(:checklist_template, label: "A", position: 0),
-        create(:checklist_template, label: "B", position: 1),
-        create(:checklist_template, label: "C", position: 2)
+        create(:checklist_template, label: "A", position: 0, user: Current.user),
+        create(:checklist_template, label: "B", position: 1, user: Current.user),
+        create(:checklist_template, label: "C", position: 2, user: Current.user)
       ]
     end
 
@@ -121,6 +121,87 @@ RSpec.describe Settings::ChecklistTemplatesController, type: :request do
     it "no-ops at the bottom edge" do
       patch move_down_settings_habit_path(templates[2])
       expect(templates.map { |t| t.reload.position }).to eq([ 0, 1, 2 ])
+    end
+  end
+
+  describe "cross-tenant isolation" do
+    let(:user_b) { create(:user) }
+
+    it "index does not list another user's templates" do
+      ChecklistTemplate.delete_all
+      create(:checklist_template, label: "Mine", position: 0, user: Current.user)
+      create(:checklist_template, label: "Theirs", position: 1, user: user_b)
+
+      get settings_habits_path
+
+      expect(response.body).to include("Mine")
+      expect(response.body).not_to include("Theirs")
+    end
+
+    it "archived does not list another user's templates" do
+      ChecklistTemplate.delete_all
+      create(:checklist_template, label: "MineArchived", position: 0, discarded_at: 1.day.ago, user: Current.user)
+      create(:checklist_template, label: "TheirsArchived", position: 1, discarded_at: 1.day.ago, user: user_b)
+
+      get archived_settings_habits_path
+
+      expect(response.body).to include("MineArchived")
+      expect(response.body).not_to include("TheirsArchived")
+    end
+
+    it "next_position does not leak — new template gets position 0, not the other user's count" do
+      ChecklistTemplate.delete_all
+      # user_b has 3 templates (positions 0,1,2)
+      3.times { |i| create(:checklist_template, label: "B#{i}", position: i, user: user_b) }
+      # Current.user has 0
+
+      post settings_habits_path, params: { checklist_template: { label: "First" } }
+
+      mine = ChecklistTemplate.find_by(label: "First", user: Current.user)
+      expect(mine).to be_present
+      expect(mine.position).to eq(0) # not 3
+    end
+
+    it "PATCH another user's template returns 404 and does not mutate it" do
+      b = create(:checklist_template, label: "Theirs", position: 0, user: user_b)
+      patch settings_habit_path(b), params: { checklist_template: { label: "Hacked" } }
+
+      expect(response).to have_http_status(:not_found)
+      expect(b.reload.label).to eq("Theirs")
+    end
+
+    it "DELETE another user's template returns 404 and does not discard it" do
+      b = create(:checklist_template, label: "Theirs", position: 0, user: user_b)
+      delete settings_habit_path(b)
+
+      expect(response).to have_http_status(:not_found)
+      expect(b.reload.discarded_at).to be_nil
+    end
+
+    it "restore on another user's template returns 404 and does not restore it" do
+      b = create(:checklist_template, label: "Theirs", position: 0,
+                 discarded_at: 1.day.ago, user: user_b)
+      patch restore_settings_habit_path(b)
+
+      expect(response).to have_http_status(:not_found)
+      expect(b.reload.discarded_at).not_to be_nil
+    end
+
+    it "move_up on another user's template returns 404 and does not change positions" do
+      ChecklistTemplate.delete_all
+      a1 = create(:checklist_template, label: "A1", position: 0, user: user_b)
+      a2 = create(:checklist_template, label: "A2", position: 1, user: user_b)
+      b1 = create(:checklist_template, label: "B1", position: 0, user: Current.user)
+
+      patch move_up_settings_habit_path(a2)
+
+      expect(response).to have_http_status(:not_found)
+      # The other user's siblings must be UNCHANGED — the leak would otherwise
+      # let user A swap positions on user B's templates via move_up.
+      expect(a1.reload.position).to eq(0)
+      expect(a2.reload.position).to eq(1)
+      # Sanity: user A's own template is also untouched.
+      expect(b1.reload.position).to eq(0)
     end
   end
 end

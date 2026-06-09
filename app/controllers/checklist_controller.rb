@@ -1,9 +1,12 @@
 class ChecklistController < ApplicationController
   def show
     @daily_log = today_log
-    @templates = ChecklistTemplate.kept.ordered
+    @templates = Current.user.checklist_templates.kept.ordered
     @completions_by_template = @daily_log.checklist_completions.index_by(&:checklist_template_id)
-    @last_30_logs = DailyLog.where(date: 29.days.ago.to_date..Date.current).includes(:checklist_completions).index_by(&:date)
+    @last_30_logs = Current.user.daily_logs
+      .where(date: 29.days.ago.to_date..Date.current)
+      .includes(:checklist_completions)
+      .index_by(&:date)
     @streak = compute_streak
   end
 
@@ -19,7 +22,7 @@ class ChecklistController < ApplicationController
     count = 0
     date = Date.current
     STREAK_MAX_DAYS.times do
-      log = DailyLog.find_by(date: date)
+      log = Current.user.daily_logs.find_by(date: date)
       break unless log && log.checklist_adherence_pct >= 80
 
       count += 1
