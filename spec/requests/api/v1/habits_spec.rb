@@ -110,5 +110,15 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
       expect(response).to have_http_status(:not_found)
       expect(b.reload.discarded_at).to be_nil
     end
+
+    it "restore on another user's habit returns 404 and does not restore it" do
+      b = create(:checklist_template, label: "Theirs", position: 0,
+                 discarded_at: 1.day.ago, user: user_b)
+
+      patch "/api/v1/habits/#{b.id}/restore", headers: auth_headers
+
+      expect(response).to have_http_status(:not_found)
+      expect(b.reload.discarded_at).not_to be_nil
+    end
   end
 end
