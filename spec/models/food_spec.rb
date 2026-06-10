@@ -48,4 +48,76 @@ RSpec.describe Food, type: :model do
       expect(colors).to include(:tint, :ring, :text, :dot)
     end
   end
+
+  describe "created_by_user tracking" do
+    let(:user) { create(:user) }
+
+    it "records created_by_user when Current.user is set" do
+      food = nil
+      Current.set(user: user) do
+        food = Food.create!(
+          name: "Custom protein",
+          category: :protein,
+          serving_grams: 100,
+          kcal: 150,
+          protein_g: 25,
+          carbs_g: 0,
+          fat_g: 5
+        )
+      end
+      expect(food.reload.created_by_user).to eq(user)
+    end
+
+    it "leaves created_by_user nil when Current.user is not set" do
+      Current.set(user: nil) do
+        food = Food.create!(
+          name: "Seeded food",
+          category: :protein,
+          serving_grams: 100,
+          kcal: 150,
+          protein_g: 25,
+          carbs_g: 0,
+          fat_g: 5
+        )
+        expect(food.reload.created_by_user).to be_nil
+      end
+    end
+  end
+
+  describe ".seeded scope" do
+    it "includes only foods with created_by_user_id = nil" do
+      user = create(:user)
+      seeded = create(:food, name: "Chicken", created_by_user: nil)
+      custom = Current.set(user: user) do
+        create(:food, name: "Turkey", category: :protein)
+      end
+
+      expect(Food.seeded).to include(seeded)
+      expect(Food.seeded).not_to include(custom)
+    end
+  end
+
+  describe "prune guard" do
+    it "destroys stale seeded foods but spares user-created foods" do
+      user = create(:user)
+      # Create one seeded food not in the allowed list
+      stale_seeded = create(:food, name: "Old Spanish Food", category: :protein, created_by_user: nil)
+      # Create one user-created food not in the allowed list
+      custom = Current.set(user: user) do
+        create(:food, name: "User Custom Food", category: :protein)
+      end
+      # Create one seeded food that is in the allowed list
+      canonical = create(:food, name: "Chicken breast, cooked", category: :protein, created_by_user: nil)
+
+      # Replicate the prune logic from db/seeds.rb with a small allowed set
+      allowed_food_keys = [["Chicken breast, cooked", Food.categories["protein"]]]
+      Food.seeded.find_each do |food|
+        food.destroy unless allowed_food_keys.include?([food.name, food.category_before_type_cast])
+      end
+
+      expect { stale_seeded.reload }.to raise_error(ActiveRecord::RecordNotFound)
+      expect { custom.reload }.not_to raise_error, "user-created food should survive the prune"
+      expect { canonical.reload }.not_to raise_error, "canonical food should survive the prune"
+    end
+  end
 end

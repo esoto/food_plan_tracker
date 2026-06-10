@@ -48,6 +48,14 @@ RSpec.describe "Api::V1::FoodsController", type: :request do
       expect(body).to include("id", "name" => "Greek yogurt 5%", "category" => "protein", "kcal" => 95)
     end
 
+    it "records the authenticated user as created_by_user" do
+      post "/api/v1/foods", params: valid_payload.to_json, headers: auth_headers
+      expect(response).to have_http_status(:created)
+
+      food = Food.find(response.parsed_body["food"]["id"])
+      expect(food.created_by_user).to eq(Current.user)
+    end
+
     it "returns 422 with the validation message on invalid params" do
       bad = valid_payload.deep_merge(food: { name: "" })
       post "/api/v1/foods", params: bad.to_json, headers: auth_headers

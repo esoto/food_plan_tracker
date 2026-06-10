@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_10_112332) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -80,6 +80,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
     t.decimal "carbs_g", precision: 6, scale: 2, default: "0.0", null: false
     t.integer "category", null: false
     t.datetime "created_at", null: false
+    t.bigint "created_by_user_id"
     t.decimal "fat_g", precision: 6, scale: 2, default: "0.0", null: false
     t.integer "kcal", null: false
     t.string "name", null: false
@@ -88,6 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
     t.decimal "serving_grams", precision: 7, scale: 2, null: false
     t.datetime "updated_at", null: false
     t.index ["category", "name"], name: "index_foods_on_category_and_name"
+    t.index ["created_by_user_id"], name: "index_foods_on_created_by_user_id"
   end
 
   create_table "goals", force: :cascade do |t|
@@ -315,6 +317,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
   add_foreign_key "checklist_templates", "users"
   add_foreign_key "daily_logs", "plans"
   add_foreign_key "daily_logs", "users"
+  add_foreign_key "foods", "users", column: "created_by_user_id"
   add_foreign_key "goals", "users"
   add_foreign_key "logged_foods", "daily_logs"
   add_foreign_key "logged_foods", "foods"

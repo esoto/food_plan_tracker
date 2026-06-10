@@ -357,11 +357,13 @@ upsert_meal(user: user, plan: rest, position: 5, name: "Pre-sleep", time: "22:30
 
 puts "  #{Plan.count} plans, #{Meal.count} meals, #{MealItem.count} meal items"
 
-# Remove any foods that are no longer in the canonical list (e.g. old Spanish
-# names). Meal items have already been replaced above, so stale foods are
-# orphans.
+# Remove any seeded foods (created_by_user_id = nil) that are no longer in the
+# canonical list (e.g. old Spanish names). User-created foods (created_by_user_id
+# present) are never pruned. Meal items have already been replaced above, so
+# stale seeded foods are orphans. Note: foods are seeded above (lines 76-87)
+# before Current.set, so canonical foods have created_by_user_id = nil.
 allowed_food_keys = FOODS.map { |f| [ f[:name], Food.categories[f[:category]] ] }
-Food.find_each do |food|
+Food.seeded.find_each do |food|
   food.destroy unless allowed_food_keys.include?([ food.name, food.category_before_type_cast ])
 end
 puts "  pruned stale foods, now #{Food.count} total"
