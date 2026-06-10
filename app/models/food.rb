@@ -3,6 +3,8 @@ class Food < ApplicationRecord
 
   enum :category, CATEGORIES
 
+  belongs_to :created_by_user, class_name: "User", optional: true
+
   has_many :meal_items, dependent: :restrict_with_error
   has_many :logged_foods, dependent: :restrict_with_error
 
@@ -11,6 +13,9 @@ class Food < ApplicationRecord
   validates :serving_grams, :kcal, :protein_g, :carbs_g, :fat_g, presence: true, numericality: { greater_than_or_equal_to: 0 }
 
   scope :alphabetical, -> { order(:name) }
+  scope :seeded, -> { where(created_by_user_id: nil) }
+
+  before_create { self.created_by_user ||= Current.user }
 
   CATEGORY_LABELS = {
     "protein"   => "Protein",
