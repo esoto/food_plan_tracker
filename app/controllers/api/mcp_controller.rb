@@ -153,7 +153,7 @@ module Api
     end
 
     def plan_for(args)
-      args["plan_slug"].present? ? Plan.find_by!(slug: args["plan_slug"]) : log_for(args).plan
+      args["plan_slug"].present? ? Plan.find_by_slug!(args["plan_slug"], user: Current.user) : log_for(args).plan
     end
 
     # ----- Tool handlers.
@@ -167,7 +167,7 @@ module Api
     end
 
     def handle_log_weight(args)
-      goal  = Goal.find_by!(metric: Goal.metrics[:weight_kg])
+      goal  = Goal.find_by_metric!(Goal.metrics[:weight_kg], user: Current.user)
       date  = date_arg(args)
       entry = goal.biomarker_entries.create!(value: args.fetch("value"), recorded_on: date)
       log   = DailyLog.for(Current.user, date)
@@ -200,7 +200,7 @@ module Api
     end
 
     def handle_delete_logged_food(args)
-      entry = LoggedFood.find(args.fetch("id"))
+      entry = Current.user.logged_foods.find(args.fetch("id"))
       log   = entry.daily_log
       entry.destroy!
       { ok: true, day: serialize_day(log.reload) }
@@ -208,13 +208,13 @@ module Api
 
     def handle_set_plan_for_day(args)
       log  = log_for(args)
-      plan = Plan.find_by!(slug: args.fetch("slug"))
+      plan = Plan.find_by_slug!(args.fetch("slug"), user: Current.user)
       log.update!(plan: plan)
       serialize_day(log.reload)
     end
 
     def handle_list_goals(_args)
-      { goals: Goal.all.map { |g| serialize_goal(g) } }
+      { goals: Current.user.goals.map { |g| serialize_goal(g) } }
     end
 
     def handle_search_foods(args)
@@ -236,7 +236,7 @@ module Api
     end
 
     def handle_get_weekly_summary(_args)
-      summary = WeeklySummary.rolling_7_days
+      summary = WeeklySummary.rolling_7_days(user: Current.user)
       {
         window_days: 7,
         start_date:  summary.start_date.iso8601,
@@ -249,20 +249,20 @@ module Api
     end
 
     def handle_list_supplements(args)
-      scope = args["archived"].to_s == "true" ? Supplement.discarded : Supplement.kept
+      scope = args["archived"].to_s == "true" ? Current.user.supplements.discarded : Current.user.supplements.kept
       scope = scope.includes(:supplement_schedules).order(critical: :desc, name: :asc)
       { supplements: scope.map { |s| serialize_supplement(s) } }
     end
 
     def handle_create_supplement(args)
       attrs = args.slice("name", "dose", "critical", "notes", "contraindications")
-      supplement = Supplement.create!(attrs)
+      supplement = Current.user.supplements.create!(attrs)
       supplement.sync_time_slots!(args["time_slots"]) if args.key?("time_slots")
       { supplement: serialize_supplement(supplement.reload) }
     end
 
     def handle_update_supplement(args)
-      supplement = Supplement.find(args.fetch("id"))
+      supplement = Current.user.supplements.find(args.fetch("id"))
       attrs = args.slice("name", "dose", "critical", "notes", "contraindications").compact
       raise ToolArgumentError, "no updatable fields provided" if attrs.empty? && !args.key?("time_slots")
 
@@ -272,32 +272,32 @@ module Api
     end
 
     def handle_archive_supplement(args)
-      supplement = Supplement.find(args.fetch("id"))
+      supplement = Current.user.supplements.find(args.fetch("id"))
       supplement.discard!
       { supplement: serialize_supplement(supplement) }
     end
 
     def handle_restore_supplement(args)
-      supplement = Supplement.find(args.fetch("id"))
+      supplement = Current.user.supplements.find(args.fetch("id"))
       supplement.restore!
       { supplement: serialize_supplement(supplement) }
     end
 
     def handle_list_habits(args)
-      scope = args["archived"].to_s == "true" ? ChecklistTemplate.discarded.order(:label) : ChecklistTemplate.kept.ordered
+      scope = args["archived"].to_s == "true" ? Current.user.checklist_templates.discarded.order(:label) : Current.user.checklist_templates.kept.ordered
       { habits: scope.map { |t| serialize_habit(t) } }
     end
 
     def handle_create_habit(args)
       attrs = args.slice("label", "description", "icon")
-      template = ChecklistTemplate.new(attrs)
-      template.position = ChecklistTemplate.next_position
+      template = Current.user.checklist_templates.new(attrs)
+      template.position = ChecklistTemplate.next_position(user: Current.user)
       template.save!
       { habit: serialize_habit(template) }
     end
 
     def handle_update_habit(args)
-      template = ChecklistTemplate.find(args.fetch("id"))
+      template = Current.user.checklist_templates.find(args.fetch("id"))
       attrs = args.slice("label", "description", "icon", "position").compact
       raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
 
@@ -306,13 +306,13 @@ module Api
     end
 
     def handle_archive_habit(args)
-      template = ChecklistTemplate.find(args.fetch("id"))
+      template = Current.user.checklist_templates.find(args.fetch("id"))
       template.discard!
       { habit: serialize_habit(template) }
     end
 
     def handle_restore_habit(args)
-      template = ChecklistTemplate.find(args.fetch("id"))
+      template = Current.user.checklist_templates.find(args.fetch("id"))
       template.restore_at_end!
       { habit: serialize_habit(template) }
     end
@@ -320,7 +320,7 @@ module Api
     # ----- Settings: macro targets -----
 
     def handle_update_plan(args)
-      plan = Plan.find_by(slug: args.fetch("slug")) ||
+      plan = Current.user.plans.find_by(slug: args.fetch("slug")) ||
         raise(ToolArgumentError, "no plan with slug \"#{args['slug']}\"; valid slugs: exercise, active, rest")
 
       attrs = args.slice("target_kcal", "target_protein_g", "target_carbs_g", "target_fat_g").compact
@@ -346,7 +346,7 @@ module Api
       metric = args.fetch("metric").to_s
       raise ToolArgumentError, "unknown metric \"#{metric}\"; valid: #{Goal.metrics.keys.join(', ')}" unless Goal.metrics.key?(metric)
 
-      goal = Goal.find_by(metric: Goal.metrics[metric]) ||
+      goal = Current.user.goals.find_by(metric: Goal.metrics[metric]) ||
         raise(ToolArgumentError, "no goal exists for metric \"#{metric}\"")
 
       goal.update!(target_value: args.fetch("target_value"))
@@ -355,11 +355,11 @@ module Api
 
     def handle_copy_yesterday_meals(args)
       target_date = date_arg(args)
-      yesterday = DailyLog.find_by(date: target_date - 1)
+      yesterday = Current.user.daily_logs.find_by(date: target_date - 1)
 
       raise ToolArgumentError, "no_yesterday_log: no log from yesterday — nothing to copy" if yesterday.nil?
 
-      existing_today = DailyLog.find_by(date: target_date)
+      existing_today = Current.user.daily_logs.find_by(date: target_date)
       if existing_today && !existing_today.can_copy_from?(yesterday)
         raise ToolArgumentError, "plan_mismatch: yesterday's plan (#{yesterday.plan.slug}) doesn't match today's (#{existing_today.plan.slug})"
       end

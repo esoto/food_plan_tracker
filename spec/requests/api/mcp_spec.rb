@@ -203,6 +203,21 @@ RSpec.describe "POST /mcp", type: :request do
       expect(payload["day"]["logged_foods"].map { |lf| lf["id"] }).not_to include(entry.id)
     end
 
+    describe "logged_food cross-tenant isolation" do
+      let(:other_user) { create(:user) }
+
+      it "TC-LF1 delete_logged_food returns isError on other_user's entry and entry still exists" do
+        other_food = seed_food(name: "Quinoa")
+        other_plan = seed_plan(slug: "active", user: other_user)
+        other_log  = DailyLog.today(user: other_user)
+        other_entry = other_log.logged_foods.create!(food: other_food, quantity_grams: 100, logged_at: Time.current, user: other_user)
+
+        result = rpc("tools/call", { name: "delete_logged_food", arguments: { id: other_entry.id } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(LoggedFood.exists?(other_entry.id)).to be(true)
+      end
+    end
+
     describe "get_weekly_summary" do
       let!(:weight_goal) do
         Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg], user: user) do |g|
@@ -323,13 +338,27 @@ RSpec.describe "POST /mcp", type: :request do
           }.not_to change { DailyLog.where(date: target_date).count }
         end
       end
+
+      it "TC-CY1 copy_yesterday_meals returns isError when other_user has yesterday but I don't" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          other_user = create(:user)
+          other_plan = seed_plan(slug: "active", user: other_user)
+          other_yesterday = DailyLog.create!(date: Date.current - 1, plan: other_plan, user: other_user)
+
+          result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
+          expect(result["isError"]).to be(true)
+          expect(result["content"].first["text"]).to match(/no_yesterday_log/)
+        end
+      end
     end
 
     describe "supplements management" do
+      let(:other_user) { create(:user) }
+
       it "list_supplements returns kept supplements with their time slots" do
-        sup = create(:supplement, name: "Magnesium")
+        sup = create(:supplement, name: "Magnesium", user: user)
         sup.supplement_schedules.create!(time_slot: "pre_sleep", position: 0)
-        create(:supplement, name: "Archived stack", discarded_at: 1.day.ago)
+        create(:supplement, name: "Archived stack", user: user, discarded_at: 1.day.ago)
 
         result = rpc("tools/call", { name: "list_supplements", arguments: {} })["result"]
         payload = JSON.parse(result["content"].first["text"])
@@ -347,13 +376,13 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_supplement is an error when no updatable field or time_slots sent" do
-        sup = create(:supplement)
+        sup = create(:supplement, user: user)
         result = rpc("tools/call", { name: "update_supplement", arguments: { id: sup.id } })["result"]
         expect(result["isError"]).to be(true)
       end
 
       it "archive_supplement and restore_supplement round-trip" do
-        sup = create(:supplement)
+        sup = create(:supplement, user: user)
 
         rpc("tools/call", { name: "archive_supplement", arguments: { id: sup.id } })
         expect(sup.reload.discarded_at).to be_present
@@ -361,13 +390,80 @@ RSpec.describe "POST /mcp", type: :request do
         rpc("tools/call", { name: "restore_supplement", arguments: { id: sup.id } })
         expect(sup.reload.discarded_at).to be_nil
       end
+
+      # TC-S1: list own-only — both inclusion and exclusion asserted
+      it "TC-S1 list_supplements includes own and excludes other_user's supplements" do
+        # other_user's supplement MUST be created first (unscoped query would return first row)
+        other_sup = create(:supplement, name: "Theirs", user: other_user)
+        my_sup    = create(:supplement, name: "Mine", user: user)
+
+        result = rpc("tools/call", { name: "list_supplements", arguments: {} })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        names = payload["supplements"].map { |s| s["name"] }
+        expect(names).to include("Mine")
+        expect(names).not_to include("Theirs")
+      end
+
+      # TC-S2: archived list variant
+      it "TC-S2 list_supplements archived=true includes own archived, excludes other_user's" do
+        other_sup = create(:supplement, name: "Theirs Archived", user: other_user, discarded_at: 1.day.ago)
+        my_sup    = create(:supplement, name: "Mine Archived", user: user, discarded_at: 1.day.ago)
+
+        result = rpc("tools/call", { name: "list_supplements", arguments: { archived: true } })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        names = payload["supplements"].map { |s| s["name"] }
+        expect(names).to include("Mine Archived")
+        expect(names).not_to include("Theirs Archived")
+      end
+
+      # TC-S3: update on other_user's supplement -> isError + reload unchanged
+      it "TC-S3 update_supplement returns isError on other_user's id and leaves record unchanged" do
+        other_sup = create(:supplement, name: "Original", user: other_user)
+
+        result = rpc("tools/call", { name: "update_supplement",
+                                     arguments: { id: other_sup.id, name: "Hacked" } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_sup.reload.name).to eq("Original")
+      end
+
+      # TC-S4: archive on other_user's supplement -> isError + discarded_at nil
+      it "TC-S4 archive_supplement returns isError on other_user's id and leaves record unarchived" do
+        other_sup = create(:supplement, name: "Not Mine", user: other_user)
+
+        result = rpc("tools/call", { name: "archive_supplement",
+                                     arguments: { id: other_sup.id } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_sup.reload.discarded_at).to be_nil
+      end
+
+      # TC-S5: restore on other_user's supplement -> isError + discarded_at still present
+      it "TC-S5 restore_supplement returns isError on other_user's id and leaves record discarded" do
+        other_sup = create(:supplement, name: "Not Mine Archived", user: other_user, discarded_at: 1.day.ago)
+
+        result = rpc("tools/call", { name: "restore_supplement",
+                                     arguments: { id: other_sup.id } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_sup.reload.discarded_at).to be_present
+      end
+
+      # TC-S6: create assigns correct user (orphan lock)
+      it "TC-S6 create_supplement assigns the authenticated user as owner" do
+        result = rpc("tools/call", { name: "create_supplement",
+                                     arguments: { name: "New Sup", dose: "1 capsule" } })["result"]
+        expect(result).not_to include("isError" => true)
+        payload = JSON.parse(result["content"].first["text"])
+        created = Supplement.find(payload["supplement"]["id"])
+        expect(created.user).to eq(user)
+      end
     end
 
     describe "habits management" do
       before { ChecklistTemplate.delete_all }
 
+      let(:other_user) { create(:user) }
+
       it "create_habit appends at the end of the position list" do
-        create(:checklist_template, label: "First", position: 0, user: Current.user)
+        create(:checklist_template, label: "First", position: 0, user: user)
 
         result = rpc("tools/call", { name: "create_habit", arguments: { label: "Second" } })["result"]
         payload = JSON.parse(result["content"].first["text"])
@@ -375,14 +471,14 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_habit is an error when no updatable field sent" do
-        template = create(:checklist_template, position: 0)
+        template = create(:checklist_template, position: 0, user: user)
         result = rpc("tools/call", { name: "update_habit", arguments: { id: template.id } })["result"]
         expect(result["isError"]).to be(true)
       end
 
       it "archive_habit hides from list_habits" do
-        kept = create(:checklist_template, label: "Drink water", position: 0)
-        old  = create(:checklist_template, label: "Old", position: 1)
+        kept = create(:checklist_template, label: "Drink water", position: 0, user: user)
+        old  = create(:checklist_template, label: "Old", position: 1, user: user)
 
         rpc("tools/call", { name: "archive_habit", arguments: { id: old.id } })
 
@@ -390,11 +486,108 @@ RSpec.describe "POST /mcp", type: :request do
         labels = JSON.parse(result["content"].first["text"])["habits"].map { |h| h["label"] }
         expect(labels).to contain_exactly("Drink water")
       end
+
+      # TC-H1: list own-only — both inclusion and exclusion asserted
+      it "TC-H1 list_habits includes own and excludes other_user's templates" do
+        # other_user's template MUST be created first (unscoped query would return first row)
+        other_template = create(:checklist_template, label: "Theirs", position: 0, user: other_user)
+        my_template    = create(:checklist_template, label: "Mine", position: 0, user: user)
+
+        result = rpc("tools/call", { name: "list_habits", arguments: {} })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        labels = payload["habits"].map { |h| h["label"] }
+        expect(labels).to include("Mine")
+        expect(labels).not_to include("Theirs")
+      end
+
+      # TC-H2: archived list variant
+      it "TC-H2 list_habits archived=true includes own archived, excludes other_user's" do
+        other_template = create(:checklist_template, label: "Theirs Archived", position: 0, user: other_user, discarded_at: 1.day.ago)
+        my_template    = create(:checklist_template, label: "Mine Archived", position: 0, user: user, discarded_at: 1.day.ago)
+
+        result = rpc("tools/call", { name: "list_habits", arguments: { archived: true } })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        labels = payload["habits"].map { |h| h["label"] }
+        expect(labels).to include("Mine Archived")
+        expect(labels).not_to include("Theirs Archived")
+      end
+
+      # TC-H3: update on other_user's template -> isError + reload unchanged
+      it "TC-H3 update_habit returns isError on other_user's id and leaves record unchanged" do
+        other_template = create(:checklist_template, label: "Original", position: 0, user: other_user)
+
+        result = rpc("tools/call", { name: "update_habit",
+                                     arguments: { id: other_template.id, label: "Hacked" } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_template.reload.label).to eq("Original")
+      end
+
+      # TC-H4: archive on other_user's template -> isError + discarded_at nil
+      it "TC-H4 archive_habit returns isError on other_user's id and leaves record unarchived" do
+        other_template = create(:checklist_template, label: "Not Mine", position: 0, user: other_user)
+
+        result = rpc("tools/call", { name: "archive_habit",
+                                     arguments: { id: other_template.id } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_template.reload.discarded_at).to be_nil
+      end
+
+      # TC-H5: restore on other_user's template -> isError + discarded_at still present
+      it "TC-H5 restore_habit returns isError on other_user's id and leaves record discarded" do
+        other_template = create(:checklist_template, label: "Not Mine Archived", position: 0, user: other_user, discarded_at: 1.day.ago)
+
+        result = rpc("tools/call", { name: "restore_habit",
+                                     arguments: { id: other_template.id } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_template.reload.discarded_at).to be_present
+      end
+
+      # TC-H6: next_position trap test — other_user's high position doesn't affect my new position
+      it "TC-H6 next_position ignores other_user's templates (position not influenced by foreign high position)" do
+        # Seed other_user with a high-position template
+        other_template = create(:checklist_template, label: "Their High", position: 999, user: other_user)
+        # My existing template
+        my_template    = create(:checklist_template, label: "Mine", position: 0, user: user)
+
+        result = rpc("tools/call", { name: "create_habit", arguments: { label: "My New" } })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        # New position should be 1 (based on MY max 0), not 1000 (based on GLOBAL max 999)
+        expect(payload["habit"]["position"]).to eq(1)
+      end
+
+      # TC-H7: positive control — update_habit success (currently untested happy path)
+      it "TC-H7 update_habit success updates label and returns updated record" do
+        template = create(:checklist_template, label: "Original", position: 0, user: user)
+
+        result = rpc("tools/call", { name: "update_habit",
+                                     arguments: { id: template.id, label: "Updated" } })["result"]
+        expect(result).not_to include("isError" => true)
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["habit"]["label"]).to eq("Updated")
+        expect(template.reload.label).to eq("Updated")
+      end
+
+      # TC-H8: positive control — restore_habit success (currently untested happy path)
+      it "TC-H8 restore_habit success restores and appends at position end" do
+        # Create my archived template and my kept template
+        archived = create(:checklist_template, label: "Archived", position: 0, user: user, discarded_at: 1.day.ago)
+        kept     = create(:checklist_template, label: "Kept", position: 0, user: user)
+
+        result = rpc("tools/call", { name: "restore_habit",
+                                     arguments: { id: archived.id } })["result"]
+        expect(result).not_to include("isError" => true)
+        payload = JSON.parse(result["content"].first["text"])
+        # After restore, position should be 1 (max of kept templates before restore)
+        expect(payload["habit"]["position"]).to eq(1)
+        expect(archived.reload.discarded_at).to be_nil
+      end
     end
 
     describe "settings management" do
+      let(:other_user) { create(:user) }
+
       it "update_plan updates macro targets by slug" do
-        plan = create(:plan, slug: "exercise-test", target_kcal: 2000)
+        plan = create(:plan, slug: "exercise-test", target_kcal: 2000, user: user)
         result = rpc("tools/call", {
           name: "update_plan",
           arguments: { slug: "exercise-test", target_kcal: 2300 }
@@ -405,14 +598,14 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_plan returns isError when no updatable fields are sent" do
-        create(:plan, slug: "active-only-slug")
+        create(:plan, slug: "active-only-slug", user: user)
         result = rpc("tools/call", { name: "update_plan", arguments: { slug: "active-only-slug" } })["result"]
         expect(result["isError"]).to be(true)
       end
 
       it "update_meal returns isError when no updatable fields are sent" do
-        plan = create(:plan, slug: "exercise-only-slug")
-        create(:meal, plan: plan, name: "OnlyMeal")
+        plan = create(:plan, slug: "exercise-only-slug", user: user)
+        create(:meal, plan: plan, name: "OnlyMeal", user: user)
         result = rpc("tools/call", { name: "update_meal",
                                      arguments: { plan_slug: "exercise-only-slug", name: "OnlyMeal" } })["result"]
         expect(result["isError"]).to be(true)
@@ -427,9 +620,9 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_meal updates macros and scheduled_time by plan_slug + name" do
-        plan = create(:plan, slug: "active-test")
+        plan = create(:plan, slug: "active-test", user: user)
         meal = create(:meal, plan: plan, name: "Lunch", target_kcal: 500,
-                      scheduled_time: Time.utc(2000, 1, 1, 12, 0))
+                      scheduled_time: Time.utc(2000, 1, 1, 12, 0), user: user)
         result = rpc("tools/call", {
           name: "update_meal",
           arguments: { plan_slug: "active-test", name: "Lunch",
@@ -444,7 +637,7 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_meal returns isError when the meal name is unknown on the plan" do
-        create(:plan, slug: "active-test2")
+        create(:plan, slug: "active-test2", user: user)
         result = rpc("tools/call", {
           name: "update_meal",
           arguments: { plan_slug: "active-test2", name: "Brunch", target_kcal: 100 }
@@ -453,7 +646,7 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_goal updates target_value by metric" do
-        goal = create(:goal, :weight, target_value: 80)
+        goal = create(:goal, :weight, target_value: 80, user: user)
         result = rpc("tools/call", {
           name: "update_goal",
           arguments: { metric: "weight_kg", target_value: 78 }
@@ -469,6 +662,89 @@ RSpec.describe "POST /mcp", type: :request do
           arguments: { metric: "bogus_metric", target_value: 78 }
         })["result"]
         expect(result["isError"]).to be(true)
+      end
+
+      # TC-G1: list_goals own-only — both inclusion and exclusion
+      it "TC-G1 list_goals includes own and excludes other_user's goals" do
+        other_goal = create(:goal, :weight, target_value: 75, user: other_user)
+        my_goal    = create(:goal, :weight, target_value: 80, user: user)
+
+        result = rpc("tools/call", { name: "list_goals", arguments: {} })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        goal_ids = payload["goals"].map { |g| g["id"] }
+        expect(goal_ids).to include(my_goal.id)
+        expect(goal_ids).not_to include(other_goal.id)
+      end
+
+      # TC-G2: log_weight scoped to Current.user's weight_kg goal
+      it "TC-G2 log_weight uses Current.user's weight goal, not other_user's" do
+        other_goal = create(:goal, :weight, target_value: 75, user: other_user)
+        my_goal    = create(:goal, :weight, target_value: 80, user: user)
+
+        result = rpc("tools/call", { name: "log_weight", arguments: { value: 78 } })["result"]
+        expect(result).not_to include("isError" => true)
+        payload = JSON.parse(result["content"].first["text"])
+        # The entry should be linked to my_goal, not other_goal
+        expect(payload["entry"]["value"]).to eq(78)
+        expect(my_goal.reload.biomarker_entries.count).to eq(1)
+        expect(other_goal.reload.biomarker_entries.count).to eq(0)
+      end
+
+      # TC-G3: update_goal on other_user's goal -> isError
+      it "TC-G3 update_goal returns isError when other_user is the only owner of the metric" do
+        other_goal = create(:goal, :weight, target_value: 75, user: other_user)
+
+        result = rpc("tools/call", {
+          name: "update_goal",
+          arguments: { metric: "weight_kg", target_value: 70 }
+        })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_goal.reload.target_value.to_f).to eq(75)
+      end
+
+      # TC-P1: update_plan — other_user's plan unchanged, my plan updated, returned plan is mine
+      it "TC-P1 update_plan updates only my plan, not other_user's with same slug" do
+        other_plan = create(:plan, slug: "active", target_kcal: 1800, user: other_user)
+        my_plan    = Plan.active(user: user)
+
+        result = rpc("tools/call", {
+          name: "update_plan",
+          arguments: { slug: "active", target_kcal: 2100 }
+        })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["plan"]["id"]).to eq(my_plan.id)
+        expect(payload["plan"]["target_kcal"]).to eq(2100)
+        expect(my_plan.reload.target_kcal).to eq(2100)
+        expect(other_plan.reload.target_kcal).to eq(1800)
+      end
+
+      # TC-P2: set_plan_for_day with slug only other_user owns -> isError
+      it "TC-P2 set_plan_for_day returns isError when slug belongs only to other_user" do
+        other_plan = seed_plan(slug: "rest", user: other_user)
+
+        result = rpc("tools/call", {
+          name: "set_plan_for_day",
+          arguments: { slug: "rest" }
+        })["result"]
+        expect(result["isError"]).to be(true)
+        expect(result["content"].first["text"]).to match(/Couldn't find/)
+      end
+
+      # TC-WS1: weekly summary data isolation
+      it "TC-WS1 get_weekly_summary excludes other_user's logs and biomarkers" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          other_goal = create(:goal, :weight, target_value: 75, user: other_user)
+          other_goal.biomarker_entries.create!(recorded_on: Date.current, value: 75.0)
+          other_log  = DailyLog.create!(date: Date.current, plan: seed_plan(slug: "active", user: other_user), user: other_user)
+
+          my_goal = create(:goal, :weight, target_value: 80, user: user)
+
+          result = rpc("tools/call", { name: "get_weekly_summary", arguments: {} })["result"]
+          payload = JSON.parse(result["content"].first["text"])
+          # My empty logs should result in nil metrics, not contaminated by other_user's data
+          expect(payload["weight_delta_kg"]).to be_nil
+          expect(payload["adherence_pct"]).to be_nil
+        end
       end
     end
 
@@ -543,6 +819,33 @@ RSpec.describe "POST /mcp", type: :request do
            params: { jsonrpc: "2.0", method: "notifications/initialized" }.to_json,
            headers: auth
       expect(response).to have_http_status(:accepted)
+    end
+
+    # TC-P3: plan_for helper scoped to Current.user
+    describe "plan_for cross-tenant isolation" do
+      let(:other_user) { create(:user) }
+
+      it "list_meals returns isError when plan_slug belongs only to other_user" do
+        # other_user's plan MUST be created first so an unscoped find_by would
+        # return it instead of raising RecordNotFound
+        seed_plan(slug: "rest", user: other_user)
+
+        result = rpc("tools/call", { name: "list_meals", arguments: { plan_slug: "rest" } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(result["content"].first["text"]).to match(/Couldn't find/)
+      end
+
+      it "add_meal_item returns isError when plan_slug belongs only to other_user" do
+        other_plan = seed_plan(slug: "rest", user: other_user)
+        create(:meal, plan: other_plan, name: "Dinner", user: other_user)
+        seed_food(name: "Rice")
+
+        result = rpc("tools/call", { name: "add_meal_item",
+                                     arguments: { plan_slug: "rest", meal_name: "Dinner",
+                                                  food_name: "Rice", quantity_grams: 100 } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(result["content"].first["text"]).to match(/Couldn't find/)
+      end
     end
   end
 end
