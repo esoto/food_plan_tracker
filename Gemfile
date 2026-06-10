@@ -73,6 +73,7 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
   gem "shoulda-matchers", "~> 7.0"
+  gem "database_cleaner-active_record"
 end
 
 group :development do
