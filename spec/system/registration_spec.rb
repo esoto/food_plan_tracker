@@ -14,8 +14,8 @@ RSpec.describe "User Registration", type: :system do
       fill_in "user[password_confirmation]", with: "password12345"
       click_button "Sign up"
 
-      expect(page).to have_current_path(root_path)
       expect(page).to have_text("Exercise day")
+      expect(page).to have_current_path(root_path)
       expect(page).to have_text("Active day")
       expect(page).to have_text("Rest day")
 

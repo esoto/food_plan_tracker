@@ -95,9 +95,12 @@ RSpec.describe "Daily interactions via Stimulus/Turbo", type: :system do
         click_button "Morning walk"
       end
 
-      # Wait for the checkbox to be checked (visual: green background + checkmark)
-      expect(page).to have_css("div.bg-emerald-500")
-      expect(page).to have_selector("svg path[d*='M5 13l4 4L19 7']")
+      # Wait for the checkbox to be checked (visual: green background + checkmark),
+      # scoped to the completion form — the progress bar also uses bg-emerald-500.
+      within("form[action*='checklist_completion']") do
+        expect(page).to have_css("div.bg-emerald-500")
+        expect(page).to have_selector("svg path[d*='M5 13l4 4L19 7']")
+      end
 
       # Verify the text is line-through
       expect(page).to have_css(".line-through", text: "Morning walk")

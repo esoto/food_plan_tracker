@@ -12,10 +12,10 @@ RSpec.configure do |config|
       capabilities: [
         Selenium::WebDriver::Chrome::Options.new(
           args: [
-            "headless=new",
-            "disable-dev-shm-usage",
-            "no-sandbox",
-            "disable-gpu"
+            "--headless=new",
+            "--disable-dev-shm-usage",
+            "--no-sandbox",
+            "--disable-gpu"
           ],
           window_size: [390, 844]
         )
@@ -23,7 +23,6 @@ RSpec.configure do |config|
     )
   end
 
-  Capybara.default_driver = :selenium
 
   # DatabaseCleaner configuration: truncation for system specs ONLY
   # Transactional fixtures remain on for all other spec types
@@ -32,6 +31,7 @@ RSpec.configure do |config|
   end
 
   config.before(:each, type: :system) do
+    Capybara.current_driver = :selenium
     # Browser requests hit the app server on a separate DB connection; data
     # must be committed, so truncation replaces transactional rollback here.
     self.use_transactional_tests = false
@@ -40,6 +40,7 @@ RSpec.configure do |config|
   end
 
   config.append_after(:each, type: :system) do
+    Capybara.use_default_driver
     DatabaseCleaner.clean
   end
 

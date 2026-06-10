@@ -74,12 +74,10 @@ RSpec.describe "Session sign-out and navigation hygiene", type: :system do
         # 1. The current path is the sign-in page (page redirected), or
         # 2. The page contains no Alice-specific personal data
         # (Rails should prevent access to authed routes and redirect)
-        if page.current_path != new_session_path
-          # If not redirected, verify Alice's personal data is not present
-          expect(page).to have_no_text(alice.email_address)
-        else
-          expect(page).to have_current_path(new_session_path)
-        end
+        # Whether the browser served bfcache or re-requested (302 to sign-in),
+        # neither outcome may expose the authed UI or Alice's data.
+        expect(page).to have_no_text(alice.email_address)
+        expect(page).to have_no_button("Sign out")
       end
 
       # Bob's parallel session remains unaffected

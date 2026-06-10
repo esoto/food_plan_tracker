@@ -39,6 +39,9 @@ RSpec.describe "Two-user parallel session isolation", type: :system do
       using_session("bob") do
         visit settings_supplements_path
         expect(page).to have_link("+ New supplement")
+        # Positive control: Bob's empty state rendered — the negative below
+        # can't pass vacuously on a blank/error page.
+        expect(page).to have_text("No active supplements yet")
         expect(page).to have_no_text("AliceBrowserSupp")
       end
 
