@@ -284,20 +284,20 @@ module Api
     end
 
     def handle_list_habits(args)
-      scope = args["archived"].to_s == "true" ? ChecklistTemplate.discarded.order(:label) : ChecklistTemplate.kept.ordered
+      scope = args["archived"].to_s == "true" ? Current.user.checklist_templates.discarded.order(:label) : Current.user.checklist_templates.kept.ordered
       { habits: scope.map { |t| serialize_habit(t) } }
     end
 
     def handle_create_habit(args)
       attrs = args.slice("label", "description", "icon")
-      template = ChecklistTemplate.new(attrs)
-      template.position = ChecklistTemplate.next_position
+      template = Current.user.checklist_templates.new(attrs)
+      template.position = ChecklistTemplate.next_position(user: Current.user)
       template.save!
       { habit: serialize_habit(template) }
     end
 
     def handle_update_habit(args)
-      template = ChecklistTemplate.find(args.fetch("id"))
+      template = Current.user.checklist_templates.find(args.fetch("id"))
       attrs = args.slice("label", "description", "icon", "position").compact
       raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
 
@@ -306,13 +306,13 @@ module Api
     end
 
     def handle_archive_habit(args)
-      template = ChecklistTemplate.find(args.fetch("id"))
+      template = Current.user.checklist_templates.find(args.fetch("id"))
       template.discard!
       { habit: serialize_habit(template) }
     end
 
     def handle_restore_habit(args)
-      template = ChecklistTemplate.find(args.fetch("id"))
+      template = Current.user.checklist_templates.find(args.fetch("id"))
       template.restore_at_end!
       { habit: serialize_habit(template) }
     end
