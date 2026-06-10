@@ -51,12 +51,35 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
 
     it 'POST /biomarker_entries ignores user_id in params' do
       goal = create(:goal, user: owner)
-      post biomarker_entries_url, params: {
-        biomarker_entry: { goal_id: goal.id, value: 75.0, recorded_on: Date.current.to_s },
-        user_id: other_user.id
-      }
-      entry = BiomarkerEntry.last
+      expect {
+        post biomarker_entries_url, params: {
+          biomarker_entry: { goal_id: goal.id, value: 75.0, recorded_on: Date.current.to_s },
+          user_id: other_user.id
+        }
+      }.to change(BiomarkerEntry, :count).by(1)
+      entry = goal.biomarker_entries.order(:id).last
+      expect(entry).to be_present
       expect(entry.user_id).to eq(owner.id)
+    end
+
+    it 'POST /settings/habits ignores user_id in params' do
+      expect {
+        post settings_habits_url, params: {
+          checklist_template: { label: 'NewHabitMA', user_id: other_user.id },
+          user_id: other_user.id
+        }
+      }.to change(ChecklistTemplate, :count).by(1)
+      habit = ChecklistTemplate.find_by!(label: 'NewHabitMA')
+      expect(habit.user_id).to eq(owner.id)
+    end
+
+    it 'PATCH /settings/habits/:id ignores user_id in params' do
+      habit = create(:checklist_template, label: 'MineMA', position: 0, user: owner)
+      patch settings_habit_url(habit), params: {
+        checklist_template: { label: 'UpdatedMA', user_id: other_user.id }
+      }
+      expect(habit.reload.user_id).to eq(owner.id)
+      expect(habit.label).to eq('UpdatedMA')
     end
 
     it 'POST /settings/supplements ignores user_id in params' do
@@ -127,7 +150,8 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
       post "/api/v1/meals/#{meal.id}/items", params: {
         meal_item: { food_id: food.id, quantity_grams: 100, user_id: other_user.id }
       }.to_json, headers: @headers
-      item = MealItem.last
+      item = meal.meal_items.order(:id).last
+      expect(item).to be_present
       expect(item.user_id).to eq(owner.id)
     end
 
@@ -135,7 +159,7 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
       post '/api/v1/supplements', params: {
         supplement: { name: 'NewSupp', dose: '1 cap', critical: false, user_id: other_user.id }
       }.to_json, headers: @headers
-      supplement = Supplement.last
+      supplement = Supplement.find_by!(name: 'NewSupp')
       expect(supplement.user_id).to eq(owner.id)
     end
 
@@ -143,7 +167,7 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
       post '/api/v1/habits', params: {
         habit: { label: 'NewHabit', description: 'test', user_id: other_user.id }
       }.to_json, headers: @headers
-      habit = ChecklistTemplate.last
+      habit = ChecklistTemplate.find_by!(label: 'NewHabit')
       expect(habit.user_id).to eq(owner.id)
     end
 
@@ -157,8 +181,29 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
         date: Date.current.to_s,
         user_id: other_user.id
       }.to_json, headers: @headers
-      entry = BiomarkerEntry.last
+      entry = goal.biomarker_entries.order(:id).last
+      expect(entry).to be_present
+      expect(entry.user_id).to eq(owner.id)
+    end
+
+    it 'POST /api/v1/foods/:food_id/log ignores user_id in body' do
+      create(:plan, slug: 'active', user: owner) # daily_log_for needs a plan to create today's log
+      food = create(:food)
+      expect {
+        post "/api/v1/foods/#{food.id}/log", params: {
+          quantity_grams: 150, user_id: other_user.id
+        }.to_json, headers: @headers
+      }.to change(LoggedFood, :count).by(1)
+      entry = LoggedFood.order(:id).last
       expect(entry.user_id).to eq(owner.id)
     end
   end
+
+  # Structurally immune endpoints — documented rather than tested, because no
+  # attribute hash is ever permitted, so user_id injection has no path to the
+  # model: meal_completions/supplement_completions (built from scoped meal/
+  # supplement + daily_log lookups), checklist_completions (find_or_initialize
+  # off the scoped log), reminder_preferences (top-level reminder_type/key/
+  # enabled only), push_subscriptions (for_user(Current.user) upsert), and the
+  # HTML logged_foods create (food_id/daily_log_id + quantity only).
 end

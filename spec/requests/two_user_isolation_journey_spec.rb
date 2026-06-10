@@ -39,7 +39,6 @@ RSpec.describe 'Two-user isolation journey', type: :request do
     post '/session', params: { email_address: alice_email, password: alice_password }
     expect(response).to redirect_to(root_path)
     follow_redirect!
-    Current.user = @alice
   end
 
   it 'Phase 1: Alice creates a supplement, Bob signs in and does not see it' do
@@ -61,7 +60,6 @@ RSpec.describe 'Two-user isolation journey', type: :request do
     post '/session', params: { email_address: bob_email, password: bob_password }
     expect(response).to redirect_to(root_path)
     follow_redirect!
-    Current.user = @bob
 
     get settings_supplements_url
     expect(response.body).not_to include('VitaminD')
@@ -110,7 +108,7 @@ RSpec.describe 'Two-user isolation journey', type: :request do
       name: 'Claude MCP Test',
       redirect_uri: 'https://example.com/cb',
       scopes: 'mcp',
-      confidential: true
+      confidential: false
     )
     alice_mcp_token = Doorkeeper::AccessToken.create!(
       application: app,
@@ -160,7 +158,7 @@ RSpec.describe 'Two-user isolation journey', type: :request do
       name: 'Claude MCP Test 2',
       redirect_uri: 'https://example.com/cb',
       scopes: 'mcp',
-      confidential: true
+      confidential: false
     )
     alice_mcp_token = Doorkeeper::AccessToken.create!(
       application: app,
@@ -175,7 +173,6 @@ RSpec.describe 'Two-user isolation journey', type: :request do
 
     post '/session', params: { email_address: alice_email, password: alice_password }
     follow_redirect!
-    Current.user = @alice
 
     get settings_supplements_url
     expect(response.body).to include('AliceProofSupp')
@@ -183,7 +180,6 @@ RSpec.describe 'Two-user isolation journey', type: :request do
 
     post '/session', params: { email_address: bob_email, password: bob_password }
     follow_redirect!
-    Current.user = @bob
 
     get settings_supplements_url
     expect(response.body).to include('BobProofSupp')
@@ -225,5 +221,18 @@ RSpec.describe 'Two-user isolation journey', type: :request do
   it 'unauthenticated GET /api/v1/plans returns 401' do
     get '/api/v1/plans', headers: { 'Content-Type' => 'application/json' }
     expect(response).to have_http_status(:unauthorized)
+  end
+
+  it 'unauthenticated PATCH /plans/:id redirects to sign-in and does not mutate' do
+    plan = @alice.plans.find_by!(slug: Plan::ACTIVE_SLUG)
+    original_kcal = plan.target_kcal
+
+    # No session cookie for this request: reset the integration session so the
+    # cookies set during registration in the before block don't authenticate it.
+    reset!
+    patch "/plans/#{plan.id}", params: { plan: { target_kcal: 9999 } }
+
+    expect(response).to redirect_to(new_session_path)
+    expect(plan.reload.target_kcal).to eq(original_kcal)
   end
 end
