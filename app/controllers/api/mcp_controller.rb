@@ -249,20 +249,20 @@ module Api
     end
 
     def handle_list_supplements(args)
-      scope = args["archived"].to_s == "true" ? Supplement.discarded : Supplement.kept
+      scope = args["archived"].to_s == "true" ? Current.user.supplements.discarded : Current.user.supplements.kept
       scope = scope.includes(:supplement_schedules).order(critical: :desc, name: :asc)
       { supplements: scope.map { |s| serialize_supplement(s) } }
     end
 
     def handle_create_supplement(args)
       attrs = args.slice("name", "dose", "critical", "notes", "contraindications")
-      supplement = Supplement.create!(attrs)
+      supplement = Current.user.supplements.create!(attrs)
       supplement.sync_time_slots!(args["time_slots"]) if args.key?("time_slots")
       { supplement: serialize_supplement(supplement.reload) }
     end
 
     def handle_update_supplement(args)
-      supplement = Supplement.find(args.fetch("id"))
+      supplement = Current.user.supplements.find(args.fetch("id"))
       attrs = args.slice("name", "dose", "critical", "notes", "contraindications").compact
       raise ToolArgumentError, "no updatable fields provided" if attrs.empty? && !args.key?("time_slots")
 
@@ -272,13 +272,13 @@ module Api
     end
 
     def handle_archive_supplement(args)
-      supplement = Supplement.find(args.fetch("id"))
+      supplement = Current.user.supplements.find(args.fetch("id"))
       supplement.discard!
       { supplement: serialize_supplement(supplement) }
     end
 
     def handle_restore_supplement(args)
-      supplement = Supplement.find(args.fetch("id"))
+      supplement = Current.user.supplements.find(args.fetch("id"))
       supplement.restore!
       { supplement: serialize_supplement(supplement) }
     end

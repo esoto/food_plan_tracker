@@ -326,10 +326,12 @@ RSpec.describe "POST /mcp", type: :request do
     end
 
     describe "supplements management" do
+      let(:other_user) { create(:user) }
+
       it "list_supplements returns kept supplements with their time slots" do
-        sup = create(:supplement, name: "Magnesium")
+        sup = create(:supplement, name: "Magnesium", user: user)
         sup.supplement_schedules.create!(time_slot: "pre_sleep", position: 0)
-        create(:supplement, name: "Archived stack", discarded_at: 1.day.ago)
+        create(:supplement, name: "Archived stack", user: user, discarded_at: 1.day.ago)
 
         result = rpc("tools/call", { name: "list_supplements", arguments: {} })["result"]
         payload = JSON.parse(result["content"].first["text"])
@@ -347,19 +349,84 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_supplement is an error when no updatable field or time_slots sent" do
-        sup = create(:supplement)
+        sup = create(:supplement, user: user)
         result = rpc("tools/call", { name: "update_supplement", arguments: { id: sup.id } })["result"]
         expect(result["isError"]).to be(true)
       end
 
       it "archive_supplement and restore_supplement round-trip" do
-        sup = create(:supplement)
+        sup = create(:supplement, user: user)
 
         rpc("tools/call", { name: "archive_supplement", arguments: { id: sup.id } })
         expect(sup.reload.discarded_at).to be_present
 
         rpc("tools/call", { name: "restore_supplement", arguments: { id: sup.id } })
         expect(sup.reload.discarded_at).to be_nil
+      end
+
+      # TC-S1: list own-only — both inclusion and exclusion asserted
+      it "TC-S1 list_supplements includes own and excludes other_user's supplements" do
+        # other_user's supplement MUST be created first (unscoped query would return first row)
+        other_sup = create(:supplement, name: "Theirs", user: other_user)
+        my_sup    = create(:supplement, name: "Mine", user: user)
+
+        result = rpc("tools/call", { name: "list_supplements", arguments: {} })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        names = payload["supplements"].map { |s| s["name"] }
+        expect(names).to include("Mine")
+        expect(names).not_to include("Theirs")
+      end
+
+      # TC-S2: archived list variant
+      it "TC-S2 list_supplements archived=true includes own archived, excludes other_user's" do
+        other_sup = create(:supplement, name: "Theirs Archived", user: other_user, discarded_at: 1.day.ago)
+        my_sup    = create(:supplement, name: "Mine Archived", user: user, discarded_at: 1.day.ago)
+
+        result = rpc("tools/call", { name: "list_supplements", arguments: { archived: true } })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        names = payload["supplements"].map { |s| s["name"] }
+        expect(names).to include("Mine Archived")
+        expect(names).not_to include("Theirs Archived")
+      end
+
+      # TC-S3: update on other_user's supplement -> isError + reload unchanged
+      it "TC-S3 update_supplement returns isError on other_user's id and leaves record unchanged" do
+        other_sup = create(:supplement, name: "Original", user: other_user)
+
+        result = rpc("tools/call", { name: "update_supplement",
+                                     arguments: { id: other_sup.id, name: "Hacked" } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_sup.reload.name).to eq("Original")
+      end
+
+      # TC-S4: archive on other_user's supplement -> isError + discarded_at nil
+      it "TC-S4 archive_supplement returns isError on other_user's id and leaves record unarchived" do
+        other_sup = create(:supplement, name: "Not Mine", user: other_user)
+
+        result = rpc("tools/call", { name: "archive_supplement",
+                                     arguments: { id: other_sup.id } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_sup.reload.discarded_at).to be_nil
+      end
+
+      # TC-S5: restore on other_user's supplement -> isError + discarded_at still present
+      it "TC-S5 restore_supplement returns isError on other_user's id and leaves record discarded" do
+        other_sup = create(:supplement, name: "Not Mine Archived", user: other_user, discarded_at: 1.day.ago)
+
+        result = rpc("tools/call", { name: "restore_supplement",
+                                     arguments: { id: other_sup.id } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_sup.reload.discarded_at).to be_present
+      end
+
+      # TC-S6: create assigns correct user (orphan lock)
+      it "TC-S6 create_supplement assigns the authenticated user as owner" do
+        result = rpc("tools/call", { name: "create_supplement",
+                                     arguments: { name: "New Sup", dose: "1 capsule" } })["result"]
+        expect(result).not_to include("isError" => true)
+        payload = JSON.parse(result["content"].first["text"])
+        created = Supplement.find(payload["supplement"]["id"])
+        expect(created.user).to eq(user)
       end
     end
 
