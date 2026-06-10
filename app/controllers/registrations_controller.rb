@@ -16,6 +16,12 @@ class RegistrationsController < ApplicationController
     else
       render :new, status: :unprocessable_entity
     end
+  rescue ActiveRecord::RecordNotUnique
+    # Two concurrent sign-ups for the same email can both pass the uniqueness
+    # validation; the DB unique index stops the loser here. Render the same
+    # 422 the validation would have produced instead of a 500.
+    @user.errors.add(:email_address, "has already been taken")
+    render :new, status: :unprocessable_entity
   end
 
   private

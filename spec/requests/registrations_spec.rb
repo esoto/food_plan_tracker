@@ -41,6 +41,26 @@ RSpec.describe RegistrationsController, type: :request do
         expect(Plan.for_user(new_user).count).to eq(3)
       end
 
+      it "normalizes the email on registration and authenticates with the normalized form" do
+        post registration_path, params: {
+          user: {
+            email_address: "  NewUser@Example.COM  ",
+            password: "securepassword123",
+            password_confirmation: "securepassword123"
+          }
+        }
+
+        new_user = User.order(:id).last
+        expect(new_user.email_address).to eq("newuser@example.com")
+
+        # Sign out, then sign back in with the normalized address.
+        delete session_path
+        post session_path, params: { email_address: "newuser@example.com", password: "securepassword123" }
+        expect(response).to redirect_to(root_path)
+        follow_redirect!
+        expect(response).to have_http_status(:ok)
+      end
+
       it "flashes a welcome notice" do
         post registration_path, params: {
           user: {
@@ -105,12 +125,13 @@ RSpec.describe RegistrationsController, type: :request do
 
     context "rate limiting" do
       it "enforces rate limit of 10 requests per 3 minutes on create" do
-        # Note: Test env uses :null_store cache, which doesn't persist counters.
-        # The rate_limit DSL (to: 10, within: 3.minutes) is configured in the
-        # controller and verified via source inspection (see line 3 of
-        # RegistrationsController). Full rate-limiting behavior is tested by
-        # Rails' own test suite; this assertion verifies the directive is present.
-        expect(RegistrationsController).to respond_to(:rate_limit)
+        # Note: Test env uses :null_store cache, which doesn't persist counters,
+        # so the limiter cannot be tripped behaviorally here. Rails' own suite
+        # tests the mechanism; this guard fails if the directive is removed
+        # from the controller (respond_to?(:rate_limit) is true for ANY
+        # controller, so assert the actual declaration instead).
+        source = File.read(Rails.root.join("app/controllers/registrations_controller.rb"))
+        expect(source).to match(/rate_limit to: 10, within: 3\.minutes, only: :create/)
       end
     end
 
