@@ -39,6 +39,19 @@ RSpec.describe UserReminderJob, type: :job do
 
       expect(Current.user).to be_nil
     end
+
+    it "RESETS Current.user even when the broadcast raises" do
+      DailyLog.for(Date.current, user: user)
+      allow(PushNotifier).to receive(:broadcast).and_raise(StandardError, "push 5xx")
+
+      expect {
+        described_class.perform_now(user.id, now: Time.zone.local(2026, 4, 26, 7, 30))
+      }.to raise_error(StandardError, "push 5xx")
+
+      # Current.set restores in an ensure — a raise inside the block must not
+      # leak this user's context into the next job on the same worker thread.
+      expect(Current.user).to be_nil
+    end
   end
 
   describe "no-op behavior" do

@@ -68,10 +68,18 @@ RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
   config.include AuthenticationHelper, type: :request
   config.include ActiveSupport::Testing::TimeHelpers
-  config.include ActiveJob::TestHelper
+  config.include ActiveJob::TestHelper, type: :job
 
-  # Use :test queue adapter for job specs with have_enqueued_job
-  config.before(:suite) { ActiveJob::Base.queue_adapter = :test }
+  # Use the :test queue adapter only for job specs (have_enqueued_job).
+  # Scoped per-example rather than suite-wide so a future request spec that
+  # asserts a perform_later side-effect can't pass vacuously.
+  config.around(:each, type: :job) do |example|
+    previous_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    example.run
+  ensure
+    ActiveJob::Base.queue_adapter = previous_adapter
+  end
 
   # Reset Current.user between examples to prevent cross-test leakage
   config.before(:each) { Current.reset }
