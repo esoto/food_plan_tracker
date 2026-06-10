@@ -203,6 +203,21 @@ RSpec.describe "POST /mcp", type: :request do
       expect(payload["day"]["logged_foods"].map { |lf| lf["id"] }).not_to include(entry.id)
     end
 
+    describe "logged_food cross-tenant isolation" do
+      let(:other_user) { create(:user) }
+
+      it "TC-LF1 delete_logged_food returns isError on other_user's entry and entry still exists" do
+        other_food = seed_food(name: "Quinoa")
+        other_plan = seed_plan(slug: "active", user: other_user)
+        other_log  = DailyLog.today(user: other_user)
+        other_entry = other_log.logged_foods.create!(food: other_food, quantity_grams: 100, logged_at: Time.current, user: other_user)
+
+        result = rpc("tools/call", { name: "delete_logged_food", arguments: { id: other_entry.id } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(LoggedFood.exists?(other_entry.id)).to be(true)
+      end
+    end
+
     describe "get_weekly_summary" do
       let!(:weight_goal) do
         Goal.find_or_create_by!(metric: Goal.metrics[:weight_kg], user: user) do |g|
@@ -321,6 +336,18 @@ RSpec.describe "POST /mcp", type: :request do
           expect {
             rpc("tools/call", { name: "copy_yesterday_meals", arguments: { date: target_date.iso8601 } })
           }.not_to change { DailyLog.where(date: target_date).count }
+        end
+      end
+
+      it "TC-CY1 copy_yesterday_meals returns isError when other_user has yesterday but I don't" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          other_user = create(:user)
+          other_plan = seed_plan(slug: "active", user: other_user)
+          other_yesterday = DailyLog.create!(date: Date.current - 1, plan: other_plan, user: other_user)
+
+          result = rpc("tools/call", { name: "copy_yesterday_meals", arguments: {} })["result"]
+          expect(result["isError"]).to be(true)
+          expect(result["content"].first["text"]).to match(/no_yesterday_log/)
         end
       end
     end

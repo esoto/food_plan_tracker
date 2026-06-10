@@ -200,7 +200,7 @@ module Api
     end
 
     def handle_delete_logged_food(args)
-      entry = LoggedFood.find(args.fetch("id"))
+      entry = Current.user.logged_foods.find(args.fetch("id"))
       log   = entry.daily_log
       entry.destroy!
       { ok: true, day: serialize_day(log.reload) }
@@ -355,11 +355,11 @@ module Api
 
     def handle_copy_yesterday_meals(args)
       target_date = date_arg(args)
-      yesterday = DailyLog.find_by(date: target_date - 1)
+      yesterday = Current.user.daily_logs.find_by(date: target_date - 1)
 
       raise ToolArgumentError, "no_yesterday_log: no log from yesterday — nothing to copy" if yesterday.nil?
 
-      existing_today = DailyLog.find_by(date: target_date)
+      existing_today = Current.user.daily_logs.find_by(date: target_date)
       if existing_today && !existing_today.can_copy_from?(yesterday)
         raise ToolArgumentError, "plan_mismatch: yesterday's plan (#{yesterday.plan.slug}) doesn't match today's (#{existing_today.plan.slug})"
       end
