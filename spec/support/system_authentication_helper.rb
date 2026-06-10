@@ -7,8 +7,8 @@ module SystemAuthenticationHelper
     # Don't assert the post-login landing path: the PWA service worker's
     # shell precache (which includes authed routes like /progress) can run
     # while logged out and pollute return_to_after_authenticating, making
-    # the redirect target nondeterministic across examples. Tracked in
-    # Linear PER-575. Assert we're signed in, then navigate explicitly.
+    # the redirect target nondeterministic across examples. Tracked in the Obsidian note
+    # 'Food Plan Tracker — Post-Epic Follow-ups' (Linear issue limit reached). Assert we're signed in, then navigate explicitly.
     expect(page).to have_no_current_path(new_session_path)
     visit root_path
     expect(page).to have_current_path(root_path)
