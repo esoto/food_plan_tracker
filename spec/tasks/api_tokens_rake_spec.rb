@@ -15,11 +15,12 @@ RSpec.describe "api_tokens rake tasks" do
     task = Rake::Task["api_tokens:#{name}"]
     task.reenable
     output = StringIO.new
+    previous_stdout = $stdout
     $stdout = output
     task.invoke
     output.string
   ensure
-    $stdout = STDOUT
+    $stdout = previous_stdout
     env.each_key { |k| ENV.delete(k) }
   end
 
@@ -53,6 +54,14 @@ RSpec.describe "api_tokens rake tasks" do
 
       expect(alice.api_tokens.where(name: "MCP")).to be_empty
       expect(bob.api_tokens.where(name: "MCP").count).to eq(1)
+    end
+  end
+
+  describe "api_tokens:revoke with unknown user" do
+    it "aborts on an email that matches no user" do
+      expect {
+        run_task("revoke", "NAME" => "X", "USER_EMAIL" => "ghost@example.com")
+      }.to raise_error(SystemExit)
     end
   end
 
