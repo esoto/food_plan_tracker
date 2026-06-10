@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 # OAuth provider for the remote MCP endpoint that claude.ai connects to.
-# Single-user app: the resource owner is always the only user. Clients
-# (Claude.ai, Claude mobile) register themselves via DCR (RFC 7591) and
-# walk through the standard authorization-code-with-PKCE flow.
+# Multi-user: the resource owner is whichever user's session authorizes the
+# grant (resolved from the session cookie below). Clients (Claude.ai, Claude
+# mobile) register themselves via DCR (RFC 7591) and walk through the
+# standard authorization-code-with-PKCE flow.
 Doorkeeper.configure do
   orm :active_record
 
