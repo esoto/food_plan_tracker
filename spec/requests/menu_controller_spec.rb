@@ -57,7 +57,7 @@ RSpec.describe "MenuController#show", type: :request do
 
   describe "cross-tenant isolation" do
     it "does not show another user's plans in the switcher" do
-      user_a = create(:user, password: "password")
+      user_a = create(:user, password: "password12345")
       sign_in_as(user_a)
       create(:plan, slug: "active", name: "A active", user: user_a)
       create(:plan, slug: "rest", name: "OTHER MENU PLAN", user: create(:user))

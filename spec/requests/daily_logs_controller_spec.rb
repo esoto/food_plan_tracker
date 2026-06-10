@@ -26,7 +26,7 @@ RSpec.describe DailyLogsController, type: :request do
 
   describe "cross-tenant isolation" do
     it "PATCH on another user's daily_log returns 404" do
-      user_a = create(:user, password: "password")
+      user_a = create(:user, password: "password12345")
       sign_in_as(user_a)
       other  = create(:user)
       plan_b = create(:plan, user: other)
@@ -39,7 +39,7 @@ RSpec.describe DailyLogsController, type: :request do
     end
 
     it "rejects a plan_id belonging to another user" do
-      user_a = create(:user, password: "password")
+      user_a = create(:user, password: "password12345")
       sign_in_as(user_a)
       plan_a = create(:plan, slug: "active", user: user_a)
       log_a  = create(:daily_log, user: user_a, plan: plan_a)

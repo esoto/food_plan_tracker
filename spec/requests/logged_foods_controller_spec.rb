@@ -32,7 +32,7 @@ RSpec.describe LoggedFoodsController, type: :request do
 
     describe "daily_log_from_params cross-tenant (PER-556 helper)" do
       it "returns 404 when daily_log_id belongs to another user" do
-        user_a = create(:user, password: "password")
+        user_a = create(:user, password: "password12345")
         sign_in_as(user_a)
         other  = create(:user)
         plan_b = create(:plan, user: other)

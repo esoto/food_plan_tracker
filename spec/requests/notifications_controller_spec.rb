@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe NotificationsController, type: :request do
-  let!(:user) { create(:user, password: "password") }
+  let!(:user) { create(:user, password: "password12345") }
   let!(:plan) { seed_plan(slug: "active") }
   let!(:meal) do
     plan.meals.create!(position: 1, name: "Breakfast",

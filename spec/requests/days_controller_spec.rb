@@ -41,7 +41,7 @@ RSpec.describe DaysController, type: :request do
         foreign_weight_goal = create(:goal, :weight, target_value: 987.5, user: user_b)
 
         # Create current user and their weight goal
-        user_a = create(:user, password: "password")
+        user_a = create(:user, password: "password12345")
         user_a_plan = seed_plan(slug: "active", user: user_a)
         own_weight_goal = create(:goal, :weight, target_value: 65.0, user: user_a)
 
@@ -66,7 +66,7 @@ RSpec.describe DaysController, type: :request do
 
   describe "cross-tenant isolation" do
     it "does not show another user's plans" do
-      user_a = create(:user, password: "password")
+      user_a = create(:user, password: "password12345")
       sign_in_as(user_a)
       create(:plan, slug: "active", name: "A active", user: user_a)
       create(:plan, slug: "rest", name: "OTHER DAYS PLAN", user: create(:user))

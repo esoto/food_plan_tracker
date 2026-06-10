@@ -17,4 +17,9 @@ class User < ApplicationRecord
   has_many :meal_items, dependent: :destroy
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
+
+  validates :email_address, presence: true,
+    format: { with: URI::MailTo::EMAIL_REGEXP },
+    uniqueness: { case_sensitive: false }
+  validates :password, length: { minimum: 12 }, allow_nil: true
 end

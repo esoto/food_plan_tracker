@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe BiomarkerEntriesController, type: :request do
-  let(:user) { create(:user, password: "password") }
+  let(:user) { create(:user, password: "password12345") }
   let(:plan) { seed_plan(slug: "active") }
   let!(:weight_goal) do
     Goal.find_or_create_by!(metric: 0, user: user) do |g|

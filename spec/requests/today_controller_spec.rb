@@ -43,7 +43,7 @@ RSpec.describe TodayController, type: :request do
 
     describe "fibrotina_due? cross-tenant (PER-556 helper)" do
       it "does not consider another user's Fibrotina supplement" do
-        user_a = create(:user, password: "password")
+        user_a = create(:user, password: "password12345")
         sign_in_as(user_a)
         create(:plan, slug: "active", user: user_a)
         other = create(:user)
@@ -57,7 +57,7 @@ RSpec.describe TodayController, type: :request do
       end
 
       it "does consider the current user's Fibrotina supplement" do
-        user_a = create(:user, password: "password")
+        user_a = create(:user, password: "password12345")
         sign_in_as(user_a)
         create(:plan, slug: "active", user: user_a)
         create(:supplement, name: "Fibrotina (fenofibrate)", user: user_a)
@@ -77,7 +77,7 @@ RSpec.describe TodayController, type: :request do
         foreign_weight_goal = create(:goal, :weight, target_value: 987.5, user: user_b)
 
         # Create current user's weight goal
-        user_a = create(:user, password: "password")
+        user_a = create(:user, password: "password12345")
         sign_in_as(user_a)
         create(:plan, slug: "active", user: user_a)
         own_weight_goal = create(:goal, :weight, target_value: 65.0, user: user_a)
@@ -99,7 +99,7 @@ RSpec.describe TodayController, type: :request do
         user_b = create(:user)
         create(:goal, :weight, target_value: 987.5, user: user_b)
 
-        user_a = create(:user, password: "password")
+        user_a = create(:user, password: "password12345")
         sign_in_as(user_a)
         create(:plan, slug: "active", user: user_a)
 
@@ -120,7 +120,7 @@ RSpec.describe TodayController, type: :request do
         create(:supplement, name: "Fibrotina B12", user: user_b)
 
         # Current user has NO fibrotina
-        user_a = create(:user, password: "password")
+        user_a = create(:user, password: "password12345")
         sign_in_as(user_a)
         create(:plan, slug: "active", user: user_a)
 
@@ -137,7 +137,7 @@ RSpec.describe TodayController, type: :request do
         foreign_fibrotina = create(:supplement, name: "Fibrotina (fenofibrate)", user: user_b)
 
         # Create current user's Fibrotina
-        user_a = create(:user, password: "password")
+        user_a = create(:user, password: "password12345")
         sign_in_as(user_a)
         create(:plan, slug: "active", user: user_a)
         own_fibrotina = create(:supplement, name: "Fibrotina (fenofibrate)", user: user_a)
@@ -157,7 +157,7 @@ RSpec.describe TodayController, type: :request do
 
       it "does not show banner when current user's Fibrotina already taken today" do
         travel_to Time.zone.local(Date.current.year, Date.current.month, Date.current.day, 19, 30) do
-          user_a = create(:user, password: "password")
+          user_a = create(:user, password: "password12345")
           sign_in_as(user_a)
           create(:plan, slug: "active", user: user_a)
           fibrotina = create(:supplement, name: "Fibrotina (fenofibrate)", user: user_a)
@@ -175,7 +175,7 @@ RSpec.describe TodayController, type: :request do
 
     describe "cross-tenant isolation" do
       it "excludes another user's plans, goals, and weight entries" do
-        user_a = create(:user, password: "password")
+        user_a = create(:user, password: "password12345")
         sign_in_as(user_a)
         create(:plan, slug: "active", name: "A active", user: user_a)
 

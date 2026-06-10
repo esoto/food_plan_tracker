@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe ReminderPreferencesController, type: :request do
-  let(:user) { create(:user, password: "password") }
+  let(:user) { create(:user, password: "password12345") }
 
   before do
     sign_in_as(user)

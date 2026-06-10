@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe PushSubscriptionsController, type: :request do
-  let(:user) { create(:user, password: "password") }
+  let(:user) { create(:user, password: "password12345") }
   let(:body) do
     {
       endpoint: "https://fcm.googleapis.com/fcm/send/abc123",
