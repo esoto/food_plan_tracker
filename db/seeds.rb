@@ -158,7 +158,7 @@ rest.assign_attributes(
 rest.save!
 
 # Remove legacy plan slugs if they still exist from earlier seeds.
-legacy_plans = Plan.where.not(slug: [ Plan::EXERCISE_SLUG, Plan::ACTIVE_SLUG, Plan::REST_SLUG ])
+legacy_plans = Plan.for_user(user).where.not(slug: [ Plan::EXERCISE_SLUG, Plan::ACTIVE_SLUG, Plan::REST_SLUG ])
 if legacy_plans.exists?
   # Reassign any daily logs that still point at a legacy plan so we don't trip
   # the restrict_with_error on destroy.
