@@ -10,7 +10,7 @@ class SupplementSchedule < ApplicationRecord
   validates :time_slot, :position, presence: true
 
   # Each slot's representative wall-clock time in the app's local zone.
-  # ReminderTickerJob iterates these to decide when to fire push
+  # UserReminderJob iterates these to decide when to fire push
   # reminders; the prose `time:` field below is human-display only.
   SLOT_TIMES = {
     "morning"   => [ 7,  0 ],

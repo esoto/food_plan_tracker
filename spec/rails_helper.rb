@@ -68,6 +68,10 @@ RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
   config.include AuthenticationHelper, type: :request
   config.include ActiveSupport::Testing::TimeHelpers
+  config.include ActiveJob::TestHelper
+
+  # Use :test queue adapter for job specs with have_enqueued_job
+  config.before(:suite) { ActiveJob::Base.queue_adapter = :test }
 
   # Reset Current.user between examples to prevent cross-test leakage
   config.before(:each) { Current.reset }

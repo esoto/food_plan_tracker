@@ -6,7 +6,7 @@ class NotificationsController < ApplicationController
     @subscription_count = @subscriptions.size
     @plan = today_log&.plan
 
-    # Mirror the guard in ReminderTickerJob: don't crash the page on a
+    # Mirror the guard in UserReminderJob: don't crash the page on a
     # fresh install where the seed plans haven't run yet.
     @meal_reminders = @plan ? meal_reminders_for(@plan) : []
     @supplement_reminders = supplement_reminders
