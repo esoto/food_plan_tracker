@@ -557,8 +557,10 @@ RSpec.describe "POST /mcp", type: :request do
     end
 
     describe "settings management" do
+      let(:other_user) { create(:user) }
+
       it "update_plan updates macro targets by slug" do
-        plan = create(:plan, slug: "exercise-test", target_kcal: 2000)
+        plan = create(:plan, slug: "exercise-test", target_kcal: 2000, user: user)
         result = rpc("tools/call", {
           name: "update_plan",
           arguments: { slug: "exercise-test", target_kcal: 2300 }
@@ -569,14 +571,14 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_plan returns isError when no updatable fields are sent" do
-        create(:plan, slug: "active-only-slug")
+        create(:plan, slug: "active-only-slug", user: user)
         result = rpc("tools/call", { name: "update_plan", arguments: { slug: "active-only-slug" } })["result"]
         expect(result["isError"]).to be(true)
       end
 
       it "update_meal returns isError when no updatable fields are sent" do
-        plan = create(:plan, slug: "exercise-only-slug")
-        create(:meal, plan: plan, name: "OnlyMeal")
+        plan = create(:plan, slug: "exercise-only-slug", user: user)
+        create(:meal, plan: plan, name: "OnlyMeal", user: user)
         result = rpc("tools/call", { name: "update_meal",
                                      arguments: { plan_slug: "exercise-only-slug", name: "OnlyMeal" } })["result"]
         expect(result["isError"]).to be(true)
@@ -591,9 +593,9 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_meal updates macros and scheduled_time by plan_slug + name" do
-        plan = create(:plan, slug: "active-test")
+        plan = create(:plan, slug: "active-test", user: user)
         meal = create(:meal, plan: plan, name: "Lunch", target_kcal: 500,
-                      scheduled_time: Time.utc(2000, 1, 1, 12, 0))
+                      scheduled_time: Time.utc(2000, 1, 1, 12, 0), user: user)
         result = rpc("tools/call", {
           name: "update_meal",
           arguments: { plan_slug: "active-test", name: "Lunch",
@@ -608,7 +610,7 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_meal returns isError when the meal name is unknown on the plan" do
-        create(:plan, slug: "active-test2")
+        create(:plan, slug: "active-test2", user: user)
         result = rpc("tools/call", {
           name: "update_meal",
           arguments: { plan_slug: "active-test2", name: "Brunch", target_kcal: 100 }
@@ -617,7 +619,7 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_goal updates target_value by metric" do
-        goal = create(:goal, :weight, target_value: 80)
+        goal = create(:goal, :weight, target_value: 80, user: user)
         result = rpc("tools/call", {
           name: "update_goal",
           arguments: { metric: "weight_kg", target_value: 78 }
@@ -633,6 +635,89 @@ RSpec.describe "POST /mcp", type: :request do
           arguments: { metric: "bogus_metric", target_value: 78 }
         })["result"]
         expect(result["isError"]).to be(true)
+      end
+
+      # TC-G1: list_goals own-only — both inclusion and exclusion
+      it "TC-G1 list_goals includes own and excludes other_user's goals" do
+        other_goal = create(:goal, :weight, target_value: 75, user: other_user)
+        my_goal    = create(:goal, :weight, target_value: 80, user: user)
+
+        result = rpc("tools/call", { name: "list_goals", arguments: {} })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        goal_ids = payload["goals"].map { |g| g["id"] }
+        expect(goal_ids).to include(my_goal.id)
+        expect(goal_ids).not_to include(other_goal.id)
+      end
+
+      # TC-G2: log_weight scoped to Current.user's weight_kg goal
+      it "TC-G2 log_weight uses Current.user's weight goal, not other_user's" do
+        other_goal = create(:goal, :weight, target_value: 75, user: other_user)
+        my_goal    = create(:goal, :weight, target_value: 80, user: user)
+
+        result = rpc("tools/call", { name: "log_weight", arguments: { value: 78 } })["result"]
+        expect(result).not_to include("isError" => true)
+        payload = JSON.parse(result["content"].first["text"])
+        # The entry should be linked to my_goal, not other_goal
+        expect(payload["entry"]["value"]).to eq(78)
+        expect(my_goal.reload.biomarker_entries.count).to eq(1)
+        expect(other_goal.reload.biomarker_entries.count).to eq(0)
+      end
+
+      # TC-G3: update_goal on other_user's goal -> isError
+      it "TC-G3 update_goal returns isError when other_user is the only owner of the metric" do
+        other_goal = create(:goal, :weight, target_value: 75, user: other_user)
+
+        result = rpc("tools/call", {
+          name: "update_goal",
+          arguments: { metric: "weight_kg", target_value: 70 }
+        })["result"]
+        expect(result["isError"]).to be(true)
+        expect(other_goal.reload.target_value.to_f).to eq(75)
+      end
+
+      # TC-P1: update_plan — other_user's plan unchanged, my plan updated, returned plan is mine
+      it "TC-P1 update_plan updates only my plan, not other_user's with same slug" do
+        other_plan = create(:plan, slug: "active", target_kcal: 1800, user: other_user)
+        my_plan    = Plan.active(user: user)
+
+        result = rpc("tools/call", {
+          name: "update_plan",
+          arguments: { slug: "active", target_kcal: 2100 }
+        })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["plan"]["id"]).to eq(my_plan.id)
+        expect(payload["plan"]["target_kcal"]).to eq(2100)
+        expect(my_plan.reload.target_kcal).to eq(2100)
+        expect(other_plan.reload.target_kcal).to eq(1800)
+      end
+
+      # TC-P2: set_plan_for_day with slug only other_user owns -> isError
+      it "TC-P2 set_plan_for_day returns isError when slug belongs only to other_user" do
+        other_plan = seed_plan(slug: "rest", user: other_user)
+
+        result = rpc("tools/call", {
+          name: "set_plan_for_day",
+          arguments: { slug: "rest" }
+        })["result"]
+        expect(result["isError"]).to be(true)
+        expect(result["content"].first["text"]).to match(/Couldn't find/)
+      end
+
+      # TC-WS1: weekly summary data isolation
+      it "TC-WS1 get_weekly_summary excludes other_user's logs and biomarkers" do
+        travel_to Time.zone.local(2026, 4, 25, 12, 0) do
+          other_goal = create(:goal, :weight, target_value: 75, user: other_user)
+          other_goal.biomarker_entries.create!(recorded_on: Date.current, value: 75.0)
+          other_log  = DailyLog.create!(date: Date.current, plan: seed_plan(slug: "active", user: other_user), user: other_user)
+
+          my_goal = create(:goal, :weight, target_value: 80, user: user)
+
+          result = rpc("tools/call", { name: "get_weekly_summary", arguments: {} })["result"]
+          payload = JSON.parse(result["content"].first["text"])
+          # My empty logs should result in nil metrics, not contaminated by other_user's data
+          expect(payload["weight_delta_kg"]).to be_nil
+          expect(payload["adherence_pct"]).to be_nil
+        end
       end
     end
 

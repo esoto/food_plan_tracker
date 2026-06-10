@@ -167,7 +167,7 @@ module Api
     end
 
     def handle_log_weight(args)
-      goal  = Goal.find_by!(metric: Goal.metrics[:weight_kg])
+      goal  = Goal.find_by_metric!(Goal.metrics[:weight_kg], user: Current.user)
       date  = date_arg(args)
       entry = goal.biomarker_entries.create!(value: args.fetch("value"), recorded_on: date)
       log   = DailyLog.for(Current.user, date)
@@ -208,13 +208,13 @@ module Api
 
     def handle_set_plan_for_day(args)
       log  = log_for(args)
-      plan = Plan.find_by!(slug: args.fetch("slug"))
+      plan = Plan.find_by_slug!(args.fetch("slug"), user: Current.user)
       log.update!(plan: plan)
       serialize_day(log.reload)
     end
 
     def handle_list_goals(_args)
-      { goals: Goal.all.map { |g| serialize_goal(g) } }
+      { goals: Current.user.goals.map { |g| serialize_goal(g) } }
     end
 
     def handle_search_foods(args)
@@ -236,7 +236,7 @@ module Api
     end
 
     def handle_get_weekly_summary(_args)
-      summary = WeeklySummary.rolling_7_days
+      summary = WeeklySummary.rolling_7_days(user: Current.user)
       {
         window_days: 7,
         start_date:  summary.start_date.iso8601,
@@ -320,7 +320,7 @@ module Api
     # ----- Settings: macro targets -----
 
     def handle_update_plan(args)
-      plan = Plan.find_by(slug: args.fetch("slug")) ||
+      plan = Current.user.plans.find_by(slug: args.fetch("slug")) ||
         raise(ToolArgumentError, "no plan with slug \"#{args['slug']}\"; valid slugs: exercise, active, rest")
 
       attrs = args.slice("target_kcal", "target_protein_g", "target_carbs_g", "target_fat_g").compact
@@ -346,7 +346,7 @@ module Api
       metric = args.fetch("metric").to_s
       raise ToolArgumentError, "unknown metric \"#{metric}\"; valid: #{Goal.metrics.keys.join(', ')}" unless Goal.metrics.key?(metric)
 
-      goal = Goal.find_by(metric: Goal.metrics[metric]) ||
+      goal = Current.user.goals.find_by(metric: Goal.metrics[metric]) ||
         raise(ToolArgumentError, "no goal exists for metric \"#{metric}\"")
 
       goal.update!(target_value: args.fetch("target_value"))
