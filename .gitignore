@@ -42,6 +42,9 @@
 /*.png
 /*.jpg
 
+# System spec screenshots
+/tmp/screenshots/
+
 # MCP server local installs
 /mcp/node_modules
 /mcp/.env
