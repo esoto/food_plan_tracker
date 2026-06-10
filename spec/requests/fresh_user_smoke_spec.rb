@@ -6,7 +6,11 @@ RSpec.describe "Fresh user smoke test (PER-572)", type: :request do
     create(:plan, slug: "active", name: "FOREIGN_SMOKE_MARKER_PLAN", target_kcal: 2075, user: user)
     create(:supplement, name: "FOREIGN_SMOKE_MARKER_SUPPLEMENT", user: user)
     create(:checklist_template, label: "FOREIGN_SMOKE_MARKER_HABIT", user: user)
-    create(:goal, :weight, display_name: "FOREIGN_SMOKE_MARKER_GOAL", user: user)
+    # Non-weight metric WITH a measurement: weight goals never render their
+    # display_name (progress rejects weight_kg from the goal-card loop), and
+    # the root page only shows goals that have measurements — a weight-trait
+    # marker here would make the exclusion assertions pass vacuously.
+    create(:goal, :with_measurement, display_name: "FOREIGN_SMOKE_MARKER_GOAL", user: user)
     user
   end
 

@@ -22,6 +22,11 @@ module Onboarding
 
         plan.assign_attributes(attrs.except(:slug))
         plan.save!
+      rescue ActiveRecord::RecordNotUnique
+        # Concurrent first calls can both pass the persisted? check; the DB
+        # unique index on (user_id, slug) makes the loser land here. The plan
+        # already exists, which is all we wanted — skip it.
+        next
       end
       user
     end
