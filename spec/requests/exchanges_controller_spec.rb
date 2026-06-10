@@ -42,7 +42,7 @@ RSpec.describe ExchangesController, type: :request do
 
   describe "cross-tenant isolation on daily_log_id" do
     it "ignores a daily_log_id belonging to another user" do
-      user_a = create(:user, password: "password")
+      user_a = create(:user, password: "password12345")
       sign_in_as(user_a)
       other  = create(:user)
       plan_b = create(:plan, user: other)

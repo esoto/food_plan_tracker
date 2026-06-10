@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   match "/mcp", to: "api/mcp#handle", via: %i[get post delete]
 
   resource :session
+  resource :registration, only: %i[new create]
   resources :passwords, param: :token
 
   root "today#show"
