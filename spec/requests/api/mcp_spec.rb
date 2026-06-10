@@ -544,5 +544,32 @@ RSpec.describe "POST /mcp", type: :request do
            headers: auth
       expect(response).to have_http_status(:accepted)
     end
+
+    # TC-P3: plan_for helper scoped to Current.user
+    describe "plan_for cross-tenant isolation" do
+      let(:other_user) { create(:user) }
+
+      it "list_meals returns isError when plan_slug belongs only to other_user" do
+        # other_user's plan MUST be created first so an unscoped find_by would
+        # return it instead of raising RecordNotFound
+        seed_plan(slug: "rest", user: other_user)
+
+        result = rpc("tools/call", { name: "list_meals", arguments: { plan_slug: "rest" } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(result["content"].first["text"]).to match(/Couldn't find/)
+      end
+
+      it "add_meal_item returns isError when plan_slug belongs only to other_user" do
+        other_plan = seed_plan(slug: "rest", user: other_user)
+        create(:meal, plan: other_plan, name: "Dinner", user: other_user)
+        seed_food(name: "Rice")
+
+        result = rpc("tools/call", { name: "add_meal_item",
+                                     arguments: { plan_slug: "rest", meal_name: "Dinner",
+                                                  food_name: "Rice", quantity_grams: 100 } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(result["content"].first["text"]).to match(/Couldn't find/)
+      end
+    end
   end
 end

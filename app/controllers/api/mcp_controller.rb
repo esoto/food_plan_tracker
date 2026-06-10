@@ -153,7 +153,7 @@ module Api
     end
 
     def plan_for(args)
-      args["plan_slug"].present? ? Plan.find_by!(slug: args["plan_slug"]) : log_for(args).plan
+      args["plan_slug"].present? ? Plan.find_by_slug!(args["plan_slug"], user: Current.user) : log_for(args).plan
     end
 
     # ----- Tool handlers.
