@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  # Single-user OAuth provider used by claude.ai's custom-connector flow.
+  # OAuth provider used by claude.ai's custom-connector flow (per-user grants).
   # We expose the standard endpoints (authorize/token/revoke) plus a DCR
   # registration endpoint and the two well-known discovery documents.
   use_doorkeeper do

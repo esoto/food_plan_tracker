@@ -5,12 +5,13 @@ require "securerandom"
 # (SHA-256, 256 bits of entropy from openssl rand -hex 32 — bcrypt is unnecessary
 # at this entropy and would prevent indexed lookups), and never stored.
 #
-# Lifecycle:
-#   t = ApiToken.create!(name: "MCP")
+# Lifecycle (tokens are per-user; names are unique per owner, not globally):
+#   t = user.api_tokens.create!(name: "MCP")
 #   t.token        # plaintext, only available right after create — store it now
-#   ApiToken.authenticate(plaintext) # → ApiToken or nil
+#   ApiToken.authenticate(plaintext) # → ApiToken or nil (global lookup by digest)
 #
-# To revoke: ApiToken.find_by(name: "MCP").destroy
+# To revoke: user.api_tokens.find_by(name: "MCP").destroy
+# Or via rake: bin/rails api_tokens:revoke NAME=MCP USER_EMAIL=owner@example.com
 class ApiToken < ApplicationRecord
   include Tenantable
 
