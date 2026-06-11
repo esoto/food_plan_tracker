@@ -5,9 +5,23 @@ class ApplicationController < ActionController::Base
 
   stale_when_importmap_changes
 
+  # Registration runs Onboarding::SeedDefaults, but accounts created any
+  # other way (console, seeds-interrupted, pre-onboarding data) have no
+  # plans — and DailyLog.for cannot create a log without one, which 500s
+  # the dashboard. Self-heal lazily: the service is idempotent and
+  # race-safe, and the exists? check costs one indexed query per request.
+  # Keyed on Current.session (already resumed by require_authentication)
+  # rather than authenticated? so unauthenticated-allowed actions don't
+  # trigger an extra session lookup.
+  before_action :ensure_onboarding_defaults, if: -> { Current.session }
+
   helper_method :today_log, :current_user, :nav_items, :fibrotina_due?, :fibrotina_supplement
 
   private
+
+  def ensure_onboarding_defaults
+    Onboarding::SeedDefaults.call(Current.user) unless Current.user.plans.exists?
+  end
 
   def today_log
     @today_log ||= DailyLog.today(Current.user)
