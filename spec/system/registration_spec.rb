@@ -19,13 +19,12 @@ RSpec.describe "User Registration", type: :system do
       expect(page).to have_text("Active day")
       expect(page).to have_text("Rest day")
 
-      # The weight card renders in its empty state. NOTE: a fresh user has
-      # no weight goal, so submitting this form 404s (goal_id is nil) —
-      # real first-run product gap tracked in the Obsidian note 'Food Plan
-      # Tracker — Post-Epic Follow-ups' (Linear issue limit reached); the logging
-      # journey will be browser-covered once it's fixed.
+      # Fresh users have no weight goal, so the weight card offers the
+      # settings CTA instead of a form that would post a nil goal_id.
       expect(page).to have_text("TODAY'S WEIGHT")
       expect(page).to have_text("— kg")
+      expect(page).to have_link("Set a weight goal to start tracking →")
+      expect(page).to have_no_field("biomarker_entry[value]")
 
       expect(User.count).to eq 1
       expect(Plan.count).to eq 3
