@@ -114,11 +114,12 @@ RSpec.describe TodayController, type: :request do
         expect(response.body).to include("Goal: 65.0 kg")
         # Foreign goal's target value should NOT be visible
         expect(response.body).not_to include("987.5")
-        # The goal_id hidden field must carry the OWN goal's id — match the
-        # specific input (bare value="N" substrings collide with unrelated
-        # hidden fields as DB id sequences shift).
-        expect(response.body).to match(/value="#{own_weight_goal.id}"[^>]*name="biomarker_entry\[goal_id\]"/)
-        expect(response.body).not_to match(/value="#{foreign_weight_goal.id}"[^>]*name="biomarker_entry\[goal_id\]"/)
+        # The goal_id hidden field must carry the OWN goal's id — extract
+        # the input tag and assert its value — order-agnostic (Rails'
+        # attribute rendering order is an implementation detail).
+        goal_id_input = response.body[/<input[^>]*biomarker_entry\[goal_id\][^>]*>/]
+        expect(goal_id_input).to include(%Q(value="#{own_weight_goal.id}"))
+        expect(goal_id_input).not_to include(%Q(value="#{foreign_weight_goal.id}"))
       end
 
       it "renders weight section gracefully when current user has no weight goal" do

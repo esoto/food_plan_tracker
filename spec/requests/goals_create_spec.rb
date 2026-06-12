@@ -27,6 +27,7 @@ RSpec.describe "GoalsController#create (first-run weight goal)", type: :request 
     expect {
       post goals_path, params: { goal: { starting_value: 82.5, target_value: 75 } }
     }.not_to change(Goal, :count)
+    expect(response).to redirect_to(root_path)
     expect(user.goals.weight_kg.first.target_value).to eq(70)
   end
 
@@ -36,6 +37,15 @@ RSpec.describe "GoalsController#create (first-run weight goal)", type: :request 
     expect(response).to redirect_to(root_path)
     expect(flash[:alert]).to be_present
     expect(Goal.count).to eq(0)
+  end
+
+  it "rejects an unauthenticated POST without creating anything" do
+    delete session_path
+
+    expect {
+      post goals_path, params: { goal: { starting_value: 82.5, target_value: 75 } }
+    }.not_to change(Goal, :count)
+    expect(response).to redirect_to(new_session_path)
   end
 
   it "ignores an injected user_id and never creates for another user" do

@@ -33,6 +33,9 @@ module Authentication
       # Only remember the destination for real browser navigations. The PWA
       # service worker precaches authed shell routes; those fetches send
       # Sec-Fetch-Mode: no-cors and must not hijack the post-login redirect.
+      # Known tradeoff: a Turbo Drive visit after mid-session expiry sends
+      # Sec-Fetch-Mode: cors, so that rare flow loses its return-to (lands
+      # on root). Strictly smaller than the precache hijack this prevents.
       if request.headers["Sec-Fetch-Mode"].nil? || request.headers["Sec-Fetch-Mode"] == "navigate"
         session[:return_to_after_authenticating] = request.url
       end
