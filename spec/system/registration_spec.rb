@@ -19,12 +19,20 @@ RSpec.describe "User Registration", type: :system do
       expect(page).to have_text("Active day")
       expect(page).to have_text("Rest day")
 
-      # Fresh users have no weight goal, so the weight card offers the
-      # settings CTA instead of a form that would post a nil goal_id.
+      # Fresh users have no weight goal: the weight card seeds it inline
+      # (one submit creates the goal AND logs the current weight).
       expect(page).to have_text("TODAY'S WEIGHT")
-      expect(page).to have_text("— kg")
-      expect(page).to have_link("Set a weight goal to start tracking →")
+      expect(page).to have_text("Set a weight goal to start tracking")
       expect(page).to have_no_field("biomarker_entry[value]")
+
+      fill_in "Current weight", with: "82.5"
+      fill_in "Target weight", with: "75"
+      click_button "Set goal"
+
+      # Goal created, first entry logged, and the regular form takes over.
+      expect(page).to have_text("82.5")
+      expect(page).to have_text("Goal: 75.0 kg")
+      expect(page).to have_field("biomarker_entry[value]")
 
       expect(User.count).to eq 1
       expect(Plan.count).to eq 3
