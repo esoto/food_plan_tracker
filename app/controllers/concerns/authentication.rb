@@ -30,7 +30,12 @@ module Authentication
     end
 
     def request_authentication
-      session[:return_to_after_authenticating] = request.url
+      # Only remember the destination for real browser navigations. The PWA
+      # service worker precaches authed shell routes; those fetches send
+      # Sec-Fetch-Mode: no-cors and must not hijack the post-login redirect.
+      if request.headers["Sec-Fetch-Mode"].nil? || request.headers["Sec-Fetch-Mode"] == "navigate"
+        session[:return_to_after_authenticating] = request.url
+      end
       redirect_to new_session_path
     end
 
