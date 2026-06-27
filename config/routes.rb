@@ -43,7 +43,7 @@ Rails.application.routes.draw do
   end
 
   resources :plans, only: :update
-  resources :goals, only: :update
+  resources :goals, only: %i[create update]
   resources :meals, only: :update
 
   resources :meal_completions,       only: %i[create destroy] do

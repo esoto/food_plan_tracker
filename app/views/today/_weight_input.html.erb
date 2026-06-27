@@ -2,21 +2,39 @@
 <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
   <div class="flex items-baseline justify-between">
     <p class="text-xs uppercase tracking-wider text-slate-500"><%= label %></p>
-    <p class="text-xs text-slate-400">Goal: <%= weight_goal&.target_value&.to_f %> kg</p>
+    <% if weight_goal %>
+      <p class="text-xs text-slate-400">Goal: <%= weight_goal.target_value.to_f %> kg</p>
+    <% end %>
   </div>
   <p class="text-3xl font-bold text-slate-900 mt-1">
     <%= daily_log.weight_kg.present? ? number_with_precision(daily_log.weight_kg, precision: 1) : "—" %>
     <span class="text-base font-normal text-slate-400">kg</span>
   </p>
+  <% if weight_goal.nil? %>
+    <%# First-run: no weight goal exists and nothing else in the UI can create
+        one (settings only edits targets), so the card seeds it inline — one
+        submit creates the goal and logs the current weight. %>
+    <%= form_with url: goals_path, class: "mt-3 space-y-2" do |f| %>
+      <p class="text-sm text-slate-500">Set a weight goal to start tracking</p>
+      <div class="flex items-center gap-2">
+        <%= f.number_field "goal[starting_value]", step: 0.1, min: 1, placeholder: "Current weight", required: true,
+            class: "w-1/2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2.5" %>
+        <%= f.number_field "goal[target_value]", step: 0.1, min: 1, placeholder: "Target weight", required: true,
+            class: "w-1/2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2.5" %>
+        <%= f.submit "Set goal", class: "rounded-xl bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-indigo-700 cursor-pointer" %>
+      </div>
+    <% end %>
+  <% else %>
   <%= form_with url: biomarker_entries_path, class: "mt-3 flex items-center gap-2" do |f| %>
-    <%= f.hidden_field "biomarker_entry[goal_id]", value: weight_goal&.id %>
+    <%= f.hidden_field "biomarker_entry[goal_id]", value: weight_goal.id %>
     <%= f.hidden_field "biomarker_entry[recorded_on]", value: daily_log.date %>
     <%= hidden_field_tag :daily_log_id, daily_log.id %>
     <div class="flex-1 relative">
-      <%= f.number_field "biomarker_entry[value]", step: 0.1, placeholder: "Enter your weight", required: true,
+      <%= f.number_field "biomarker_entry[value]", step: 0.1, min: 1, placeholder: "Enter your weight", required: true,
           class: "w-full rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2.5 pr-10" %>
       <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">kg</span>
     </div>
     <%= f.submit "Log", class: "rounded-xl bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-indigo-700 cursor-pointer" %>
+  <% end %>
   <% end %>
 </div>

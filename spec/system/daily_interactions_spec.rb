@@ -136,4 +136,18 @@ RSpec.describe "Daily interactions via Stimulus/Turbo", type: :system do
       expect(daily_log.reload.plan.slug).to eq("exercise")
     end
   end
+
+  describe "weight logging from the dashboard" do
+    it "logs today's weight when a weight goal exists" do
+      user = create_onboarded_user(email: "weigher@example.com")
+      create(:goal, :weight, user: user)
+      system_sign_in(email: "weigher@example.com", password: "password12345")
+
+      fill_in "Enter your weight", with: "72.5"
+      click_button "Log"
+
+      expect(page).to have_text("72.5")
+      expect(page).to have_no_text("— kg")
+    end
+  end
 end

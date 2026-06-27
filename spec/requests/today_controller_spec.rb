@@ -70,6 +70,31 @@ RSpec.describe TodayController, type: :request do
       end
     end
 
+    describe "weight card first-run state" do
+      it "offers the settings CTA instead of the form when the user has no weight goal" do
+        user_a = create(:user, password: "password12345")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+
+        get root_path
+
+        expect(response.body).to include("Set a weight goal to start tracking")
+        expect(response.body).not_to include("biomarker_entry[value]")
+      end
+
+      it "renders the form once a weight goal exists" do
+        user_a = create(:user, password: "password12345")
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+        create(:goal, :weight, user: user_a)
+
+        get root_path
+
+        expect(response.body).to include("biomarker_entry[value]")
+        expect(response.body).not_to include("Set a weight goal to start tracking")
+      end
+    end
+
     describe "weight goal scoping" do
       it "displays only the current user's weight goal, not another user's (PER-570)" do
         # Create user_b's weight goal FIRST with distinctive target (foreign record comes first)
@@ -89,10 +114,12 @@ RSpec.describe TodayController, type: :request do
         expect(response.body).to include("Goal: 65.0 kg")
         # Foreign goal's target value should NOT be visible
         expect(response.body).not_to include("987.5")
-        # Own goal id should be in the hidden field
-        expect(response.body).to include(%Q(value="#{own_weight_goal.id}"))
-        # Foreign goal id should NOT be in the hidden field
-        expect(response.body).not_to include(%Q(value="#{foreign_weight_goal.id}"))
+        # The goal_id hidden field must carry the OWN goal's id — extract
+        # the input tag and assert its value — order-agnostic (Rails'
+        # attribute rendering order is an implementation detail).
+        goal_id_input = response.body[/<input[^>]*biomarker_entry\[goal_id\][^>]*>/]
+        expect(goal_id_input).to include(%Q(value="#{own_weight_goal.id}"))
+        expect(goal_id_input).not_to include(%Q(value="#{foreign_weight_goal.id}"))
       end
 
       it "renders weight section gracefully when current user has no weight goal" do
