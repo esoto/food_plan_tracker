@@ -106,6 +106,7 @@ password =
 
 user = User.find_or_initialize_by(email_address: email)
 user.password = password if user.new_record?
+user.role = :admin
 user.save!
 
 puts "  user: #{user.email_address}"
