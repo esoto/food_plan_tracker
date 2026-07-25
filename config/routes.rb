@@ -12,7 +12,10 @@ Rails.application.routes.draw do
   match "/mcp", to: "api/mcp#handle", via: %i[get post delete]
 
   resource :session
-  resource :registration, only: %i[new create]
+  resources :access_requests, only: %i[new create]
+  resources :invitations, param: :token, only: %i[edit update]
+  # Legacy public sign-up URL now points at the access-request form.
+  get "/registration/new", to: redirect("/access_requests/new")
   resources :passwords, param: :token
 
   root "today#show"

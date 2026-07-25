@@ -1,0 +1,29 @@
+<div class="mx-auto md:w-2/3 w-full">
+  <h1 class="font-bold text-4xl">Set your password</h1>
+  <p class="text-slate-500 mt-2">Choose a password to finish creating your account.</p>
+
+  <%= form_with url: invitation_path(params[:token]), method: :patch, class: "contents" do |form| %>
+    <% if @user.errors.any? %>
+      <div class="rounded-lg bg-red-50 border border-red-200 p-3 my-5">
+        <p class="text-sm font-semibold text-red-900"><%= pluralize(@user.errors.count, "error") %> prohibited this account:</p>
+        <ul class="text-sm text-red-700 list-disc list-inside mt-1">
+          <% @user.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="my-5">
+      <%= form.password_field :password, required: true, autofocus: true, autocomplete: "new-password", placeholder: "Enter new password (min 12 chars)", maxlength: 72, class: "block shadow-sm rounded-md border border-gray-400 focus:outline-solid focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+    </div>
+
+    <div class="my-5">
+      <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: "Repeat new password", maxlength: 72, class: "block shadow-sm rounded-md border border-gray-400 focus:outline-solid focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+    </div>
+
+    <div class="inline">
+      <%= form.submit "Save", class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
+    </div>
+  <% end %>
+</div>
