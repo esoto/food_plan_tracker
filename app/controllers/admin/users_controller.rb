@@ -22,8 +22,12 @@ module Admin
     end
 
     def create
-      @user = User.new(user_params)
+      @user = User.new(email_address: user_params[:email_address])
       @user.password = SecureRandom.alphanumeric(24)
+      # Assign the privileged role attribute explicitly (never via mass
+      # assignment) and only from the known enum keys, so a tampered param
+      # can't set an unexpected value and defaults safely to member.
+      @user.role = requested_role
 
       if @user.save
         InvitationsMailer.invite(@user).deliver_later
@@ -86,7 +90,12 @@ module Admin
     end
 
     def user_params
-      params.require(:user).permit(:email_address, :role)
+      params.require(:user).permit(:email_address)
+    end
+
+    def requested_role
+      role = params.dig(:user, :role).to_s
+      User.roles.key?(role) ? role : :member
     end
   end
 end

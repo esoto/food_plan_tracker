@@ -153,6 +153,18 @@ RSpec.describe "Admin::Users", type: :request do
 
       expect(response).to have_http_status(:unprocessable_entity)
     end
+
+    # role is assigned explicitly (not mass-assigned) and validated against the
+    # enum, so a tampered/unknown role param falls back to member rather than
+    # raising or setting an unexpected value. Fails if create reverts to
+    # mass-assigning :role or drops the requested_role allowlist.
+    it "defaults an unknown role param to member" do
+      sign_in_as(admin)
+
+      post admin_users_path, params: { user: { email_address: "tampered@example.com", role: "superadmin" } }
+
+      expect(User.find_by(email_address: "tampered@example.com")).to be_member
+    end
   end
 
   describe "state-changing member actions" do
