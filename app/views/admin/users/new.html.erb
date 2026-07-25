@@ -1,0 +1,42 @@
+<header class="safe-top px-5 pb-6 bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 text-white rounded-b-3xl shadow-sm">
+  <div class="flex items-center gap-3">
+    <%= link_to admin_root_path, class: "shrink-0 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70", aria: { label: "Back to administration" } do %>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+    <% end %>
+    <div>
+      <h1 class="text-2xl font-bold">New user</h1>
+      <p class="text-sm text-white/80 mt-0.5">They'll receive an email invitation to set a password.</p>
+    </div>
+  </div>
+</header>
+
+<section class="px-4 mt-6">
+  <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
+    <%= form_with model: @user, url: admin_users_path, class: "space-y-4" do |form| %>
+      <% if @user.errors.any? %>
+        <div class="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-sm text-rose-700">
+          <ul class="list-disc list-inside">
+            <% @user.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <label class="block">
+        <span class="text-xs uppercase tracking-wider text-slate-500">Email address</span>
+        <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "off",
+              class: "mt-1 w-full rounded-xl border border-slate-300 text-sm px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" %>
+      </label>
+
+      <label class="block">
+        <span class="text-xs uppercase tracking-wider text-slate-500">Role</span>
+        <%= form.select :role, User.roles.keys.map { |r| [r.titleize, r] }, {},
+              class: "mt-1 w-full rounded-xl border border-slate-300 text-sm px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" %>
+      </label>
+
+      <%= form.submit "Create & send invite",
+            class: "w-full rounded-xl bg-indigo-600 text-white text-sm font-medium px-4 py-2 hover:bg-indigo-700 cursor-pointer" %>
+    <% end %>
+  </div>
+</section>

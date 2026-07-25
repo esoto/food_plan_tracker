@@ -73,6 +73,23 @@ Rails.application.routes.draw do
     end
   end
 
+  namespace :admin do
+    root to: "users#index"
+    resources :users, only: %i[index new create destroy] do
+      member do
+        patch :deactivate
+        patch :reactivate
+        patch :promote
+        patch :demote
+        post  :send_password_reset
+        post  :resend_invite
+      end
+    end
+    resources :access_requests, only: :destroy do
+      member { post :approve }
+    end
+  end
+
   namespace :api do
     namespace :v1 do
       resource :today, only: :show, controller: "today"

@@ -90,6 +90,20 @@
   <% end %>
 </section>
 
+<% if Current.user.admin? %>
+  <section class="px-4 mt-8">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Administration</h2>
+    <%= link_to admin_root_path, class: "rounded-2xl bg-white border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:border-indigo-300 hover:shadow-md transition" do %>
+      <div class="text-2xl">🛡️</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-slate-900">User management</p>
+        <p class="text-xs text-slate-500 mt-0.5">Invite, deactivate, and manage accounts · pending access requests</p>
+      </div>
+      <span class="text-slate-400 text-lg">›</span>
+    <% end %>
+  </section>
+<% end %>
+
 <section class="px-4 mt-8">
   <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Account</h2>
   <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
