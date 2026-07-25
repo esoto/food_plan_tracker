@@ -1,0 +1,102 @@
+<% content_for :title, "Administration · Food Plan Tracker" %>
+
+<header class="safe-top px-5 pb-6 bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 text-white rounded-b-3xl shadow-sm">
+  <div class="flex items-center gap-3">
+    <%= link_to settings_path, class: "shrink-0 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70", aria: { label: "Back to settings" } do %>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+    <% end %>
+    <div>
+      <h1 class="text-2xl font-bold">Administration 🛡️</h1>
+      <p class="text-sm text-white/80 mt-0.5">Invite, deactivate, and manage accounts.</p>
+    </div>
+  </div>
+</header>
+
+<% if @access_requests.any? %>
+  <section class="px-4 mt-6">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Pending access requests (<%= @access_requests.size %>)</h2>
+    <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
+      <% @access_requests.each do |req| %>
+        <div class="px-4 py-3 flex items-center gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-slate-900 truncate"><%= req.email_address %></p>
+            <% if req.message.present? %>
+              <p class="text-xs text-slate-500 mt-0.5"><%= req.message %></p>
+            <% end %>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <%= button_to "Approve", approve_admin_access_request_path(req),
+                  method: :post,
+                  class: "rounded-lg text-xs font-medium px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer" %>
+            <%= button_to "Deny", admin_access_request_path(req),
+                  method: :delete,
+                  form: { data: { turbo_confirm: "Dismiss request from #{req.email_address}?" } },
+                  class: "rounded-lg text-xs font-medium px-3 py-1.5 text-rose-700 hover:bg-rose-50 cursor-pointer" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
+<section class="px-4 mt-8 mb-8">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Users (<%= @users.size %>)</h2>
+    <%= link_to "+ New user", new_admin_user_path, class: "rounded-xl bg-indigo-600 text-white text-xs font-medium px-3 py-2 hover:bg-indigo-700" %>
+  </div>
+
+  <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
+    <% @users.each do |user| %>
+      <div class="px-4 py-3">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <p class="text-sm font-medium text-slate-900 truncate"><%= user.email_address %></p>
+              <% if user.admin? %>
+                <span class="rounded-full px-2 py-0.5 text-xs bg-indigo-100 text-indigo-700">Admin</span>
+              <% else %>
+                <span class="rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-600">Member</span>
+              <% end %>
+              <% if user.deactivated? %>
+                <span class="rounded-full px-2 py-0.5 text-xs bg-rose-100 text-rose-700">Deactivated</span>
+              <% end %>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+              <%= user.days_logged_count %> days · <%= user.api_tokens_count %> tokens · <%= user.push_subscriptions_count %> push
+              · last active <%= user.last_activity_at ? "#{time_ago_in_words(user.last_activity_at)} ago" : "never" %>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap mt-2">
+          <% if user.member? %>
+            <%= button_to "Promote", promote_admin_user_path(user), method: :patch,
+                  class: "rounded-lg text-xs font-medium px-3 py-1.5 text-indigo-700 hover:bg-indigo-50 cursor-pointer" %>
+          <% elsif user != current_user %>
+            <%= button_to "Demote", demote_admin_user_path(user), method: :patch,
+                  class: "rounded-lg text-xs font-medium px-3 py-1.5 text-indigo-700 hover:bg-indigo-50 cursor-pointer" %>
+          <% end %>
+
+          <% if user.deactivated? %>
+            <%= button_to "Reactivate", reactivate_admin_user_path(user), method: :patch,
+                  class: "rounded-lg text-xs font-medium px-3 py-1.5 text-emerald-700 hover:bg-emerald-50 cursor-pointer" %>
+          <% elsif user != current_user %>
+            <%= button_to "Deactivate", deactivate_admin_user_path(user), method: :patch,
+                  class: "rounded-lg text-xs font-medium px-3 py-1.5 text-rose-700 hover:bg-rose-50 cursor-pointer" %>
+          <% end %>
+
+          <%= button_to "Send reset", send_password_reset_admin_user_path(user), method: :post,
+                class: "rounded-lg text-xs font-medium px-3 py-1.5 text-slate-600 hover:bg-slate-100 cursor-pointer" %>
+          <%= button_to "Resend invite", resend_invite_admin_user_path(user), method: :post,
+                class: "rounded-lg text-xs font-medium px-3 py-1.5 text-slate-600 hover:bg-slate-100 cursor-pointer" %>
+
+          <% if user != current_user %>
+            <%= button_to "Delete", admin_user_path(user), method: :delete,
+                  form: { data: { turbo_confirm: "Permanently delete #{user.email_address} and ALL their data?" } },
+                  class: "rounded-lg text-xs font-medium px-3 py-1.5 text-rose-700 hover:bg-rose-50 cursor-pointer" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</section>

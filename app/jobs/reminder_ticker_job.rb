@@ -17,7 +17,7 @@ class ReminderTickerJob < ApplicationJob
   def perform(now: Time.current)
     return unless PushNotifier.configured?
 
-    User.find_each do |user|
+    User.active.find_each do |user|
       UserReminderJob.perform_later(user.id, now: now)
     end
   end

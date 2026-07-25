@@ -12,7 +12,10 @@ Rails.application.routes.draw do
   match "/mcp", to: "api/mcp#handle", via: %i[get post delete]
 
   resource :session
-  resource :registration, only: %i[new create]
+  resources :access_requests, only: %i[new create]
+  resources :invitations, param: :token, only: %i[edit update]
+  # Legacy public sign-up URL now points at the access-request form.
+  get "/registration/new", to: redirect("/access_requests/new")
   resources :passwords, param: :token
 
   root "today#show"
@@ -67,6 +70,23 @@ Rails.application.routes.draw do
     collection do
       delete :destroy
       post :test
+    end
+  end
+
+  namespace :admin do
+    root to: "users#index"
+    resources :users, only: %i[index new create destroy] do
+      member do
+        patch :deactivate
+        patch :reactivate
+        patch :promote
+        patch :demote
+        post  :send_password_reset
+        post  :resend_invite
+      end
+    end
+    resources :access_requests, only: :destroy do
+      member { post :approve }
     end
   end
 

@@ -18,6 +18,21 @@ RSpec.describe SessionsController, type: :request do
     end
   end
 
+  describe "POST /session for a deactivated account" do
+    it "rejects the correct password with the same generic alert as a wrong password" do
+      post session_path, params: { email_address: user.email_address, password: "wrong-password-here" }
+      wrong_password_alert = flash[:alert]
+      expect(wrong_password_alert).to be_present
+
+      user.update!(deactivated_at: Time.current)
+      post session_path, params: { email_address: user.email_address, password: "correcthorsebatterystaple" }
+
+      expect(response).to redirect_to(new_session_path)
+      expect(flash[:alert]).to eq(wrong_password_alert)
+      expect(Session.where(user: user).count).to eq(0)
+    end
+  end
+
   describe "DELETE /session" do
     it "terminates the session and redirects to the login page" do
       post session_path, params: { email_address: user.email_address, password: "correcthorsebatterystaple" }

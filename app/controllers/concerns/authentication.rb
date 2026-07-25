@@ -26,7 +26,16 @@ module Authentication
     end
 
     def find_session_by_cookie
-      Session.find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
+      return unless cookies.signed[:session_id]
+
+      session = Session.find_by(id: cookies.signed[:session_id])
+      return session unless session&.user&.deactivated?
+
+      # A deactivated user's live cookie must not resume: tear the session
+      # down so a later reactivation still requires a fresh sign-in.
+      session.destroy
+      cookies.delete(:session_id)
+      nil
     end
 
     def request_authentication

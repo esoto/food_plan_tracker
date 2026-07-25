@@ -60,6 +60,14 @@ RSpec.describe UserReminderJob, type: :job do
       expect { described_class.perform_now(-1, now: Time.zone.local(2026, 4, 26, 7, 30)) }.not_to raise_error
     end
 
+    it "no-ops for a deactivated user even with a due, uncompleted meal" do
+      DailyLog.for(Date.current, user: user)
+      user.update!(deactivated_at: Time.current)
+
+      expect(PushNotifier).not_to receive(:broadcast)
+      described_class.perform_now(user.id, now: Time.zone.local(2026, 4, 26, 7, 30))
+    end
+
     it "does nothing when push isn't configured" do
       allow(PushNotifier).to receive(:configured?).and_return(false)
       DailyLog.for(Date.current, user: user)
