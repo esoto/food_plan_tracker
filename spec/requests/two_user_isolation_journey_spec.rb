@@ -8,18 +8,17 @@ RSpec.describe 'Two-user isolation journey', type: :request do
   let(:bob_email) { 'bob@example.com' }
   let(:bob_password) { 'bobpassword12345' }
 
+  # Public self-service sign-up was replaced by invite-only access requests,
+  # so provision the two users directly (mirroring what an approved invitation
+  # does: create the account, seed its defaults) and sign the last one in.
   def register_user(email, password)
-    post '/registration', params: {
-      user: {
-        email_address: email,
-        password: password,
-        password_confirmation: password
-      }
-    }
+    user = User.create!(email_address: email, password: password)
+    Onboarding::SeedDefaults.call(user)
+    post '/session', params: { email_address: email, password: password }
     expect(response).to redirect_to(root_path)
     follow_redirect!
     expect(response).to have_http_status(:ok)
-    User.find_by!(email_address: email)
+    user
   end
 
   def mcp_rpc(method, params = nil, token:)

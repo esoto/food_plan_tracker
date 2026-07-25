@@ -89,8 +89,13 @@ module Api
     def set_current_session
       return unless doorkeeper_token
 
-      user = User.find_by(id: doorkeeper_token.resource_owner_id)
-      Current.user = user if user
+      # Scope to active users so a deactivated owner (or a resource_owner_id
+      # pointing at a since-deleted user) fails closed with a 401 here rather
+      # than leaving Current.user nil and 500-ing deeper in a tool handler.
+      user = User.active.find_by(id: doorkeeper_token.resource_owner_id)
+      return render(json: rpc_error(nil, -32001, "unauthorized"), status: :unauthorized) unless user
+
+      Current.user = user
     end
 
     def parse_message

@@ -20,7 +20,7 @@ class UserReminderJob < ApplicationJob
   def perform(user_id, now: Time.current)
     return unless PushNotifier.configured?
 
-    user = User.find_by(id: user_id)
+    user = User.active.find_by(id: user_id)
     return unless user
 
     Current.set(user: user) do

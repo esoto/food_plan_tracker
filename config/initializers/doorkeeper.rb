@@ -18,7 +18,12 @@ Doorkeeper.configure do
   #
   # Resume the session manually before checking Current.user.
   resource_owner_authenticator do
-    Current.session ||= Session.find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
+    # `session` (the controller session hash) is used in the fallback below,
+    # so the resumed Session record gets its own name to avoid shadowing it.
+    if cookies.signed[:session_id]
+      user_session = Session.find_by(id: cookies.signed[:session_id])
+      Current.session ||= user_session if user_session && user_session.user.active?
+    end
     Current.user || begin
       session[:return_to_after_authenticating] = request.fullpath
       redirect_to(new_session_path)

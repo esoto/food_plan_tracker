@@ -20,6 +20,9 @@ module Api
     def authenticate_token!
       provided = request.headers["Authorization"].to_s.sub(/^Bearer /, "")
       token = ApiToken.authenticate(provided)
+      # A deactivated owner's token is treated as no token at all: drop into
+      # the 401 branch byte-identically without touching last_used_at.
+      token = nil if token&.user&.deactivated?
       if token
         token.touch_used!
         @current_api_token = token

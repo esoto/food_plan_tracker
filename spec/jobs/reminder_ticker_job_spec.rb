@@ -26,6 +26,17 @@ RSpec.describe ReminderTickerJob, type: :job do
       expect(user_ids).to contain_exactly(user1.id, user2.id)
     end
 
+    it "does not enqueue a child job for deactivated users" do
+      deactivated = create(:user, :deactivated)
+      now = Time.zone.local(2026, 4, 26, 7, 30)
+
+      described_class.perform_now(now: now)
+
+      user_ids = enqueued_jobs.map { |j| j[:args].first }
+      expect(user_ids).to contain_exactly(user1.id, user2.id)
+      expect(user_ids).not_to include(deactivated.id)
+    end
+
     it "enqueues nothing when push is not configured" do
       allow(PushNotifier).to receive(:configured?).and_return(false)
 
