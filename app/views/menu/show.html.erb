@@ -23,7 +23,7 @@
   </section>
 <% end %>
 
-<section class="px-4 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
+<section class="px-4 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
   <% @meals.each do |meal| %>
     <%= render "menu/meal_card", meal: meal, completed: @completed_meal_ids.include?(meal.id), daily_log: @daily_log %>
   <% end %>
