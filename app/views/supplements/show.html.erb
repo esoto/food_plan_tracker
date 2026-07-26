@@ -5,8 +5,9 @@
   <p class="text-sm text-slate-500 mt-1">Your daily stack by time of day.</p>
 </header>
 
+<div class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:px-4">
 <% SupplementSchedule::TIME_SLOT_LABELS.each do |slot_key, meta| %>
-  <section class="px-4 mb-4">
+  <section class="px-4 mb-4 lg:my-0 lg:px-0">
     <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100 overflow-hidden">
       <div class="flex items-center justify-between px-4 py-2.5 bg-slate-50/70">
         <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold"><%= meta[:label] %></h2>
@@ -46,7 +47,7 @@
 <% end %>
 
 <% if @critical_warnings.any? { |s| s.contraindications.present? } %>
-  <section class="px-4 mt-6">
+  <section class="px-4 mt-6 lg:my-0 lg:px-0 lg:col-span-2">
     <div class="rounded-2xl bg-rose-50 border border-rose-200 p-4">
       <p class="text-sm font-semibold text-rose-900 mb-2">⚠️ Do not combine with Fibrotina</p>
       <ul class="text-sm text-rose-800 space-y-1">
@@ -62,7 +63,7 @@
   </section>
 <% end %>
 
-<section class="px-4 mt-6 mb-4">
+<section class="px-4 mt-6 mb-4 lg:my-0 lg:px-0 lg:col-span-2">
   <details class="rounded-2xl bg-white border border-slate-100 shadow-sm group [&_summary::-webkit-details-marker]:hidden [&_summary]:list-none">
     <summary class="cursor-pointer px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 rounded-2xl">
       <div class="flex items-center gap-3">
@@ -95,3 +96,4 @@
     </div>
   </details>
 </section>
+</div>

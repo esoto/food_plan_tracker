@@ -15,7 +15,7 @@
   </div>
 </header>
 
-<section class="px-4 mt-6">
+<section class="px-4 mt-6 lg:max-w-2xl lg:mx-auto">
   <% if @food.errors.any? %>
     <div class="mb-4 rounded-2xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-900">
       <p class="font-semibold mb-1"><%= pluralize(@food.errors.count, "problem") %> stopped this from saving:</p>

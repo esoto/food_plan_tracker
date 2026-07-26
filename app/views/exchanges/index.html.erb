@@ -40,9 +40,9 @@
   <% end %>
 </div>
 
-<section class="px-4 space-y-2">
+<section class="px-4 space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
   <% if @foods.none? %>
-    <p class="text-center text-sm text-slate-500 py-8">No foods found.</p>
+    <p class="text-center text-sm text-slate-500 py-8 lg:col-span-2">No foods found.</p>
   <% end %>
   <% @foods.each do |food| %>
     <%= render "exchanges/food_row", food: food, target_log: @target_log %>

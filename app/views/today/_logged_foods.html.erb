@@ -1,6 +1,6 @@
 <% if logged_foods.any? %>
   <% target_date = local_assigns[:daily_log]&.date || Date.current %>
-  <section class="px-4 mt-6">
+  <section class="px-4 mt-6 lg:my-0 lg:px-0">
     <div class="flex items-center justify-between mb-2">
       <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">
         <%= target_date == Date.current ? "Today's extras" : "Logged foods" %>

@@ -18,7 +18,8 @@
   </div>
 </header>
 
-<section class="px-4">
+<div class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:px-4">
+<section class="px-4 lg:my-0 lg:px-0">
   <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
     <% @templates.each do |template| %>
       <% completion = @completions_by_template[template.id] %>
@@ -44,7 +45,8 @@
   </div>
 </section>
 
-<section class="px-4 mt-6">
+<section class="px-4 mt-6 lg:my-0 lg:px-0">
   <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Last 30 days</h2>
   <%= render "checklist/heatmap", last_30_logs: @last_30_logs %>
 </section>
+</div>
