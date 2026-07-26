@@ -27,7 +27,7 @@
   <body class="bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100" data-controller="theme">
     <%= render "shared/flash" %>
 
-    <main class="max-w-lg lg:max-w-2xl mx-auto pb-32 lg:pb-8 lg:pl-20 min-h-screen">
+    <main class="<%= authenticated? ? "lg:max-w-5xl lg:pl-20" : "" %> max-w-lg mx-auto pb-32 lg:pb-8 min-h-screen">
       <% if fibrotina_due? %>
         <%= render "shared/fibrotina_reminder" %>
       <% end %>

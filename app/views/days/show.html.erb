@@ -15,36 +15,38 @@
   <%= render "shared/day_toggle", plans: @plans, daily_log: @daily_log, variant: :dark %>
 </header>
 
-<section class="px-4 mt-4 flex items-center justify-between text-sm">
-  <%= link_to day_path(@prev_date), class: "text-indigo-600 hover:text-indigo-700 font-medium" do %>
-    ← <%= l(@prev_date, format: "%b %-d") %>
-  <% end %>
-  <% if @next_date %>
-    <%= link_to (@next_date == Date.current ? root_path : day_path(@next_date)), class: "text-indigo-600 hover:text-indigo-700 font-medium" do %>
-      <%= @next_date == Date.current ? "Today" : l(@next_date, format: "%b %-d") %> →
+<div class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:px-4">
+  <section class="px-4 mt-4 flex items-center justify-between text-sm lg:my-0 lg:px-0 lg:col-span-2">
+    <%= link_to day_path(@prev_date), class: "text-indigo-600 hover:text-indigo-700 font-medium" do %>
+      ← <%= l(@prev_date, format: "%b %-d") %>
     <% end %>
-  <% else %>
-    <span></span>
-  <% end %>
-</section>
+    <% if @next_date %>
+      <%= link_to (@next_date == Date.current ? root_path : day_path(@next_date)), class: "text-indigo-600 hover:text-indigo-700 font-medium" do %>
+        <%= @next_date == Date.current ? "Today" : l(@next_date, format: "%b %-d") %> →
+      <% end %>
+    <% else %>
+      <span></span>
+    <% end %>
+  </section>
 
-<section class="px-4 mt-4">
-  <%= render "today/macro_summary", daily_log: @daily_log, plan: @plan %>
-</section>
+  <section class="px-4 mt-4 lg:my-0 lg:px-0 lg:col-span-2">
+    <%= render "today/macro_summary", daily_log: @daily_log, plan: @plan %>
+  </section>
 
-<%= render "today/logged_foods", logged_foods: @logged_foods, daily_log: @daily_log %>
+  <%= render "today/logged_foods", logged_foods: @logged_foods, daily_log: @daily_log %>
 
-<section class="px-4 mt-3">
-  <%= link_to exchanges_path(daily_log_id: @daily_log.id),
-        class: "block w-full rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-medium px-4 py-3 hover:bg-indigo-100 transition text-center" do %>
-    + Log a food on this day
-  <% end %>
-</section>
+  <section class="px-4 mt-3 lg:my-0 lg:px-0">
+    <%= link_to exchanges_path(daily_log_id: @daily_log.id),
+          class: "block w-full rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-medium px-4 py-3 hover:bg-indigo-100 transition text-center" do %>
+      + Log a food on this day
+    <% end %>
+  </section>
 
-<section class="px-4 mt-6">
-  <%= render "today/weight_input", daily_log: @daily_log, weight_goal: @weight_goal %>
-</section>
+  <section class="px-4 mt-6 lg:my-0 lg:px-0">
+    <%= render "today/weight_input", daily_log: @daily_log, weight_goal: @weight_goal %>
+  </section>
 
-<section class="px-4 mt-6">
-  <%= render "today/journal_note", daily_log: @daily_log %>
-</section>
+  <section class="px-4 mt-6 lg:my-0 lg:px-0">
+    <%= render "today/journal_note", daily_log: @daily_log %>
+  </section>
+</div>
