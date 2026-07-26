@@ -15,7 +15,7 @@
   <%= render "shared/day_toggle", plans: @plans, daily_log: @daily_log, variant: :dark %>
 </header>
 
-<div class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:px-4">
+<div class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-3.5 lg:px-4">
   <section class="px-4 mt-4 flex items-center justify-between text-sm lg:my-0 lg:px-0 lg:col-span-2">
     <%= link_to day_path(@prev_date), class: "text-indigo-600 hover:text-indigo-700 font-medium" do %>
       ← <%= l(@prev_date, format: "%b %-d") %>
