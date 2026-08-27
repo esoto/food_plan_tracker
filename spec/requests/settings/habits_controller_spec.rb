@@ -47,6 +47,38 @@ RSpec.describe Settings::HabitsController, type: :request do
       post settings_habits_path, params: { habit: { label: "" } }
       expect(response).to have_http_status(:unprocessable_entity)
     end
+
+    it "creates a quantity habit with unit and target_value" do
+      post settings_habits_path, params: {
+        habit: { label: "Water", kind: "quantity", unit: "glasses", target_value: 8 }
+      }
+
+      habit = Habit.find_by(label: "Water")
+      expect(habit).to be_present
+      expect(habit).to be_quantity
+      expect(habit.unit).to eq("glasses")
+      expect(habit.target_value).to eq(8)
+    end
+
+    it "creates a rating habit with a rating_scale" do
+      post settings_habits_path, params: {
+        habit: { label: "Mood", kind: "rating", rating_scale: 5 }
+      }
+
+      habit = Habit.find_by(label: "Mood")
+      expect(habit).to be_present
+      expect(habit).to be_rating
+      expect(habit.rating_scale).to eq(5)
+    end
+
+    it "re-renders with errors when a rating habit is missing a rating_scale" do
+      expect {
+        post settings_habits_path, params: { habit: { label: "Mood", kind: "rating" } }
+      }.not_to change(Habit, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("Rating scale can&#39;t be blank")
+    end
   end
 
   describe "PATCH /settings/habits/:id" do
@@ -60,6 +92,48 @@ RSpec.describe Settings::HabitsController, type: :request do
       expect(habit.label).to eq("New")
       expect(habit.description).to eq("x")
       expect(habit.icon).to eq("💧")
+    end
+
+    it "updates unit, target_value, and rating_scale for the current kind" do
+      habit = create(:habit, :quantity, label: "Water", position: 0, user: Current.user)
+      patch settings_habit_path(habit), params: {
+        habit: { unit: "cups", target_value: 6 }
+      }
+
+      habit.reload
+      expect(habit.unit).to eq("cups")
+      expect(habit.target_value).to eq(6)
+    end
+
+    it "does not allow kind to change — silently ignored, habit keeps its original kind" do
+      habit = create(:habit, kind: :binary, label: "Meditate", position: 0, user: Current.user)
+
+      patch settings_habit_path(habit), params: { habit: { kind: "rating" } }
+
+      expect(response).to redirect_to(settings_habits_path)
+      expect(habit.reload).to be_binary
+    end
+
+    it "re-renders edit with errors on a failed update" do
+      habit = create(:habit, :quantity, label: "Water", position: 0, user: Current.user)
+
+      patch settings_habit_path(habit), params: { habit: { target_value: -1 } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("Target value must be greater than 0")
+      expect(habit.reload.target_value).to eq(8)
+    end
+  end
+
+  describe "GET /settings/habits/:id/edit" do
+    it "renders the edit form with the kind select disabled" do
+      habit = create(:habit, :quantity, label: "Water", position: 0, user: Current.user)
+
+      get edit_settings_habit_path(habit)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("disabled")
+      expect(response.body).to include("Kind can't be changed after creation.")
     end
   end
 

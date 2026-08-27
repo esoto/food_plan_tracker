@@ -24,6 +24,37 @@
     <%= f.text_field :icon, maxlength: 4, placeholder: "💧", class: "mt-1 w-24 rounded-xl border border-slate-300 text-sm px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" %>
   </label>
 
+  <label class="block">
+    <span class="text-xs uppercase tracking-wider text-slate-500">Kind</span>
+    <%= f.select :kind, Habit.kinds.keys.map { |k| [k.titleize, k] }, {}, disabled: habit.persisted?,
+          class: "mt-1 w-full rounded-xl border border-slate-300 text-sm px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed" %>
+    <p class="mt-1 text-xs text-slate-400">
+      <% if habit.persisted? %>
+        Kind can't be changed after creation.
+      <% else %>
+        Binary is a simple check-off. Quantity and duration track a numeric value against a target. Rating logs a score on a scale and isn't counted toward adherence.
+      <% end %>
+    </p>
+  </label>
+
+  <label class="block">
+    <span class="text-xs uppercase tracking-wider text-slate-500">Unit (optional)</span>
+    <%= f.text_field :unit, placeholder: "e.g. glasses, min", class: "mt-1 w-full rounded-xl border border-slate-300 text-sm px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" %>
+    <p class="mt-1 text-xs text-slate-400">Used by quantity and duration habits. Leave blank for binary and rating.</p>
+  </label>
+
+  <label class="block">
+    <span class="text-xs uppercase tracking-wider text-slate-500">Target value (optional)</span>
+    <%= f.number_field :target_value, step: 0.5, min: 0, class: "mt-1 w-full rounded-xl border border-slate-300 text-sm px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" %>
+    <p class="mt-1 text-xs text-slate-400">Used by quantity and duration habits to mark a day done. Leave blank for binary and rating.</p>
+  </label>
+
+  <label class="block">
+    <span class="text-xs uppercase tracking-wider text-slate-500">Rating scale (optional)</span>
+    <%= f.number_field :rating_scale, min: 2, max: 10, step: 1, class: "mt-1 w-full rounded-xl border border-slate-300 text-sm px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" %>
+    <p class="mt-1 text-xs text-slate-400">Required for rating habits, from 2 to 10. Leave blank otherwise.</p>
+  </label>
+
   <div class="flex justify-end gap-3 pt-2">
     <%= link_to "Cancel", settings_habits_path, class: "rounded-xl text-sm px-4 py-2 text-slate-600 hover:bg-slate-100" %>
     <%= f.submit submit_label, class: "rounded-xl bg-indigo-600 text-white text-sm font-medium px-4 py-2 hover:bg-indigo-700 cursor-pointer" %>
