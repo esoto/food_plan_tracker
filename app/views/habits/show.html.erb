@@ -21,10 +21,10 @@
 <div class="lg:grid lg:grid-cols-2 lg:items-start lg:gap-3.5 lg:px-4">
 <section class="px-4 lg:my-0 lg:px-0">
   <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
-    <% @templates.each do |template| %>
-      <% completion = @completions_by_template[template.id] %>
-      <% checked = completion&.checked || false %>
-      <%= form_with url: checklist_completion_path(template), method: :patch, class: "block" do |f| %>
+    <% @habits.each do |habit| %>
+      <% entry = @entries_by_habit[habit.id] %>
+      <% checked = entry&.checked || false %>
+      <%= form_with url: checklist_completion_path(habit), method: :patch, class: "block" do |f| %>
         <%= f.hidden_field :checked, value: checked ? "0" : "1" %>
         <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
           <div class="w-6 h-6 rounded-lg flex items-center justify-center <%= checked ? "bg-emerald-500 text-white" : "ring-2 ring-slate-300" %>">
@@ -33,10 +33,10 @@
             <% end %>
           </div>
           <div class="flex-1 min-w-0 flex items-start gap-2">
-            <span class="text-lg leading-none mt-0.5"><%= template.icon %></span>
+            <span class="text-lg leading-none mt-0.5"><%= habit.icon %></span>
             <div class="min-w-0">
-              <p class="font-medium text-slate-900 <%= "line-through text-slate-400" if checked %>"><%= template.label %></p>
-              <p class="text-xs text-slate-500"><%= template.description %></p>
+              <p class="font-medium text-slate-900 <%= "line-through text-slate-400" if checked %>"><%= habit.label %></p>
+              <p class="text-xs text-slate-500"><%= habit.description %></p>
             </div>
           </div>
         </button>
@@ -47,6 +47,6 @@
 
 <section class="px-4 mt-6 lg:my-0 lg:px-0">
   <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Last 30 days</h2>
-  <%= render "checklist/heatmap", last_30_logs: @last_30_logs %>
+  <%= render "habits/heatmap", last_30_logs: @last_30_logs %>
 </section>
 </div>

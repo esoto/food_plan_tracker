@@ -27,7 +27,9 @@ Rails.application.routes.draw do
   resources :exchanges, only: :index
   resources :foods,     only: %i[new create]
   resource :supplements, only: :show, controller: "supplements"
-  resource :checklist, only: :show, controller: "checklist"
+  resource :habits, only: :show, controller: "habits"
+  # Legacy URL — installed PWAs and bookmarks still hit /checklist.
+  get "/checklist", to: redirect("/habits", status: 301)
   resource :progress, only: :show, controller: "progress"
   resource :settings,  only: :show, controller: "settings"
   namespace :settings do

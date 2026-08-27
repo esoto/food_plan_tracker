@@ -71,7 +71,7 @@ class ApplicationController < ActionController::Base
     { key: :menu,        path: "/menu",        label: "Menu",       icon: "utensils" },
     { key: :exchanges,   path: "/exchanges",   label: "Foods",      icon: "shuffle" },
     { key: :supplements, path: "/supplements", label: "Supplements", icon: "pill" },
-    { key: :checklist,   path: "/checklist",   label: "Habits",     icon: "check" }
+    { key: :checklist,   path: "/habits",      label: "Habits",     icon: "check" }
   ].freeze
 
   def nav_items

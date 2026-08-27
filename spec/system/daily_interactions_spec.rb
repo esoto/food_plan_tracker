@@ -79,13 +79,13 @@ RSpec.describe "Daily interactions via Stimulus/Turbo", type: :system do
       user = create_onboarded_user(email: "alice@example.com")
       system_sign_in(email: "alice@example.com", password: "password12345")
 
-      # Create a checklist template for the user
-      template = create(:checklist_template, user: user, label: "Morning walk", description: "30 min", icon: "🚶")
+      # Create a habit for the user
+      habit = create(:habit, user: user, label: "Morning walk", description: "30 min", icon: "🚶")
 
       # Fetch the daily_log that was created by onboarding
       daily_log = DailyLog.find_by!(user_id: user.id, date: Date.current)
 
-      visit checklist_path
+      visit habits_path
       expect(page).to have_text("Daily habits")
       expect(page).to have_text("Morning walk")
 
@@ -108,8 +108,8 @@ RSpec.describe "Daily interactions via Stimulus/Turbo", type: :system do
       # Verify the progress bar is visible and > 0%
       expect(page).to have_css(".bg-emerald-500")
 
-      # Verify the ChecklistCompletion was created
-      expect(ChecklistCompletion.where(checklist_template_id: template.id, daily_log_id: daily_log.id).count).to eq(1)
+      # Verify the HabitEntry was created
+      expect(HabitEntry.where(habit_id: habit.id, daily_log_id: daily_log.id).count).to eq(1)
     end
   end
 
