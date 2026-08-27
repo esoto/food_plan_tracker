@@ -150,7 +150,7 @@ module Api
           position:     template.position,
           kind:         template.kind,
           unit:         template.unit,
-          target_value: template.target_value,
+          target_value: template.target_value&.to_f,
           rating_scale: template.rating_scale,
           discarded_at: template.discarded_at&.iso8601
         }

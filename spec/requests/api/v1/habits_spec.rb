@@ -37,7 +37,7 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
       habit = response.parsed_body["habits"].first
       expect(habit["kind"]).to eq("quantity")
       expect(habit["unit"]).to eq("glasses")
-      expect(habit["target_value"]).to eq("8.0")
+      expect(habit["target_value"]).to eq(8.0)
       expect(habit).to have_key("rating_scale")
     end
   end
