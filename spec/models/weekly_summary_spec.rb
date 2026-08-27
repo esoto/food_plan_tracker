@@ -136,6 +136,38 @@ RSpec.describe WeeklySummary, type: :model do
       summary = WeeklySummary.rolling_7_days
       expect(summary.adherence_pct).to eq(100)
     end
+
+    it "caps a day's contribution at 100% when a done habit is archived later the same day" do
+      kept = Habit.create!(label: "Kept", position: 1, user: user)
+      archived = Habit.create!(label: "Archived", position: 2, user: user)
+
+      log = DailyLog.create!(date: Date.current, plan: plan)
+      log.habit_entries.create!(habit: kept, value: 1)
+      log.habit_entries.create!(habit: archived, value: 1)
+      archived.discard!
+
+      # Denominator for today = 1 (`kept` only — `archived` was discarded
+      # earlier today, so kept_on(date) drops it). A numerator that ignores
+      # kept_on(date) still counts both done entries: 2/1 = 200%.
+      summary = WeeklySummary.rolling_7_days
+      expect(summary.adherence_pct).to eq(100)
+    end
+
+    it "does not let an archived-and-done habit inflate the numerator above the day's denominator" do
+      Habit.create!(label: "Kept", position: 1, user: user) # binary, no entry — not done
+      archived = Habit.create!(label: "Archived", position: 2, user: user)
+
+      log = DailyLog.create!(date: Date.current, plan: plan)
+      log.habit_entries.create!(habit: archived, value: 1)
+      archived.discard!
+
+      # Denominator for today = 1 (`Kept` only, not done). The numerator
+      # must apply the same per-day kept_on cutoff, or `archived`'s
+      # already-logged entry still counts: 1/1 = 100% despite zero kept
+      # habits being done.
+      summary = WeeklySummary.rolling_7_days
+      expect(summary.adherence_pct).to eq(0)
+    end
   end
 
   describe "#weight_delta_kg" do

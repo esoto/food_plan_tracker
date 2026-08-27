@@ -91,7 +91,10 @@ class DailyLog < ApplicationRecord
     total = Habit.for_user(user).kept_on(date).scoreable.count
     return 0 if total.zero?
 
-    done = habit_entries.joins(:habit).merge(Habit.scoreable)
+    # Numerator must stay symmetric with the denominator above: a habit
+    # logged done then archived the same day is dropped by kept_on(date)
+    # here too, or its stale entry inflates adherence past 100%.
+    done = habit_entries.joins(:habit).merge(Habit.for_user(user).kept_on(date).scoreable)
       .where(Habit::DONE_PREDICATE).count
     ((done.to_f / total) * 100).round
   end

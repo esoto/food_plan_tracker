@@ -111,6 +111,34 @@ RSpec.describe DailyLog, type: :model do
       # denominator this would be 33% (1/3); into the numerator too, 66% (2/3).
       expect(log.habit_adherence_pct).to eq(50)
     end
+
+    it "does not exceed 100% when a done habit is archived later the same day" do
+      kept = create(:habit, label: "Kept", position: 0, user: user)
+      archived = create(:habit, label: "Archived", position: 1, user: user)
+      log = DailyLog.create!(date: Date.current, plan: plan, user: user)
+      HabitEntry.set_value!(daily_log: log, habit: kept, value: 1)
+      HabitEntry.set_value!(daily_log: log, habit: archived, value: 1)
+      archived.discard!
+
+      # Denominator (kept_on(date).scoreable) drops `archived` since it was
+      # discarded earlier today = 1 (`kept` only). The numerator must apply
+      # the same kept_on(date) filter, or `archived`'s already-logged entry
+      # still counts on top: 2/1 = 200%.
+      expect(log.habit_adherence_pct).to eq(100)
+    end
+
+    it "does not count an archived habit's done entry once it drops from the denominator" do
+      create(:habit, label: "Kept", position: 0, user: user) # binary, no entry — not done
+      archived = create(:habit, label: "Archived", position: 1, user: user)
+      log = DailyLog.create!(date: Date.current, plan: plan, user: user)
+      HabitEntry.set_value!(daily_log: log, habit: archived, value: 1)
+      archived.discard!
+
+      # Denominator: only `Kept` (1, not done). The numerator must not count
+      # `archived`'s done entry once `archived` is excluded from that
+      # denominator, or this reads 1/1 = 100% despite zero kept habits done.
+      expect(log.habit_adherence_pct).to eq(0)
+    end
   end
 
   describe "#copy_completions_from" do
