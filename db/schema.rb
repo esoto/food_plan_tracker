@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_24_214008) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_27_165533) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -44,31 +44,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_24_214008) do
     t.index ["goal_id", "recorded_on"], name: "index_biomarker_entries_on_goal_id_and_recorded_on"
     t.index ["goal_id"], name: "index_biomarker_entries_on_goal_id"
     t.index ["user_id"], name: "index_biomarker_entries_on_user_id"
-  end
-
-  create_table "checklist_completions", force: :cascade do |t|
-    t.boolean "checked", default: false, null: false
-    t.integer "checklist_template_id", null: false
-    t.datetime "created_at", null: false
-    t.integer "daily_log_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["checklist_template_id"], name: "index_checklist_completions_on_checklist_template_id"
-    t.index ["daily_log_id", "checklist_template_id"], name: "idx_checklist_completions_on_log_and_template", unique: true
-    t.index ["daily_log_id"], name: "index_checklist_completions_on_daily_log_id"
-  end
-
-  create_table "checklist_templates", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "description"
-    t.datetime "discarded_at"
-    t.string "icon"
-    t.string "label", null: false
-    t.integer "position", default: 0, null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["discarded_at"], name: "index_checklist_templates_kept", where: "(discarded_at IS NULL)"
-    t.index ["position"], name: "index_checklist_templates_on_position"
-    t.index ["user_id"], name: "index_checklist_templates_on_user_id"
   end
 
   create_table "daily_logs", force: :cascade do |t|
@@ -112,6 +87,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_24_214008) do
     t.bigint "user_id", null: false
     t.index ["user_id", "metric"], name: "index_goals_on_user_id_and_metric", unique: true
     t.index ["user_id"], name: "index_goals_on_user_id"
+  end
+
+  create_table "habit_entries", force: :cascade do |t|
+    t.boolean "checked", default: false, null: false
+    t.datetime "created_at", null: false
+    t.integer "daily_log_id", null: false
+    t.integer "habit_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["daily_log_id", "habit_id"], name: "idx_habit_entries_on_log_and_habit", unique: true
+    t.index ["daily_log_id"], name: "index_habit_entries_on_daily_log_id"
+    t.index ["habit_id"], name: "index_habit_entries_on_habit_id"
+  end
+
+  create_table "habits", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "description"
+    t.datetime "discarded_at"
+    t.string "icon"
+    t.string "label", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["discarded_at"], name: "index_habits_kept", where: "(discarded_at IS NULL)"
+    t.index ["position"], name: "index_habits_on_position"
+    t.index ["user_id"], name: "index_habits_on_user_id"
   end
 
   create_table "logged_foods", force: :cascade do |t|
@@ -322,13 +322,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_24_214008) do
   add_foreign_key "api_tokens", "users"
   add_foreign_key "biomarker_entries", "goals"
   add_foreign_key "biomarker_entries", "users"
-  add_foreign_key "checklist_completions", "checklist_templates"
-  add_foreign_key "checklist_completions", "daily_logs"
-  add_foreign_key "checklist_templates", "users"
   add_foreign_key "daily_logs", "plans"
   add_foreign_key "daily_logs", "users"
   add_foreign_key "foods", "users", column: "created_by_user_id"
   add_foreign_key "goals", "users"
+  add_foreign_key "habit_entries", "daily_logs"
+  add_foreign_key "habit_entries", "habits"
+  add_foreign_key "habits", "users"
   add_foreign_key "logged_foods", "daily_logs"
   add_foreign_key "logged_foods", "foods"
   add_foreign_key "logged_foods", "users"
