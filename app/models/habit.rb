@@ -18,6 +18,12 @@ class Habit < ApplicationRecord
   # Ratings are measurements, not pass/fail — walled out of adherence/streak/heatmap.
   scope :scoreable, -> { where.not(kind: :rating) }
 
+  # All-or-nothing done-ness; nil target falls back to any positive value.
+  DONE_PREDICATE = <<~SQL.squish.freeze
+    CASE WHEN habits.target_value IS NULL THEN habit_entries.value > 0
+         ELSE habit_entries.value >= habits.target_value END
+  SQL
+
   # Next position to use for a newly created or restored kept habit.
   def self.next_position(user: Current.user)
     (for_user(user).kept.maximum(:position) || -1) + 1

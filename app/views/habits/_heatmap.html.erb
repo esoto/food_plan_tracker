@@ -3,7 +3,7 @@
     <% 30.downto(1).each do |offset| %>
       <% date = Date.current - (offset - 1) %>
       <% log = last_30_logs[date] %>
-      <% pct = log&.checklist_adherence_pct.to_i %>
+      <% pct = log&.habit_adherence_pct.to_i %>
       <% color =
            if pct >= 80 then "bg-emerald-500"
            elsif pct >= 50 then "bg-emerald-300"

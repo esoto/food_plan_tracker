@@ -19,14 +19,14 @@ class HabitsController < ApplicationController
   # (each iteration is one query + one count). One year of streak is plenty
   # for the UI; nobody will notice a longer one. Reuses the eager-loaded
   # @last_30_logs to skip the per-day DailyLog lookup for the recent window.
-  # Note: checklist_adherence_pct still issues per-day COUNTs (kept_on +
-  # checked counts) — bounded by STREAK_MAX_DAYS.
+  # Note: habit_adherence_pct still issues per-day COUNTs (kept_on +
+  # scoreable done counts) — bounded by STREAK_MAX_DAYS.
   def compute_streak
     count = 0
     date = Date.current
     STREAK_MAX_DAYS.times do
       log = @last_30_logs[date] || Current.user.daily_logs.find_by(date: date)
-      break unless log && log.checklist_adherence_pct >= 80
+      break unless log && log.habit_adherence_pct >= 80
 
       count += 1
       date -= 1

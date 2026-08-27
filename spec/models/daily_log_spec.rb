@@ -74,6 +74,45 @@ RSpec.describe DailyLog, type: :model do
     end
   end
 
+  describe "#habit_adherence_pct" do
+    it "is 0% when a quantity habit's value is below target (all-or-nothing)" do
+      habit = create(:habit, :quantity, user: user, target_value: 8)
+      log = DailyLog.create!(date: Date.current, plan: plan, user: user)
+      HabitEntry.set_value!(daily_log: log, habit: habit, value: 3)
+
+      expect(log.habit_adherence_pct).to eq(0)
+    end
+
+    it "is 100% when a quantity habit's value meets target exactly" do
+      habit = create(:habit, :quantity, user: user, target_value: 8)
+      log = DailyLog.create!(date: Date.current, plan: plan, user: user)
+      HabitEntry.set_value!(daily_log: log, habit: habit, value: 8)
+
+      expect(log.habit_adherence_pct).to eq(100)
+    end
+
+    it "treats a nil target as done for any positive value (fallback)" do
+      habit = create(:habit, :quantity, user: user, target_value: nil)
+      log = DailyLog.create!(date: Date.current, plan: plan, user: user)
+      HabitEntry.set_value!(daily_log: log, habit: habit, value: 2)
+
+      expect(log.habit_adherence_pct).to eq(100)
+    end
+
+    it "excludes rating habits from both numerator and denominator" do
+      binary_done = create(:habit, label: "A", position: 0, user: user)
+      create(:habit, label: "B", position: 1, user: user) # binary, not done — no entry
+      rating = create(:habit, :rating, label: "C", position: 2, user: user, rating_scale: 5)
+      log = DailyLog.create!(date: Date.current, plan: plan, user: user)
+      HabitEntry.set_value!(daily_log: log, habit: binary_done, value: 1)
+      HabitEntry.set_value!(daily_log: log, habit: rating, value: 5)
+
+      # 1 of 2 binary habits done = 50%. If the rating leaked into the
+      # denominator this would be 33% (1/3); into the numerator too, 66% (2/3).
+      expect(log.habit_adherence_pct).to eq(50)
+    end
+  end
+
   describe "#copy_completions_from" do
     let(:today) { DailyLog.today(user: user) }
     let(:yesterday) { DailyLog.create!(date: Date.yesterday, plan: today.plan) }

@@ -17,17 +17,19 @@ class WeeklySummary
 
     # Per-day denominator from templates that were active on that date — so
     # archiving a habit today doesn't retroactively shift past percentages.
-    checked_per_log = HabitEntry.where(daily_log: logs, checked: true).group(:daily_log_id).count
+    done_per_log = HabitEntry.joins(:habit).merge(Habit.scoreable)
+      .where(daily_log: logs).where(Habit::DONE_PREDICATE)
+      .group(:daily_log_id).count
 
     totals_per_date = logs.each_with_object(Hash.new(0)) do |l, h|
-      h[l.date] = Habit.for_user(@user).kept_on(l.date).count
+      h[l.date] = Habit.for_user(@user).kept_on(l.date).scoreable.count
     end
 
     pcts = logs.map do |l|
       total = totals_per_date[l.date] || 0
       next 0 if total.zero?
 
-      checked_per_log.fetch(l.id, 0) * 100.0 / total
+      done_per_log.fetch(l.id, 0) * 100.0 / total
     end
     (pcts.sum / pcts.size).round
   end

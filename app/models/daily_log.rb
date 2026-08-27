@@ -87,11 +87,12 @@ class DailyLog < ApplicationRecord
     (completed_meals.sum(:target_fat_g).to_f + logged_foods.sum(&:fat_g).to_f).round(1)
   end
 
-  def checklist_adherence_pct
-    total = Habit.for_user(user).kept_on(date).count
+  def habit_adherence_pct
+    total = Habit.for_user(user).kept_on(date).scoreable.count
     return 0 if total.zero?
 
-    checked = habit_entries.where(checked: true).count
-    ((checked.to_f / total) * 100).round
+    done = habit_entries.joins(:habit).merge(Habit.scoreable)
+      .where(Habit::DONE_PREDICATE).count
+    ((done.to_f / total) * 100).round
   end
 end

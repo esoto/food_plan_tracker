@@ -50,7 +50,7 @@
     <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Adherence — last 14 days</p>
     <% if @recent_logs.any? %>
       <div class="h-40">
-        <%= column_chart @recent_logs.map { |l| [ l.date.strftime("%m/%d"), l.checklist_adherence_pct ] },
+        <%= column_chart @recent_logs.map { |l| [ l.date.strftime("%m/%d"), l.habit_adherence_pct ] },
                         colors: [ "#10b981" ], height: "160px",
                         library: { plugins: { legend: { display: false } }, scales: { y: { max: 100 } } } %>
       </div>
