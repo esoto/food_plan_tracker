@@ -8,7 +8,7 @@
 # 2. Always chain +for_user(user).kept+, NOT +kept.for_user(user)+ —
 #    +for_user+ must come first so the tenant boundary is established before
 #    any other scope is applied.
-# 3. Top-level models (Plan, Goal, Supplement, ChecklistTemplate,
+# 3. Top-level models (Plan, Goal, Supplement, Habit,
 #    ReminderPreference) have NO fallback — they rely 100% on Current.user.
 # 4. +belongs_to :user, optional: true+ is transitional. PER-553 switches to
 #    required after backfill + NOT NULL.

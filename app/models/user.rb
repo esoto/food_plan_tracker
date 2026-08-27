@@ -10,7 +10,7 @@ class User < ApplicationRecord
   has_many :supplement_schedules, dependent: :destroy
   has_many :goals, dependent: :destroy
   has_many :biomarker_entries, dependent: :destroy
-  has_many :checklist_templates, dependent: :destroy
+  has_many :habits, dependent: :destroy
   has_many :logged_foods, dependent: :destroy
   has_many :api_tokens, dependent: :destroy
   has_many :push_subscriptions, dependent: :destroy

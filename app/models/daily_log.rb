@@ -7,7 +7,7 @@ class DailyLog < ApplicationRecord
   has_many :completed_meals, through: :meal_completions, source: :meal
   has_many :supplement_completions, dependent: :destroy
   has_many :completed_supplements, through: :supplement_completions, source: :supplement
-  has_many :checklist_completions, dependent: :destroy
+  has_many :habit_entries, dependent: :destroy
   has_many :logged_foods, -> { order(logged_at: :desc) }, dependent: :destroy
 
   validates :date, presence: true, uniqueness: { scope: :user_id }
@@ -88,10 +88,10 @@ class DailyLog < ApplicationRecord
   end
 
   def checklist_adherence_pct
-    total = ChecklistTemplate.for_user(user).kept_on(date).count
+    total = Habit.for_user(user).kept_on(date).count
     return 0 if total.zero?
 
-    checked = checklist_completions.where(checked: true).count
+    checked = habit_entries.where(checked: true).count
     ((checked.to_f / total) * 100).round
   end
 end
