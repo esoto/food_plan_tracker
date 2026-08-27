@@ -68,7 +68,7 @@ RSpec.describe "GET /checklist", type: :request do
 
     it "does not include another user's daily logs in the heatmap/last-30-days" do
       # Set up: signed-in user has 0 daily_logs; user_b has 1 daily_log today
-      # with a checklist_completion on a uniquely-labeled template. The
+      # with a habit_entry on a uniquely-labeled habit. The
       # template's label would render in the heatmap if user_b's log leaked.
       user_b_plan = create(:plan, slug: "exercise-b", name: "B exercise", user: user_b)
       b_habit = create(:habit, label: "FOREIGN_HEATMAP_MARKER",

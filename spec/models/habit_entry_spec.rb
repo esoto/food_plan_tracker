@@ -7,7 +7,7 @@ RSpec.describe HabitEntry, type: :model do
   end
 
   describe "validations" do
-    it "requires a unique checklist_template per daily_log" do
+    it "requires a unique habit per daily_log" do
       daily_log = create(:daily_log)
       template  = create(:habit)
       create(:habit_entry, daily_log: daily_log, habit: template)

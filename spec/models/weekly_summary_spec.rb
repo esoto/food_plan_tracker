@@ -59,7 +59,7 @@ RSpec.describe WeeklySummary, type: :model do
   end
 
   describe "#adherence_pct" do
-    it "excludes checklist templates belonging to other users" do
+    it "excludes habits belonging to other users" do
       user_b = create(:user)
       Habit.create!(label: "Other", position: 1, user: user_b)
 
