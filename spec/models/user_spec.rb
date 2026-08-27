@@ -10,7 +10,7 @@ RSpec.describe User, type: :model do
     it { is_expected.to have_many(:supplement_schedules).dependent(:destroy) }
     it { is_expected.to have_many(:goals).dependent(:destroy) }
     it { is_expected.to have_many(:biomarker_entries).dependent(:destroy) }
-    it { is_expected.to have_many(:checklist_templates).dependent(:destroy) }
+    it { is_expected.to have_many(:habits).dependent(:destroy) }
     it { is_expected.to have_many(:logged_foods).dependent(:destroy) }
     it { is_expected.to have_many(:api_tokens).dependent(:destroy) }
     it { is_expected.to have_many(:push_subscriptions).dependent(:destroy) }
