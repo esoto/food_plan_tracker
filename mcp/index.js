@@ -318,9 +318,13 @@ server.registerTool(
     title: "Create a habit",
     description: "Add a habit. New habits get appended at the bottom of the order.",
     inputSchema: {
-      label:       z.string(),
-      description: z.string().optional(),
-      icon:        z.string().optional().describe("single emoji")
+      label:        z.string(),
+      description:  z.string().optional(),
+      icon:         z.string().optional().describe("single emoji"),
+      kind:         z.enum(["binary", "quantity", "duration", "rating"]).optional().describe("habit kind; immutable after creation (default binary)"),
+      unit:         z.string().optional().describe("unit label for quantity/duration kinds, e.g. 'glasses' or 'min'"),
+      target_value: z.number().positive().optional().describe("target value for quantity/duration kinds (must be > 0)"),
+      rating_scale: z.number().int().min(2).max(10).optional().describe("rating scale upper bound for rating kind (2-10)")
     }
   },
   async (habit) => jsonResult(await api("POST", "/api/v1/habits", { habit }))
@@ -332,11 +336,14 @@ server.registerTool(
     title: "Update a habit",
     description: "Edit a habit by id. Pass an integer position to reorder (lower = earlier on /checklist).",
     inputSchema: {
-      id:          z.number().int().positive(),
-      label:       z.string().optional(),
-      description: z.string().optional(),
-      icon:        z.string().optional(),
-      position:    z.number().int().nonnegative().optional()
+      id:           z.number().int().positive(),
+      label:        z.string().optional(),
+      description:  z.string().optional(),
+      icon:         z.string().optional(),
+      position:     z.number().int().nonnegative().optional(),
+      unit:         z.string().optional().describe("unit label for quantity/duration kinds, e.g. 'glasses' or 'min'"),
+      target_value: z.number().positive().optional().describe("target value for quantity/duration kinds (must be > 0)"),
+      rating_scale: z.number().int().min(2).max(10).optional().describe("rating scale upper bound for rating kind (2-10)")
     }
   },
   async ({ id, ...habit }) => jsonResult(await api("PATCH", `/api/v1/habits/${id}`, { habit }))

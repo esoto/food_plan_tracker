@@ -4,7 +4,7 @@ class SupplementCompletionsController < ApplicationController
   def create
     supplement = Current.user.supplements.kept.find(params[:supplement_id])
     completion = @daily_log.supplement_completions.find_or_create_by!(supplement: supplement) { |sc| sc.taken_at = Time.current }
-    sync_related_habit(supplement, checked: true)
+    sync_related_habit(supplement, value: 1.0)
     if params[:source] == "reminder"
       flash[:undo] = { "path" => supplement_completion_path(completion), "label" => "Undo \"#{supplement.name}\"" }
     end
@@ -16,7 +16,7 @@ class SupplementCompletionsController < ApplicationController
     supplement = completion.supplement
     daily_log  = completion.daily_log
     completion.destroy!
-    sync_related_habit(supplement, checked: false, daily_log: daily_log)
+    sync_related_habit(supplement, value: 0.0, daily_log: daily_log)
     redirect_back fallback_location: supplements_path
   end
 
@@ -27,17 +27,18 @@ class SupplementCompletionsController < ApplicationController
   end
 
   # Keep the "Took Fibrotina with dinner" habit in sync with the supplement
-  # completion: marking supplement taken checks the habit; untoggling the
-  # supplement unchecks it. The habit can still be toggled independently
-  # (e.g. you checked it manually and never marked the supplement).
-  def sync_related_habit(supplement, checked:, daily_log: @daily_log)
+  # completion: marking supplement taken sets the habit's value to 1.0;
+  # untoggling the supplement sets it back to 0.0. The habit can still be
+  # toggled independently (e.g. you checked it manually and never marked the
+  # supplement). Only syncs a *binary* Fibrotina habit — a rating/quantity/
+  # duration habit that happens to match the label isn't pass/fail, so it's
+  # left untouched.
+  def sync_related_habit(supplement, value:, daily_log: @daily_log)
     return unless supplement.name.match?(/Fibrotina/i)
 
     habit = Current.user.habits.kept.find_by("label ILIKE ?", "%Fibrotina%")
-    return unless habit
+    return unless habit&.binary?
 
-    entry = daily_log.habit_entries.find_or_initialize_by(habit: habit)
-    entry.checked = checked
-    entry.save!
+    HabitEntry.set_value!(daily_log: daily_log, habit: habit, value: value)
   end
 end

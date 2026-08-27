@@ -53,6 +53,30 @@ RSpec.describe SupplementCompletionsController, type: :request do
       }.from(nil).to(true)
     end
 
+    it "writes value 1.0 and checked true via HabitEntry.set_value! on create" do
+      fib_habit = create(:habit, user: user,
+                                  label: "Took Fibrotina with dinner",
+                                  position: 0)
+      fib_supplement = create(:supplement, user: user, name: "Fibrotina 145mg")
+
+      post supplement_completions_path, params: { supplement_id: fib_supplement.id, daily_log_id: daily_log.id }
+
+      entry = daily_log.habit_entries.find_by(habit: fib_habit)
+      expect(entry.value).to eq(1.0)
+      expect(entry.checked).to eq(true)
+    end
+
+    it "does not write an entry when the matching Fibrotina habit is non-binary" do
+      rating_habit = create(:habit, :rating, user: user,
+                                     label: "Fibrotina test",
+                                     position: 0)
+      fib_supplement = create(:supplement, user: user, name: "Fibrotina 145mg")
+
+      post supplement_completions_path, params: { supplement_id: fib_supplement.id, daily_log_id: daily_log.id }
+
+      expect(daily_log.habit_entries.where(habit: rating_habit)).to be_empty
+    end
+
     it "does not pick up another user's Fibrotina habit (cross-tenant habit sync)" do
       user_b = create(:user)
       _b_habit = create(:habit, user: user_b,
