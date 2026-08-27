@@ -421,12 +421,12 @@ end
 puts "  #{Supplement.count} supplements, #{SupplementSchedule.count} schedule entries"
 
 # -----------------------------------------------------------------------------
-# Checklist templates
+# Habits
 # -----------------------------------------------------------------------------
 
-puts "Seeding checklist templates…"
+puts "Seeding habits…"
 
-CHECKLIST = [
+HABITS = [
   { label: "Drank 3L of water",                     description: "Daily hydration",                         icon: "💧" },
   { label: "Took Fibrotina with dinner",            description: "Critical — with fat at 7:30 PM",          icon: "💊" },
   { label: "180g of protein consumed",              description: "5 meals × 30-45g",                        icon: "🥩" },
@@ -441,20 +441,20 @@ CHECKLIST = [
   { label: "Psyllium 10g",                          description: "Soluble fiber — 15 min pre-lunch",        icon: "🌾" }
 ].freeze
 
-# Remove stale Spanish-labeled templates if present. Scoped to kept rows so
+# Remove stale Spanish-labeled habits if present. Scoped to kept rows so
 # user-archived custom habits aren't obliterated on re-seed (their completion
 # history would go with them).
-ChecklistTemplate.for_user(user).kept.where.not(label: CHECKLIST.map { |c| c[:label] }).destroy_all
+Habit.for_user(user).kept.where.not(label: HABITS.map { |c| c[:label] }).destroy_all
 
-CHECKLIST.each_with_index do |attrs, idx|
-  template = ChecklistTemplate.find_or_initialize_by(label: attrs[:label], user: user)
-  template.description = attrs[:description]
-  template.icon        = attrs[:icon]
-  template.position    = idx + 1
-  template.save!
+HABITS.each_with_index do |attrs, idx|
+  habit = Habit.find_or_initialize_by(label: attrs[:label], user: user)
+  habit.description = attrs[:description]
+  habit.icon         = attrs[:icon]
+  habit.position     = idx + 1
+  habit.save!
 end
 
-puts "  #{ChecklistTemplate.count} checklist templates"
+puts "  #{Habit.count} habits"
 
 # -----------------------------------------------------------------------------
 # Goals (6 biomarkers)

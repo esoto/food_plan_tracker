@@ -39,7 +39,7 @@ RSpec.describe WeeklySummary, type: :model do
 
   before do
     Current.session = Session.create!(user: user, user_agent: "test", ip_address: "127.0.0.1")
-    ChecklistTemplate.delete_all
+    Habit.delete_all
     travel_to Time.zone.local(2026, 4, 25, 12, 0)
   end
 
@@ -59,13 +59,13 @@ RSpec.describe WeeklySummary, type: :model do
   end
 
   describe "#adherence_pct" do
-    it "excludes checklist templates belonging to other users" do
+    it "excludes habits belonging to other users" do
       user_b = create(:user)
-      ChecklistTemplate.create!(label: "Other", position: 1, user: user_b)
+      Habit.create!(label: "Other", position: 1, user: user_b)
 
-      ChecklistTemplate.create!(label: "Mine", position: 1, user: user)
+      Habit.create!(label: "Mine", position: 1, user: user)
       log = DailyLog.create!(date: Date.current, plan: plan)
-      log.checklist_completions.create!(checklist_template: ChecklistTemplate.where(label: "Mine").first, checked: true)
+      log.habit_entries.create!(habit: Habit.where(label: "Mine").first, checked: true)
 
       summary = WeeklySummary.rolling_7_days(user: user)
       # User A: 1 checked, 1 total. 100%.
@@ -74,15 +74,15 @@ RSpec.describe WeeklySummary, type: :model do
     end
 
     it "averages each daily log's checklist_adherence_pct" do
-      ChecklistTemplate.create!(label: "X", position: 1, user: user)
-      ChecklistTemplate.create!(label: "Y", position: 2, user: user)
+      Habit.create!(label: "X", position: 1, user: user)
+      Habit.create!(label: "Y", position: 2, user: user)
 
       log1 = DailyLog.create!(date: Date.current - 2, plan: plan)
-      log1.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
-      log1.checklist_completions.create!(checklist_template: ChecklistTemplate.last, checked: true)
+      log1.habit_entries.create!(habit: Habit.first, checked: true)
+      log1.habit_entries.create!(habit: Habit.last, checked: true)
 
       log2 = DailyLog.create!(date: Date.current - 1, plan: plan)
-      log2.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
+      log2.habit_entries.create!(habit: Habit.first, checked: true)
 
       summary = WeeklySummary.rolling_7_days
       expect(summary.adherence_pct).to eq(75)
@@ -94,12 +94,12 @@ RSpec.describe WeeklySummary, type: :model do
     end
 
     it "averages logs that have zero completions as 0% in the mean" do
-      ChecklistTemplate.create!(label: "X", position: 1, user: user)
-      ChecklistTemplate.create!(label: "Y", position: 2, user: user)
+      Habit.create!(label: "X", position: 1, user: user)
+      Habit.create!(label: "Y", position: 2, user: user)
 
       log1 = DailyLog.create!(date: Date.current - 1, plan: plan)
-      log1.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
-      log1.checklist_completions.create!(checklist_template: ChecklistTemplate.last, checked: true)
+      log1.habit_entries.create!(habit: Habit.first, checked: true)
+      log1.habit_entries.create!(habit: Habit.last, checked: true)
 
       DailyLog.create!(date: Date.current, plan: plan) # zero completions
 
@@ -108,17 +108,17 @@ RSpec.describe WeeklySummary, type: :model do
     end
 
     it "excludes logs from the day before the window" do
-      ChecklistTemplate.create!(label: "X", position: 1, user: user)
+      Habit.create!(label: "X", position: 1, user: user)
       out_of_window = DailyLog.create!(date: Date.current - 7, plan: plan)
-      out_of_window.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
+      out_of_window.habit_entries.create!(habit: Habit.first, checked: true)
 
       expect(WeeklySummary.rolling_7_days.adherence_pct).to be_nil
     end
 
     it "includes logs from exactly 6 days ago (window boundary)" do
-      ChecklistTemplate.create!(label: "X", position: 1, user: user)
+      Habit.create!(label: "X", position: 1, user: user)
       log = DailyLog.create!(date: Date.current - 6, plan: plan)
-      log.checklist_completions.create!(checklist_template: ChecklistTemplate.first, checked: true)
+      log.habit_entries.create!(habit: Habit.first, checked: true)
 
       expect(WeeklySummary.rolling_7_days.adherence_pct).to eq(100)
     end

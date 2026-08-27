@@ -1,8 +1,8 @@
-<%= form_with model: template, url: form_url, method: form_method, class: "rounded-2xl bg-white border border-slate-100 shadow-sm p-5 grid gap-4" do |f| %>
-  <% if template.errors.any? %>
+<%= form_with model: [:settings, habit], url: form_url, method: form_method, class: "rounded-2xl bg-white border border-slate-100 shadow-sm p-5 grid gap-4" do |f| %>
+  <% if habit.errors.any? %>
     <div class="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-sm text-rose-700">
       <ul class="list-disc list-inside">
-        <% template.errors.full_messages.each do |msg| %>
+        <% habit.errors.full_messages.each do |msg| %>
           <li><%= msg %></li>
         <% end %>
       </ul>

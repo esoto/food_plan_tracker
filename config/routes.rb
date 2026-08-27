@@ -27,7 +27,9 @@ Rails.application.routes.draw do
   resources :exchanges, only: :index
   resources :foods,     only: %i[new create]
   resource :supplements, only: :show, controller: "supplements"
-  resource :checklist, only: :show, controller: "checklist"
+  resource :habits, only: :show, controller: "habits"
+  # Legacy URL — installed PWAs and bookmarks still hit /checklist.
+  get "/checklist", to: redirect("/habits", status: 301)
   resource :progress, only: :show, controller: "progress"
   resource :settings,  only: :show, controller: "settings"
   namespace :settings do
@@ -35,7 +37,7 @@ Rails.application.routes.draw do
       member { patch :restore }
       collection { get :archived }
     end
-    resources :habits, controller: "checklist_templates" do
+    resources :habits do
       member do
         patch :restore
         patch :move_up
@@ -53,7 +55,7 @@ Rails.application.routes.draw do
     collection { post :copy_yesterday }
   end
   resources :supplement_completions, only: %i[create destroy]
-  resources :checklist_completions,  only: :update
+  resources :habit_entries,          only: :update
   resources :biomarker_entries,      only: %i[new create] do
     collection { post :bulk }
   end

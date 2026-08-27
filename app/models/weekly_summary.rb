@@ -17,10 +17,10 @@ class WeeklySummary
 
     # Per-day denominator from templates that were active on that date — so
     # archiving a habit today doesn't retroactively shift past percentages.
-    checked_per_log = ChecklistCompletion.where(daily_log: logs, checked: true).group(:daily_log_id).count
+    checked_per_log = HabitEntry.where(daily_log: logs, checked: true).group(:daily_log_id).count
 
     totals_per_date = logs.each_with_object(Hash.new(0)) do |l, h|
-      h[l.date] = ChecklistTemplate.for_user(@user).kept_on(l.date).count
+      h[l.date] = Habit.for_user(@user).kept_on(l.date).count
     end
 
     pcts = logs.map do |l|

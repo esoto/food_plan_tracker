@@ -9,7 +9,7 @@ RSpec.describe 'Tenantable meta-tests', type: :model do
   TENANTABLE_MODELS = [
     ApiToken,
     BiomarkerEntry,
-    ChecklistTemplate,
+    Habit,
     DailyLog,
     Goal,
     LoggedFood,
@@ -165,7 +165,7 @@ RSpec.describe 'Tenantable meta-tests', type: :model do
   describe 'assign_current_user sweep (top-level models via Current.session)' do
     # Exclude child models: MealItem, LoggedFood, SupplementSchedule (tested via parent derivation)
     top_level_models = [
-      ApiToken, BiomarkerEntry, ChecklistTemplate, DailyLog,
+      ApiToken, BiomarkerEntry, Habit, DailyLog,
       Goal, Meal, Plan, PushSubscription, ReminderPreference,
       Supplement
     ]
@@ -187,7 +187,7 @@ RSpec.describe 'Tenantable meta-tests', type: :model do
                         g.starting_value = 80; g.target_value = 75
                       end
                       { goal_id: goal.id, value: 75.0, recorded_on: Date.current }
-            when 'ChecklistTemplate'
+            when 'Habit'
                       { label: 'Test' }
             when 'DailyLog'
                       plan = Plan.find_or_create_by!(slug: 'test', user: user) do |p|

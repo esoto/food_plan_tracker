@@ -1,11 +1,11 @@
-class ChecklistController < ApplicationController
+class HabitsController < ApplicationController
   def show
     @daily_log = today_log
-    @templates = Current.user.checklist_templates.kept.ordered
-    @completions_by_template = @daily_log.checklist_completions.index_by(&:checklist_template_id)
+    @habits = Current.user.habits.kept.ordered
+    @entries_by_habit = @daily_log.habit_entries.index_by(&:habit_id)
     @last_30_logs = Current.user.daily_logs
       .where(date: 29.days.ago.to_date..Date.current)
-      .includes(:checklist_completions)
+      .includes(:habit_entries)
       .index_by(&:date)
     @streak = compute_streak
   end

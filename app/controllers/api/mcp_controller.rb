@@ -289,37 +289,37 @@ module Api
     end
 
     def handle_list_habits(args)
-      scope = args["archived"].to_s == "true" ? Current.user.checklist_templates.discarded.order(:label) : Current.user.checklist_templates.kept.ordered
+      scope = args["archived"].to_s == "true" ? Current.user.habits.discarded.order(:label) : Current.user.habits.kept.ordered
       { habits: scope.map { |t| serialize_habit(t) } }
     end
 
     def handle_create_habit(args)
       attrs = args.slice("label", "description", "icon")
-      template = Current.user.checklist_templates.new(attrs)
-      template.position = ChecklistTemplate.next_position(user: Current.user)
-      template.save!
-      { habit: serialize_habit(template) }
+      habit = Current.user.habits.new(attrs)
+      habit.position = Habit.next_position(user: Current.user)
+      habit.save!
+      { habit: serialize_habit(habit) }
     end
 
     def handle_update_habit(args)
-      template = Current.user.checklist_templates.find(args.fetch("id"))
+      habit = Current.user.habits.find(args.fetch("id"))
       attrs = args.slice("label", "description", "icon", "position").compact
       raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
 
-      template.update!(attrs)
-      { habit: serialize_habit(template) }
+      habit.update!(attrs)
+      { habit: serialize_habit(habit) }
     end
 
     def handle_archive_habit(args)
-      template = Current.user.checklist_templates.find(args.fetch("id"))
-      template.discard!
-      { habit: serialize_habit(template) }
+      habit = Current.user.habits.find(args.fetch("id"))
+      habit.discard!
+      { habit: serialize_habit(habit) }
     end
 
     def handle_restore_habit(args)
-      template = Current.user.checklist_templates.find(args.fetch("id"))
-      template.restore_at_end!
-      { habit: serialize_habit(template) }
+      habit = Current.user.habits.find(args.fetch("id"))
+      habit.restore_at_end!
+      { habit: serialize_habit(habit) }
     end
 
     # ----- Settings: macro targets -----
@@ -658,7 +658,7 @@ module Api
         handler: :handle_restore_supplement
       },
 
-      # ----- Habits (ChecklistTemplate) -----
+      # ----- Habits -----
       {
         name:        "list_habits",
         description: "List habit templates. Default returns active (non-archived) in display order. Pass archived=true for the archived list.",

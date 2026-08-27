@@ -458,12 +458,12 @@ RSpec.describe "POST /mcp", type: :request do
     end
 
     describe "habits management" do
-      before { ChecklistTemplate.delete_all }
+      before { Habit.delete_all }
 
       let(:other_user) { create(:user) }
 
       it "create_habit appends at the end of the position list" do
-        create(:checklist_template, label: "First", position: 0, user: user)
+        create(:habit, label: "First", position: 0, user: user)
 
         result = rpc("tools/call", { name: "create_habit", arguments: { label: "Second" } })["result"]
         payload = JSON.parse(result["content"].first["text"])
@@ -471,14 +471,14 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       it "update_habit is an error when no updatable field sent" do
-        template = create(:checklist_template, position: 0, user: user)
-        result = rpc("tools/call", { name: "update_habit", arguments: { id: template.id } })["result"]
+        habit = create(:habit, position: 0, user: user)
+        result = rpc("tools/call", { name: "update_habit", arguments: { id: habit.id } })["result"]
         expect(result["isError"]).to be(true)
       end
 
       it "archive_habit hides from list_habits" do
-        kept = create(:checklist_template, label: "Drink water", position: 0, user: user)
-        old  = create(:checklist_template, label: "Old", position: 1, user: user)
+        kept = create(:habit, label: "Drink water", position: 0, user: user)
+        old  = create(:habit, label: "Old", position: 1, user: user)
 
         rpc("tools/call", { name: "archive_habit", arguments: { id: old.id } })
 
@@ -488,10 +488,10 @@ RSpec.describe "POST /mcp", type: :request do
       end
 
       # TC-H1: list own-only — both inclusion and exclusion asserted
-      it "TC-H1 list_habits includes own and excludes other_user's templates" do
-        # other_user's template MUST be created first (unscoped query would return first row)
-        other_template = create(:checklist_template, label: "Theirs", position: 0, user: other_user)
-        my_template    = create(:checklist_template, label: "Mine", position: 0, user: user)
+      it "TC-H1 list_habits includes own and excludes other_user's habits" do
+        # other_user's habit MUST be created first (unscoped query would return first row)
+        other_habit = create(:habit, label: "Theirs", position: 0, user: other_user)
+        my_habit    = create(:habit, label: "Mine", position: 0, user: user)
 
         result = rpc("tools/call", { name: "list_habits", arguments: {} })["result"]
         payload = JSON.parse(result["content"].first["text"])
@@ -502,8 +502,8 @@ RSpec.describe "POST /mcp", type: :request do
 
       # TC-H2: archived list variant
       it "TC-H2 list_habits archived=true includes own archived, excludes other_user's" do
-        other_template = create(:checklist_template, label: "Theirs Archived", position: 0, user: other_user, discarded_at: 1.day.ago)
-        my_template    = create(:checklist_template, label: "Mine Archived", position: 0, user: user, discarded_at: 1.day.ago)
+        other_habit = create(:habit, label: "Theirs Archived", position: 0, user: other_user, discarded_at: 1.day.ago)
+        my_habit    = create(:habit, label: "Mine Archived", position: 0, user: user, discarded_at: 1.day.ago)
 
         result = rpc("tools/call", { name: "list_habits", arguments: { archived: true } })["result"]
         payload = JSON.parse(result["content"].first["text"])
@@ -512,42 +512,42 @@ RSpec.describe "POST /mcp", type: :request do
         expect(labels).not_to include("Theirs Archived")
       end
 
-      # TC-H3: update on other_user's template -> isError + reload unchanged
+      # TC-H3: update on other_user's habit -> isError + reload unchanged
       it "TC-H3 update_habit returns isError on other_user's id and leaves record unchanged" do
-        other_template = create(:checklist_template, label: "Original", position: 0, user: other_user)
+        other_habit = create(:habit, label: "Original", position: 0, user: other_user)
 
         result = rpc("tools/call", { name: "update_habit",
-                                     arguments: { id: other_template.id, label: "Hacked" } })["result"]
+                                     arguments: { id: other_habit.id, label: "Hacked" } })["result"]
         expect(result["isError"]).to be(true)
-        expect(other_template.reload.label).to eq("Original")
+        expect(other_habit.reload.label).to eq("Original")
       end
 
-      # TC-H4: archive on other_user's template -> isError + discarded_at nil
+      # TC-H4: archive on other_user's habit -> isError + discarded_at nil
       it "TC-H4 archive_habit returns isError on other_user's id and leaves record unarchived" do
-        other_template = create(:checklist_template, label: "Not Mine", position: 0, user: other_user)
+        other_habit = create(:habit, label: "Not Mine", position: 0, user: other_user)
 
         result = rpc("tools/call", { name: "archive_habit",
-                                     arguments: { id: other_template.id } })["result"]
+                                     arguments: { id: other_habit.id } })["result"]
         expect(result["isError"]).to be(true)
-        expect(other_template.reload.discarded_at).to be_nil
+        expect(other_habit.reload.discarded_at).to be_nil
       end
 
-      # TC-H5: restore on other_user's template -> isError + discarded_at still present
+      # TC-H5: restore on other_user's habit -> isError + discarded_at still present
       it "TC-H5 restore_habit returns isError on other_user's id and leaves record discarded" do
-        other_template = create(:checklist_template, label: "Not Mine Archived", position: 0, user: other_user, discarded_at: 1.day.ago)
+        other_habit = create(:habit, label: "Not Mine Archived", position: 0, user: other_user, discarded_at: 1.day.ago)
 
         result = rpc("tools/call", { name: "restore_habit",
-                                     arguments: { id: other_template.id } })["result"]
+                                     arguments: { id: other_habit.id } })["result"]
         expect(result["isError"]).to be(true)
-        expect(other_template.reload.discarded_at).to be_present
+        expect(other_habit.reload.discarded_at).to be_present
       end
 
       # TC-H6: next_position trap test — other_user's high position doesn't affect my new position
-      it "TC-H6 next_position ignores other_user's templates (position not influenced by foreign high position)" do
-        # Seed other_user with a high-position template
-        other_template = create(:checklist_template, label: "Their High", position: 999, user: other_user)
-        # My existing template
-        my_template    = create(:checklist_template, label: "Mine", position: 0, user: user)
+      it "TC-H6 next_position ignores other_user's habits (position not influenced by foreign high position)" do
+        # Seed other_user with a high-position habit
+        other_habit = create(:habit, label: "Their High", position: 999, user: other_user)
+        # My existing habit
+        my_habit    = create(:habit, label: "Mine", position: 0, user: user)
 
         result = rpc("tools/call", { name: "create_habit", arguments: { label: "My New" } })["result"]
         payload = JSON.parse(result["content"].first["text"])
@@ -557,27 +557,27 @@ RSpec.describe "POST /mcp", type: :request do
 
       # TC-H7: positive control — update_habit success (currently untested happy path)
       it "TC-H7 update_habit success updates label and returns updated record" do
-        template = create(:checklist_template, label: "Original", position: 0, user: user)
+        habit = create(:habit, label: "Original", position: 0, user: user)
 
         result = rpc("tools/call", { name: "update_habit",
-                                     arguments: { id: template.id, label: "Updated" } })["result"]
+                                     arguments: { id: habit.id, label: "Updated" } })["result"]
         expect(result).not_to include("isError" => true)
         payload = JSON.parse(result["content"].first["text"])
         expect(payload["habit"]["label"]).to eq("Updated")
-        expect(template.reload.label).to eq("Updated")
+        expect(habit.reload.label).to eq("Updated")
       end
 
       # TC-H8: positive control — restore_habit success (currently untested happy path)
       it "TC-H8 restore_habit success restores and appends at position end" do
-        # Create my archived template and my kept template
-        archived = create(:checklist_template, label: "Archived", position: 0, user: user, discarded_at: 1.day.ago)
-        kept     = create(:checklist_template, label: "Kept", position: 0, user: user)
+        # Create my archived habit and my kept habit
+        archived = create(:habit, label: "Archived", position: 0, user: user, discarded_at: 1.day.ago)
+        kept     = create(:habit, label: "Kept", position: 0, user: user)
 
         result = rpc("tools/call", { name: "restore_habit",
                                      arguments: { id: archived.id } })["result"]
         expect(result).not_to include("isError" => true)
         payload = JSON.parse(result["content"].first["text"])
-        # After restore, position should be 1 (max of kept templates before restore)
+        # After restore, position should be 1 (max of kept habits before restore)
         expect(payload["habit"]["position"]).to eq(1)
         expect(archived.reload.discarded_at).to be_nil
       end

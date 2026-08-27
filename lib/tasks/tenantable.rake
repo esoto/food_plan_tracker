@@ -26,7 +26,7 @@ namespace :tenantable do
       Plan,
       Goal,
       Supplement,
-      ChecklistTemplate,
+      Habit,
       ReminderPreference,
       ApiToken,
       PushSubscription,
