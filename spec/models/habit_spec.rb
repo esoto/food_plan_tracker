@@ -43,6 +43,105 @@ RSpec.describe Habit, type: :model do
     end
   end
 
+  describe "kind" do
+    it "defaults to binary" do
+      habit = create(:habit)
+      expect(habit.kind).to eq("binary")
+      expect(habit).to be_binary
+    end
+
+    it "exposes the full set of kinds" do
+      expect(described_class.kinds).to eq(
+        "binary" => 0, "quantity" => 1, "duration" => 2, "rating" => 3
+      )
+    end
+  end
+
+  describe ".scoreable" do
+    it "excludes rating habits and includes every other kind" do
+      binary = create(:habit)
+      quantity = create(:habit, :quantity)
+      duration = create(:habit, :duration)
+      create(:habit, :rating)
+
+      expect(described_class.scoreable).to contain_exactly(binary, quantity, duration)
+    end
+  end
+
+  describe "kind-specific validations" do
+    context "binary" do
+      it "is valid without unit, target_value, or rating_scale" do
+        expect(build(:habit, kind: :binary)).to be_valid
+      end
+
+      it "forbids unit" do
+        habit = build(:habit, kind: :binary, unit: "glasses")
+        expect(habit).not_to be_valid
+        expect(habit.errors[:unit]).to be_present
+      end
+    end
+
+    context "rating" do
+      it "is valid with a rating_scale and no unit/target_value" do
+        expect(build(:habit, :rating)).to be_valid
+      end
+
+      it "requires rating_scale" do
+        habit = build(:habit, kind: :rating, rating_scale: nil)
+        expect(habit).not_to be_valid
+        expect(habit.errors[:rating_scale]).to be_present
+      end
+
+      it "requires rating_scale to be an integer between 2 and 10" do
+        expect(build(:habit, :rating, rating_scale: 1)).not_to be_valid
+        expect(build(:habit, :rating, rating_scale: 11)).not_to be_valid
+        expect(build(:habit, :rating, rating_scale: 2.5)).not_to be_valid
+        expect(build(:habit, :rating, rating_scale: 2)).to be_valid
+        expect(build(:habit, :rating, rating_scale: 10)).to be_valid
+      end
+
+      it "forbids target_value" do
+        habit = build(:habit, :rating, target_value: 5)
+        expect(habit).not_to be_valid
+        expect(habit.errors[:target_value]).to be_present
+      end
+
+      it "forbids unit" do
+        habit = build(:habit, :rating, unit: "stars")
+        expect(habit).not_to be_valid
+        expect(habit.errors[:unit]).to be_present
+      end
+    end
+
+    context "quantity" do
+      it "allows unit and target_value, forbids rating_scale" do
+        expect(build(:habit, :quantity)).to be_valid
+
+        habit = build(:habit, :quantity, rating_scale: 5)
+        expect(habit).not_to be_valid
+        expect(habit.errors[:rating_scale]).to be_present
+      end
+    end
+
+    context "duration" do
+      it "allows unit and target_value, forbids rating_scale" do
+        expect(build(:habit, :duration)).to be_valid
+
+        habit = build(:habit, :duration, rating_scale: 5)
+        expect(habit).not_to be_valid
+        expect(habit.errors[:rating_scale]).to be_present
+      end
+    end
+
+    context "target_value" do
+      it "must be greater than 0 when present" do
+        expect(build(:habit, :quantity, target_value: 0)).not_to be_valid
+        expect(build(:habit, :quantity, target_value: -1)).not_to be_valid
+        expect(build(:habit, :quantity, target_value: nil)).to be_valid
+      end
+    end
+  end
+
   describe "#restore_at_end!" do
     let(:user) { create(:user) }
 
