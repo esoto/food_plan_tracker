@@ -1,6 +1,6 @@
-const CACHE = "fpt-shell-v2"
+const CACHE = "fpt-shell-v3"
 const SHELL = [
-  "/", "/menu", "/exchanges", "/supplements", "/checklist", "/progress",
+  "/", "/menu", "/exchanges", "/supplements", "/habits", "/progress",
   "/manifest.json",
   "/icon.svg", "/icon.png", "/icon-192.png", "/icon-maskable.png", "/apple-touch-icon.png", "/favicon.ico"
 ]

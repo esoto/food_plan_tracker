@@ -300,7 +300,7 @@ server.registerTool(
   async ({ id }) => jsonResult(await api("PATCH", `/api/v1/supplements/${id}/restore`))
 );
 
-// ----- Habit (ChecklistTemplate) management -----
+// ----- Habit management -----
 
 server.registerTool(
   "list_habits",

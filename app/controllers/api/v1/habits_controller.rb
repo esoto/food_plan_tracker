@@ -4,33 +4,33 @@ module Api
       include Api::Concerns::DaySerializer
 
       def index
-        scope = params[:archived].to_s == "true" ? Current.user.checklist_templates.discarded.order(:label) : Current.user.checklist_templates.kept.ordered
+        scope = params[:archived].to_s == "true" ? Current.user.habits.discarded.order(:label) : Current.user.habits.kept.ordered
         render json: { habits: scope.map { |t| serialize_habit(t) } }
       end
 
       def create
-        template = Current.user.checklist_templates.new(habit_params)
-        template.position = ChecklistTemplate.next_position(user: Current.user)
-        template.save!
-        render json: { habit: serialize_habit(template) }, status: :created
+        habit = Current.user.habits.new(habit_params)
+        habit.position = Habit.next_position(user: Current.user)
+        habit.save!
+        render json: { habit: serialize_habit(habit) }, status: :created
       end
 
       def update
-        template = Current.user.checklist_templates.find(params[:id])
-        template.update!(habit_params)
-        render json: { habit: serialize_habit(template) }
+        habit = Current.user.habits.find(params[:id])
+        habit.update!(habit_params)
+        render json: { habit: serialize_habit(habit) }
       end
 
       def destroy
-        template = Current.user.checklist_templates.find(params[:id])
-        template.discard!
-        render json: { habit: serialize_habit(template) }
+        habit = Current.user.habits.find(params[:id])
+        habit.discard!
+        render json: { habit: serialize_habit(habit) }
       end
 
       def restore
-        template = Current.user.checklist_templates.find(params[:id])
-        template.restore_at_end!
-        render json: { habit: serialize_habit(template) }
+        habit = Current.user.habits.find(params[:id])
+        habit.restore_at_end!
+        render json: { habit: serialize_habit(habit) }
       end
 
       private
