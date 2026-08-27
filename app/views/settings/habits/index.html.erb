@@ -14,25 +14,25 @@
 </header>
 
 <section class="px-4 mt-6 flex items-center justify-between">
-  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Active (<%= @templates.size %>)</h2>
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Active (<%= @habits.size %>)</h2>
   <%= link_to "+ New habit", new_settings_habit_path, class: "rounded-xl bg-indigo-600 text-white text-xs font-medium px-3 py-2 hover:bg-indigo-700" %>
 </section>
 
 <section class="px-4 mt-3 grid gap-2">
-  <% if @templates.empty? %>
+  <% if @habits.empty? %>
     <p class="text-sm text-slate-500 italic px-2 py-6 text-center">No active habits yet — add one above.</p>
   <% end %>
-  <% @templates.each_with_index do |template, idx| %>
+  <% @habits.each_with_index do |habit, idx| %>
     <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4 flex items-center gap-3">
       <div class="flex flex-col gap-1 shrink-0">
-        <%= button_to move_up_settings_habit_path(template),
+        <%= button_to move_up_settings_habit_path(habit),
               method: :patch, disabled: idx.zero?,
               class: "rounded-lg w-8 h-7 flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer",
               aria: { label: "Move up" } do %>
           ▲
         <% end %>
-        <%= button_to move_down_settings_habit_path(template),
-              method: :patch, disabled: idx == @templates.size - 1,
+        <%= button_to move_down_settings_habit_path(habit),
+              method: :patch, disabled: idx == @habits.size - 1,
               class: "rounded-lg w-8 h-7 flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer",
               aria: { label: "Move down" } do %>
           ▼
@@ -40,18 +40,18 @@
       </div>
       <div class="flex-1 min-w-0">
         <p class="text-sm font-semibold text-slate-900">
-          <% if template.icon.present? %><span class="mr-1"><%= template.icon %></span><% end %>
-          <%= template.label %>
+          <% if habit.icon.present? %><span class="mr-1"><%= habit.icon %></span><% end %>
+          <%= habit.label %>
         </p>
-        <% if template.description.present? %>
-          <p class="text-xs text-slate-500 mt-0.5"><%= template.description %></p>
+        <% if habit.description.present? %>
+          <p class="text-xs text-slate-500 mt-0.5"><%= habit.description %></p>
         <% end %>
       </div>
       <div class="flex items-center gap-2 shrink-0">
-        <%= link_to "Edit", edit_settings_habit_path(template), class: "rounded-lg text-xs font-medium px-3 py-1.5 text-indigo-700 hover:bg-indigo-50" %>
-        <%= button_to "Archive", settings_habit_path(template),
+        <%= link_to "Edit", edit_settings_habit_path(habit), class: "rounded-lg text-xs font-medium px-3 py-1.5 text-indigo-700 hover:bg-indigo-50" %>
+        <%= button_to "Archive", settings_habit_path(habit),
               method: :delete,
-              form: { data: { turbo_confirm: "Archive \"#{template.label}\"? Past completion records stay intact." } },
+              form: { data: { turbo_confirm: "Archive \"#{habit.label}\"? Past completion records stay intact." } },
               class: "rounded-lg text-xs font-medium px-3 py-1.5 text-rose-700 hover:bg-rose-50 cursor-pointer" %>
       </div>
     </div>

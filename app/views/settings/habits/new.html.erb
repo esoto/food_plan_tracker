@@ -6,5 +6,5 @@
 </header>
 
 <section class="px-4 mt-6 mb-8 lg:max-w-2xl lg:mx-auto">
-  <%= render "form", template: @template, form_url: settings_habits_path, form_method: :post, submit_label: "Add habit" %>
+  <%= render "form", habit: @habit, form_url: settings_habits_path, form_method: :post, submit_label: "Add habit" %>
 </section>

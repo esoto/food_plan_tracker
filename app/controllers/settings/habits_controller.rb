@@ -1,0 +1,84 @@
+class Settings::HabitsController < ApplicationController
+  before_action :set_habit, only: %i[edit update destroy restore move_up move_down]
+
+  def index
+    @habits = Current.user.habits.kept.ordered
+  end
+
+  def archived
+    @habits = Current.user.habits.discarded.order(:label)
+  end
+
+  def new
+    @habit = Habit.new(position: Habit.next_position(user: Current.user))
+  end
+
+  def create
+    @habit = Habit.new(habit_params)
+    @habit.position = Habit.next_position(user: Current.user)
+    if @habit.save
+      redirect_to settings_habits_path, notice: "Added \"#{@habit.label}\""
+    else
+      render :new, status: :unprocessable_entity
+    end
+  end
+
+  def edit
+  end
+
+  def update
+    if @habit.update(habit_params)
+      redirect_to settings_habits_path, notice: "Updated \"#{@habit.label}\""
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    @habit.discard!
+    redirect_to settings_habits_path, notice: "Archived \"#{@habit.label}\""
+  end
+
+  def restore
+    @habit.restore_at_end!
+    redirect_to settings_habits_path, notice: "Restored \"#{@habit.label}\""
+  end
+
+  def move_up
+    swap_position(@habit, direction: :up)
+    redirect_to settings_habits_path
+  end
+
+  def move_down
+    swap_position(@habit, direction: :down)
+    redirect_to settings_habits_path
+  end
+
+  private
+
+  def set_habit
+    @habit = Current.user.habits.find(params[:id])
+  end
+
+  def habit_params
+    params.require(:habit).permit(:label, :description, :icon)
+  end
+
+  # Swap the `position` value with the adjacent kept habit. Position is the
+  # only column changed — IDs and FKs are untouched.
+  def swap_position(habit, direction:)
+    siblings = Current.user.habits.kept.ordered.to_a
+    idx = siblings.index { |h| h.id == habit.id }
+    return unless idx
+
+    target_idx = direction == :up ? idx - 1 : idx + 1
+    return if target_idx < 0 || target_idx >= siblings.size
+
+    other = siblings[target_idx]
+    Habit.transaction do
+      a_pos, b_pos = habit.position, other.position
+      habit.update!(position: b_pos)
+      other.update!(position: a_pos)
+    end
+  end
+end

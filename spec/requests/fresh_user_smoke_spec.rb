@@ -5,7 +5,7 @@ RSpec.describe "Fresh user smoke test (PER-572)", type: :request do
     user = create(:user)
     create(:plan, slug: "active", name: "FOREIGN_SMOKE_MARKER_PLAN", target_kcal: 2075, user: user)
     create(:supplement, name: "FOREIGN_SMOKE_MARKER_SUPPLEMENT", user: user)
-    create(:checklist_template, label: "FOREIGN_SMOKE_MARKER_HABIT", user: user)
+    create(:habit, label: "FOREIGN_SMOKE_MARKER_HABIT", user: user)
     # Non-weight metric WITH a measurement: weight goals never render their
     # display_name (progress rejects weight_kg from the goal-card loop), and
     # the root page only shows goals that have measurements — a weight-trait
@@ -46,8 +46,8 @@ RSpec.describe "Fresh user smoke test (PER-572)", type: :request do
       expect(response.body).not_to include("FOREIGN_SMOKE_MARKER_SUPPLEMENT")
     end
 
-    it "GET /checklist renders with 200 and excludes other user's habit" do
-      get checklist_path
+    it "GET /habits renders with 200 and excludes other user's habit" do
+      get habits_path
       expect(response).to have_http_status(:ok)
       expect(response.body).not_to include("FOREIGN_SMOKE_MARKER_HABIT")
     end

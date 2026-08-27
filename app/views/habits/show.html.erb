@@ -24,7 +24,7 @@
     <% @habits.each do |habit| %>
       <% entry = @entries_by_habit[habit.id] %>
       <% checked = entry&.checked || false %>
-      <%= form_with url: checklist_completion_path(habit), method: :patch, class: "block" do |f| %>
+      <%= form_with url: habit_entry_path(habit), method: :patch, class: "block" do |f| %>
         <%= f.hidden_field :checked, value: checked ? "0" : "1" %>
         <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
           <div class="w-6 h-6 rounded-lg flex items-center justify-center <%= checked ? "bg-emerald-500 text-white" : "ring-2 ring-slate-300" %>">

@@ -65,18 +65,18 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
     it 'POST /settings/habits ignores user_id in params' do
       expect {
         post settings_habits_url, params: {
-          checklist_template: { label: 'NewHabitMA', user_id: other_user.id },
+          habit: { label: 'NewHabitMA', user_id: other_user.id },
           user_id: other_user.id
         }
-      }.to change(ChecklistTemplate, :count).by(1)
-      habit = ChecklistTemplate.find_by!(label: 'NewHabitMA')
+      }.to change(Habit, :count).by(1)
+      habit = Habit.find_by!(label: 'NewHabitMA')
       expect(habit.user_id).to eq(owner.id)
     end
 
     it 'PATCH /settings/habits/:id ignores user_id in params' do
-      habit = create(:checklist_template, label: 'MineMA', position: 0, user: owner)
+      habit = create(:habit, label: 'MineMA', position: 0, user: owner)
       patch settings_habit_url(habit), params: {
-        checklist_template: { label: 'UpdatedMA', user_id: other_user.id }
+        habit: { label: 'UpdatedMA', user_id: other_user.id }
       }
       expect(habit.reload.user_id).to eq(owner.id)
       expect(habit.label).to eq('UpdatedMA')
@@ -132,7 +132,7 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
     end
 
     it 'PATCH /api/v1/habits/:id ignores user_id in body' do
-      habit = create(:checklist_template, user: owner)
+      habit = create(:habit, user: owner)
       patch "/api/v1/habits/#{habit.id}", params: { habit: { label: 'Updated', user_id: other_user.id } }.to_json, headers: @headers
       expect(habit.reload.user_id).to eq(owner.id)
     end
@@ -167,7 +167,7 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
       post '/api/v1/habits', params: {
         habit: { label: 'NewHabit', description: 'test', user_id: other_user.id }
       }.to_json, headers: @headers
-      habit = ChecklistTemplate.find_by!(label: 'NewHabit')
+      habit = Habit.find_by!(label: 'NewHabit')
       expect(habit.user_id).to eq(owner.id)
     end
 
@@ -202,7 +202,7 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
   # Structurally immune endpoints — documented rather than tested, because no
   # attribute hash is ever permitted, so user_id injection has no path to the
   # model: meal_completions/supplement_completions (built from scoped meal/
-  # supplement + daily_log lookups), checklist_completions (find_or_initialize
+  # supplement + daily_log lookups), habit_entries (find_or_initialize
   # off the scoped log), reminder_preferences (top-level reminder_type/key/
   # enabled only), push_subscriptions (for_user(Current.user) upsert), and the
   # HTML logged_foods create (food_id/daily_log_id + quantity only).

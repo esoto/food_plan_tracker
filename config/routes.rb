@@ -37,7 +37,7 @@ Rails.application.routes.draw do
       member { patch :restore }
       collection { get :archived }
     end
-    resources :habits, controller: "checklist_templates" do
+    resources :habits do
       member do
         patch :restore
         patch :move_up
@@ -55,7 +55,7 @@ Rails.application.routes.draw do
     collection { post :copy_yesterday }
   end
   resources :supplement_completions, only: %i[create destroy]
-  resources :checklist_completions,  only: :update
+  resources :habit_entries,          only: :update
   resources :biomarker_entries,      only: %i[new create] do
     collection { post :bulk }
   end

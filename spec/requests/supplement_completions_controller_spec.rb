@@ -41,35 +41,35 @@ RSpec.describe SupplementCompletionsController, type: :request do
     end
 
     it "synchronizes the 'Took Fibrotina with dinner' habit on create" do
-      fib_template = create(:checklist_template, user: user,
-                                                  label: "Took Fibrotina with dinner",
-                                                  position: 0)
+      fib_habit = create(:habit, user: user,
+                                  label: "Took Fibrotina with dinner",
+                                  position: 0)
       fib_supplement = create(:supplement, user: user, name: "Fibrotina 145mg")
 
       expect {
         post supplement_completions_path, params: { supplement_id: fib_supplement.id, daily_log_id: daily_log.id }
       }.to change {
-        daily_log.checklist_completions.find_by(checklist_template: fib_template)&.checked
+        daily_log.habit_entries.find_by(habit: fib_habit)&.checked
       }.from(nil).to(true)
     end
 
-    it "does not pick up another user's Fibrotina checklist template (cross-tenant habit sync)" do
+    it "does not pick up another user's Fibrotina habit (cross-tenant habit sync)" do
       user_b = create(:user)
-      _b_template = create(:checklist_template, user: user_b,
-                                                label: "Took Fibrotina with dinner",
-                                                position: 0)
-      own_template = create(:checklist_template, user: user,
-                                                 label: "Drink water",
-                                                 position: 0)
+      _b_habit = create(:habit, user: user_b,
+                                 label: "Took Fibrotina with dinner",
+                                 position: 0)
+      own_habit = create(:habit, user: user,
+                                  label: "Drink water",
+                                  position: 0)
       fib_supplement = create(:supplement, user: user, name: "Fibrotina 145mg")
 
       post supplement_completions_path, params: { supplement_id: fib_supplement.id, daily_log_id: daily_log.id }
 
-      # No checklist_completion should reference the other user's template, and
-      # our own non-Fibrotina template stays untouched (no completion row created
-      # because the controller scopes template lookup to Current.user).
-      expect(daily_log.checklist_completions.where(checklist_template: _b_template)).to be_empty
-      expect(daily_log.checklist_completions.where(checklist_template: own_template)).to be_empty
+      # No habit_entry should reference the other user's habit, and
+      # our own non-Fibrotina habit stays untouched (no entry row created
+      # because the controller scopes habit lookup to Current.user).
+      expect(daily_log.habit_entries.where(habit: _b_habit)).to be_empty
+      expect(daily_log.habit_entries.where(habit: own_habit)).to be_empty
     end
   end
 

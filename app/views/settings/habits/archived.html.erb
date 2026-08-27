@@ -14,19 +14,19 @@
 </header>
 
 <section class="px-4 mt-6 mb-8 grid gap-2">
-  <% if @templates.empty? %>
+  <% if @habits.empty? %>
     <p class="text-sm text-slate-500 italic px-2 py-6 text-center">Nothing archived.</p>
   <% end %>
-  <% @templates.each do |template| %>
+  <% @habits.each do |habit| %>
     <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4 flex items-center gap-3">
       <div class="flex-1 min-w-0">
         <p class="text-sm font-semibold text-slate-900">
-          <% if template.icon.present? %><span class="mr-1"><%= template.icon %></span><% end %>
-          <%= template.label %>
+          <% if habit.icon.present? %><span class="mr-1"><%= habit.icon %></span><% end %>
+          <%= habit.label %>
         </p>
-        <p class="text-xs text-slate-500 mt-0.5">archived <%= template.discarded_at.strftime("%b %-d, %Y") %></p>
+        <p class="text-xs text-slate-500 mt-0.5">archived <%= habit.discarded_at.strftime("%b %-d, %Y") %></p>
       </div>
-      <%= button_to "Restore", restore_settings_habit_path(template),
+      <%= button_to "Restore", restore_settings_habit_path(habit),
             method: :patch,
             class: "rounded-lg text-xs font-medium px-3 py-1.5 text-emerald-700 hover:bg-emerald-50 cursor-pointer" %>
     </div>
