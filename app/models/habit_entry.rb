@@ -21,6 +21,7 @@ class HabitEntry < ApplicationRecord
 
   def self.increment_value!(daily_log:, habit:, delta:)
     raise InvalidValue, "delta must be numeric" unless delta.is_a?(Numeric)
+    raise InvalidValue, "increment is not supported for rating habits" if habit.rating?
 
     # NOTE: the DO UPDATE branch re-binds the raw `delta` rather than reading
     # EXCLUDED.value — EXCLUDED.value is already floored by the VALUES clause's

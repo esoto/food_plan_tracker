@@ -14,6 +14,15 @@ class Settings::HabitsController < ApplicationController
   end
 
   def create
+    # kind is an enum — Habit.new would raise ArgumentError on an unrecognized
+    # value, which is a client input problem, not a server error. Validate it
+    # against the enum's known keys up front rather than rescuing broadly.
+    if create_habit_params[:kind].present? && !Habit.kinds.key?(create_habit_params[:kind].to_s)
+      @habit = Habit.new(create_habit_params.except(:kind))
+      @habit.errors.add(:kind, "is not a valid kind")
+      return render :new, status: :unprocessable_entity
+    end
+
     @habit = Habit.new(create_habit_params)
     @habit.position = Habit.next_position(user: Current.user)
     if @habit.save

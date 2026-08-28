@@ -102,5 +102,16 @@ RSpec.describe HabitEntry, type: :model do
       expect(entry.value).to eq(0.0)
       expect(entry.checked).to eq(false)
     end
+
+    it "raises InvalidValue and writes nothing when called on a rating habit" do
+      daily_log = create(:daily_log)
+      habit = create(:habit, :rating, user: daily_log.user, rating_scale: 5)
+
+      expect {
+        described_class.increment_value!(daily_log: daily_log, habit: habit, delta: 1)
+      }.to raise_error(HabitEntry::InvalidValue)
+
+      expect(described_class.find_by(daily_log: daily_log, habit: habit)).to be_nil
+    end
   end
 end

@@ -110,5 +110,16 @@ RSpec.describe HabitEntriesController, type: :request do
       expect(flash[:alert]).to be_present
       expect(daily_log.habit_entries.find_by(habit: rating_habit)).to be_nil
     end
+
+    it "rejects a delta param on a rating habit, writes nothing, and redirects with an alert" do
+      rating_habit = create(:habit, :rating, user: user, label: "Mood", position: 1, rating_scale: 5)
+
+      patch habit_entry_path(rating_habit),
+            params: { daily_log_id: daily_log.id, delta: "99" }
+
+      expect(response).to have_http_status(:redirect)
+      expect(flash[:alert]).to be_present
+      expect(daily_log.habit_entries.find_by(habit: rating_habit)).to be_nil
+    end
   end
 end

@@ -79,6 +79,14 @@ RSpec.describe Settings::HabitsController, type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.body).to include("Rating scale can&#39;t be blank")
     end
+
+    it "re-renders with a 422 when kind is not a recognized value, and creates nothing" do
+      expect {
+        post settings_habits_path, params: { habit: { label: "Bogus", kind: "bogus" } }
+      }.not_to change(Habit, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
   end
 
   describe "PATCH /settings/habits/:id" do

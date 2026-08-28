@@ -62,6 +62,17 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
       expect(habit["kind"]).to eq("rating")
       expect(habit["rating_scale"]).to eq(5)
     end
+
+    it "returns 422 and creates nothing when kind is not a recognized value" do
+      expect {
+        post "/api/v1/habits",
+             params: { habit: { label: "Bogus", kind: "bogus" } }.to_json,
+             headers: auth_headers
+      }.not_to change(Habit, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to have_key("error")
+    end
   end
 
   describe "PATCH /api/v1/habits/:id" do
