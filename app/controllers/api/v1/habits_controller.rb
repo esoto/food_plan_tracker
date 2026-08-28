@@ -9,6 +9,14 @@ module Api
       end
 
       def create
+        # kind is an enum — EnumType casts a blank string to nil, which would
+        # otherwise sail past validation and hit the kind NOT NULL constraint
+        # as a 500. Raise ArgumentError up front so it flows through the same
+        # rescue_from path (-> 422) as an unrecognized kind value.
+        if habit_params.key?(:kind) && !Habit.kinds.key?(habit_params[:kind].to_s)
+          raise ArgumentError, "#{habit_params[:kind].inspect} is not a valid kind"
+        end
+
         habit = Current.user.habits.new(habit_params)
         habit.position = Habit.next_position(user: Current.user)
         habit.save!

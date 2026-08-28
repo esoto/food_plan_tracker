@@ -87,6 +87,14 @@ RSpec.describe Settings::HabitsController, type: :request do
 
       expect(response).to have_http_status(:unprocessable_entity)
     end
+
+    it "re-renders with a 422 when kind is blank, and creates nothing" do
+      expect {
+        post settings_habits_path, params: { habit: { label: "Blank kind", kind: "" } }
+      }.not_to change(Habit, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
   end
 
   describe "PATCH /settings/habits/:id" do
