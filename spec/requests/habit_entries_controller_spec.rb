@@ -121,5 +121,28 @@ RSpec.describe HabitEntriesController, type: :request do
       expect(flash[:alert]).to be_present
       expect(daily_log.habit_entries.find_by(habit: rating_habit)).to be_nil
     end
+
+    it "rejects a value beyond the decimal(6,2) column's range, writes nothing, and redirects with an alert (not a 500)" do
+      quantity_habit = create(:habit, :quantity, user: user, label: "Water", position: 1)
+
+      patch habit_entry_path(quantity_habit),
+            params: { daily_log_id: daily_log.id, value: "100000" }
+
+      expect(response).to have_http_status(:redirect)
+      expect(flash[:alert]).to be_present
+      expect(daily_log.habit_entries.find_by(habit: quantity_habit)).to be_nil
+    end
+
+    it "rejects a delta that would overflow the decimal(6,2) column when accumulated, writes nothing, and redirects with an alert" do
+      quantity_habit = create(:habit, :quantity, user: user, label: "Water", position: 1)
+      create(:habit_entry, daily_log: daily_log, habit: quantity_habit, value: 9999)
+
+      patch habit_entry_path(quantity_habit),
+            params: { daily_log_id: daily_log.id, delta: "1" }
+
+      expect(response).to have_http_status(:redirect)
+      expect(flash[:alert]).to be_present
+      expect(daily_log.habit_entries.find_by(habit: quantity_habit).value).to eq(9999.0)
+    end
   end
 end

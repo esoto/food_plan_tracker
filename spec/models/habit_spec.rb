@@ -55,6 +55,22 @@ RSpec.describe Habit, type: :model do
         "binary" => 0, "quantity" => 1, "duration" => 2, "rating" => 3
       )
     end
+
+    it "requires presence — a blank string (which the enum casts to nil) is invalid, not a NOT NULL violation" do
+      habit = build(:habit, kind: "")
+      expect(habit).not_to be_valid
+      expect(habit.errors[:kind]).to be_present
+      expect { habit.save! }.to raise_error(ActiveRecord::RecordInvalid)
+    end
+  end
+
+  describe ".valid_kind?" do
+    it "is true for every known enum key and false otherwise" do
+      expect(described_class.valid_kind?("binary")).to be(true)
+      expect(described_class.valid_kind?("quantity")).to be(true)
+      expect(described_class.valid_kind?("bogus")).to be(false)
+      expect(described_class.valid_kind?("")).to be(false)
+    end
   end
 
   describe ".scoreable" do

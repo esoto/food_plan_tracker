@@ -5,7 +5,12 @@ class Habit < ApplicationRecord
 
   enum :kind, { binary: 0, quantity: 1, duration: 2, rating: 3 }, default: :binary
 
-  validates :label, :position, presence: true
+  # kind is an enum — EnumType casts a blank string ("") to nil, which would
+  # otherwise sail past this validation and hit the column's NOT NULL
+  # constraint as an unrescued 500 on any surface that doesn't pre-guard the
+  # raw param (the MCP create_habit handler didn't). RecordInvalid from this
+  # validation is a normal, rescued client-input error on every surface.
+  validates :label, :position, :kind, presence: true
   validates :target_value, numericality: { greater_than: 0 }, allow_nil: true
   validates :rating_scale, presence: true,
     numericality: { only_integer: true, greater_than_or_equal_to: 2, less_than_or_equal_to: 10 },
@@ -23,6 +28,10 @@ class Habit < ApplicationRecord
     CASE WHEN habits.target_value IS NULL THEN habit_entries.value > 0
          ELSE habit_entries.value >= habits.target_value END
   SQL
+
+  # Shared predicate for the "is this a recognized kind key" guard duplicated
+  # across the create paths that accept a raw (possibly bogus) kind param.
+  def self.valid_kind?(value) = kinds.key?(value.to_s)
 
   # Next position to use for a newly created or restored kept habit.
   def self.next_position(user: Current.user)

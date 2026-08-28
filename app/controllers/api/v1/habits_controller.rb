@@ -13,7 +13,7 @@ module Api
         # otherwise sail past validation and hit the kind NOT NULL constraint
         # as a 500. Raise ArgumentError up front so it flows through the same
         # rescue_from path (-> 422) as an unrecognized kind value.
-        if habit_params.key?(:kind) && !Habit.kinds.key?(habit_params[:kind].to_s)
+        if habit_params.key?(:kind) && !Habit.valid_kind?(habit_params[:kind])
           raise ArgumentError, "#{habit_params[:kind].inspect} is not a valid kind"
         end
 

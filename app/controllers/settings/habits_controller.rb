@@ -20,7 +20,7 @@ class Settings::HabitsController < ApplicationController
     # Checked whenever the :kind KEY is present (not merely non-blank) —
     # EnumType casts a blank string to nil, which would otherwise slip past
     # a `.present?` check and hit the kind NOT NULL constraint as a 500.
-    if create_habit_params.key?(:kind) && !Habit.kinds.key?(create_habit_params[:kind].to_s)
+    if create_habit_params.key?(:kind) && !Habit.valid_kind?(create_habit_params[:kind])
       @habit = Habit.new(create_habit_params.except(:kind))
       @habit.errors.add(:kind, "is not a valid kind")
       return render :new, status: :unprocessable_entity

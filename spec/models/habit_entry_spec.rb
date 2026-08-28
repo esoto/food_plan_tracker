@@ -65,6 +65,17 @@ RSpec.describe HabitEntry, type: :model do
 
       expect(described_class.find_by(daily_log: daily_log, habit: habit)).to be_nil
     end
+
+    it "raises InvalidValue (not a DB overflow error) and writes nothing when value exceeds the decimal(6,2) column's range" do
+      daily_log = create(:daily_log)
+      habit = create(:habit, :quantity, user: daily_log.user)
+
+      expect {
+        described_class.set_value!(daily_log: daily_log, habit: habit, value: 100_000)
+      }.to raise_error(HabitEntry::InvalidValue)
+
+      expect(described_class.find_by(daily_log: daily_log, habit: habit)).to be_nil
+    end
   end
 
   describe ".increment_value!" do
@@ -112,6 +123,30 @@ RSpec.describe HabitEntry, type: :model do
       }.to raise_error(HabitEntry::InvalidValue)
 
       expect(described_class.find_by(daily_log: daily_log, habit: habit)).to be_nil
+    end
+
+    it "raises InvalidValue and writes nothing when a single delta exceeds the decimal(6,2) column's range" do
+      daily_log = create(:daily_log)
+      habit = create(:habit, :quantity, user: daily_log.user)
+
+      expect {
+        described_class.increment_value!(daily_log: daily_log, habit: habit, delta: 100_000)
+      }.to raise_error(HabitEntry::InvalidValue)
+
+      expect(described_class.find_by(daily_log: daily_log, habit: habit)).to be_nil
+    end
+
+    it "raises InvalidValue and leaves the existing row unchanged when the accumulated total would overflow the column" do
+      daily_log = create(:daily_log)
+      habit = create(:habit, :quantity, user: daily_log.user)
+      described_class.set_value!(daily_log: daily_log, habit: habit, value: 9999)
+
+      expect {
+        described_class.increment_value!(daily_log: daily_log, habit: habit, delta: 1)
+      }.to raise_error(HabitEntry::InvalidValue)
+
+      entry = described_class.find_by(daily_log: daily_log, habit: habit)
+      expect(entry.value).to eq(9999.0)
     end
   end
 end

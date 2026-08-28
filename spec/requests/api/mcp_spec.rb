@@ -476,6 +476,12 @@ RSpec.describe "POST /mcp", type: :request do
         expect(result["isError"]).to be(true)
       end
 
+      it "create_habit with a blank kind returns isError and creates nothing (not a 500)" do
+        result = rpc("tools/call", { name: "create_habit", arguments: { label: "Blank kind", kind: "" } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(Habit.where(label: "Blank kind")).not_to exist
+      end
+
       it "create_habit with kind quantity works and list_habits shows it" do
         result = rpc("tools/call", { name: "create_habit",
                                      arguments: { label: "Water", kind: "quantity", unit: "glasses", target_value: 8 } })["result"]
