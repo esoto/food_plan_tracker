@@ -294,16 +294,18 @@ module Api
     end
 
     def handle_create_habit(args)
-      attrs = args.slice("label", "description", "icon")
+      attrs = args.slice("label", "description", "icon", "kind", "unit", "target_value", "rating_scale")
       habit = Current.user.habits.new(attrs)
       habit.position = Habit.next_position(user: Current.user)
       habit.save!
       { habit: serialize_habit(habit) }
     end
 
+    # kind is intentionally excluded — immutable after creation (same
+    # philosophy as Settings::HabitsController and Api::V1::HabitsController).
     def handle_update_habit(args)
       habit = Current.user.habits.find(args.fetch("id"))
-      attrs = args.slice("label", "description", "icon", "position").compact
+      attrs = args.slice("label", "description", "icon", "position", "unit", "target_value", "rating_scale").compact
       raise ToolArgumentError, "no updatable fields provided" if attrs.empty?
 
       habit.update!(attrs)
@@ -674,9 +676,13 @@ module Api
         inputSchema: {
           type: "object",
           properties: {
-            "label"       => { type: "string" },
-            "description" => { type: "string" },
-            "icon"        => { type: "string", description: "single emoji, optional" }
+            "label"        => { type: "string" },
+            "description"  => { type: "string" },
+            "icon"         => { type: "string", description: "single emoji, optional" },
+            "kind"         => { type: "string", enum: %w[binary quantity duration rating], description: "habit kind; immutable after creation (default binary)" },
+            "unit"         => { type: "string", description: "unit label for quantity/duration kinds, e.g. 'glasses' or 'min'" },
+            "target_value" => { type: "number", exclusiveMinimum: 0, description: "target value for quantity/duration kinds (must be > 0)" },
+            "rating_scale" => { type: "integer", minimum: 2, maximum: 10, description: "rating scale upper bound for rating kind (2-10)" }
           },
           required: %w[label]
         },
@@ -688,11 +694,14 @@ module Api
         inputSchema: {
           type: "object",
           properties: {
-            "id"          => { type: "integer", exclusiveMinimum: 0 },
-            "label"       => { type: "string" },
-            "description" => { type: "string" },
-            "icon"        => { type: "string" },
-            "position"    => { type: "integer", minimum: 0 }
+            "id"           => { type: "integer", exclusiveMinimum: 0 },
+            "label"        => { type: "string" },
+            "description"  => { type: "string" },
+            "icon"         => { type: "string" },
+            "position"     => { type: "integer", minimum: 0 },
+            "unit"         => { type: "string", description: "unit label for quantity/duration kinds, e.g. 'glasses' or 'min'" },
+            "target_value" => { type: "number", exclusiveMinimum: 0, description: "target value for quantity/duration kinds (must be > 0)" },
+            "rating_scale" => { type: "integer", minimum: 2, maximum: 10, description: "rating scale upper bound for rating kind (2-10)" }
           },
           required: %w[id]
         },

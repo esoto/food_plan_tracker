@@ -81,6 +81,49 @@ RSpec.describe "ProgressController#show", type: :request do
     expect(response.body).to include("75%")
   end
 
+  describe "rating trends" do
+    it "renders the habit label, 7-day average, and delta arrow when the user has kept rating habits" do
+      habit = create(:habit, :rating, user: user, label: "Mood", position: 0)
+
+      # Previous 7-day window (13..7 days ago): avg 2.0
+      13.downto(7).each do |days_ago|
+        log = DailyLog.create!(date: Date.current - days_ago, plan: plan)
+        create(:habit_entry, daily_log: log, habit: habit, value: 2)
+      end
+
+      # Last 7-day window (6..1 days ago logged, today left unlogged): avg 4.0
+      6.downto(1).each do |days_ago|
+        log = DailyLog.create!(date: Date.current - days_ago, plan: plan)
+        create(:habit_entry, daily_log: log, habit: habit, value: 4)
+      end
+
+      get progress_path
+
+      expect(response.body).to include("Ratings")
+      expect(response.body).to include("Mood")
+      expect(response.body).to include("4.0")
+      expect(response.body).to include("↑")
+    end
+
+    it "omits the rating trends section when the user has no rating habits" do
+      create(:habit, :quantity, user: user, label: "Water", position: 0)
+
+      get progress_path
+
+      expect(response.body).not_to include("Ratings")
+    end
+
+    it "excludes discarded rating habits from the section" do
+      habit = create(:habit, :rating, user: user, label: "Journaling", position: 0)
+      habit.discard!
+
+      get progress_path
+
+      expect(response.body).not_to include("Ratings")
+      expect(response.body).not_to include("Journaling")
+    end
+  end
+
   describe "cross-tenant isolation" do
     it "computes weight goal and goals list from Current.user only" do
       user_a = create(:user, password: "password12345")

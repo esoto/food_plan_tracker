@@ -476,6 +476,35 @@ RSpec.describe "POST /mcp", type: :request do
         expect(result["isError"]).to be(true)
       end
 
+      it "create_habit with a blank kind returns isError and creates nothing (not a 500)" do
+        result = rpc("tools/call", { name: "create_habit", arguments: { label: "Blank kind", kind: "" } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(Habit.where(label: "Blank kind")).not_to exist
+      end
+
+      it "create_habit with kind quantity works and list_habits shows it" do
+        result = rpc("tools/call", { name: "create_habit",
+                                     arguments: { label: "Water", kind: "quantity", unit: "glasses", target_value: 8 } })["result"]
+        created = JSON.parse(result["content"].first["text"])["habit"]
+        expect(created["kind"]).to eq("quantity")
+        expect(created["unit"]).to eq("glasses")
+
+        list_result = rpc("tools/call", { name: "list_habits", arguments: {} })["result"]
+        listed = JSON.parse(list_result["content"].first["text"])["habits"].find { |h| h["label"] == "Water" }
+        expect(listed["kind"]).to eq("quantity")
+      end
+
+      it "update_habit ignores a kind param — kind is immutable after creation" do
+        habit = create(:habit, :quantity, label: "Water", position: 0, user: user)
+
+        result = rpc("tools/call", { name: "update_habit",
+                                     arguments: { id: habit.id, label: "Water intake", kind: "duration" } })["result"]
+        updated = JSON.parse(result["content"].first["text"])["habit"]
+        expect(updated["label"]).to eq("Water intake")
+        expect(updated["kind"]).to eq("quantity")
+        expect(habit.reload.kind).to eq("quantity")
+      end
+
       it "archive_habit hides from list_habits" do
         kept = create(:habit, label: "Drink water", position: 0, user: user)
         old  = create(:habit, label: "Old", position: 1, user: user)

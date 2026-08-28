@@ -15,19 +15,22 @@ class WeeklySummary
   def adherence_pct
     return nil if logs.empty?
 
-    # Per-day denominator from templates that were active on that date — so
-    # archiving a habit today doesn't retroactively shift past percentages.
-    checked_per_log = HabitEntry.where(daily_log: logs, checked: true).group(:daily_log_id).count
-
-    totals_per_date = logs.each_with_object(Hash.new(0)) do |l, h|
-      h[l.date] = Habit.for_user(@user).kept_on(l.date).count
-    end
-
+    # Per-day denominator AND numerator both go through the same
+    # kept_on(l.date).scoreable scope — so a habit logged done then archived
+    # the same day drops out of both sides together, instead of leaving a
+    # stale numerator entry that inflates that day's (and the week's
+    # average) adherence past 100%. Kept per-day (rather than one grouped
+    # query across the range) because kept_on's cutoff is a Ruby
+    # Time-zone-aware `date.end_of_day` — reimplementing that in raw SQL
+    # against daily_logs.date risks a timezone mismatch with the Ruby side.
     pcts = logs.map do |l|
-      total = totals_per_date[l.date] || 0
+      scoreable_kept = Habit.for_user(@user).kept_on(l.date).scoreable
+      total = scoreable_kept.count
       next 0 if total.zero?
 
-      checked_per_log.fetch(l.id, 0) * 100.0 / total
+      done = l.habit_entries.joins(:habit).merge(scoreable_kept)
+        .where(Habit::DONE_PREDICATE).count
+      done * 100.0 / total
     end
     (pcts.sum / pcts.size).round
   end

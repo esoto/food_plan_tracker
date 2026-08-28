@@ -9,6 +9,14 @@ module Api
       end
 
       def create
+        # kind is an enum — EnumType casts a blank string to nil, which would
+        # otherwise sail past validation and hit the kind NOT NULL constraint
+        # as a 500. Raise ArgumentError up front so it flows through the same
+        # rescue_from path (-> 422) as an unrecognized kind value.
+        if habit_params.key?(:kind) && !Habit.valid_kind?(habit_params[:kind])
+          raise ArgumentError, "#{habit_params[:kind].inspect} is not a valid kind"
+        end
+
         habit = Current.user.habits.new(habit_params)
         habit.position = Habit.next_position(user: Current.user)
         habit.save!
@@ -35,8 +43,14 @@ module Api
 
       private
 
+      # kind is a lookup key, not just a value — it's only settable at creation.
+      # Changing it under existing entries corrupts semantics (same philosophy
+      # as the MCP name rule and Settings::HabitsController), so update permits
+      # everything except :kind and silently ignores any kind param sent.
       def habit_params
-        params.require(:habit).permit(:label, :description, :icon, :position)
+        permitted = %i[label description icon position unit target_value rating_scale]
+        permitted << :kind if action_name == "create"
+        params.require(:habit).permit(*permitted)
       end
     end
   end

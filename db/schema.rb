@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_165533) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_27_205809) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -95,6 +95,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_165533) do
     t.integer "daily_log_id", null: false
     t.integer "habit_id", null: false
     t.datetime "updated_at", null: false
+    t.decimal "value", precision: 6, scale: 2, default: "0.0", null: false
     t.index ["daily_log_id", "habit_id"], name: "idx_habit_entries_on_log_and_habit", unique: true
     t.index ["daily_log_id"], name: "index_habit_entries_on_daily_log_id"
     t.index ["habit_id"], name: "index_habit_entries_on_habit_id"
@@ -105,8 +106,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_165533) do
     t.string "description"
     t.datetime "discarded_at"
     t.string "icon"
+    t.integer "kind", default: 0, null: false
     t.string "label", null: false
     t.integer "position", default: 0, null: false
+    t.integer "rating_scale"
+    t.decimal "target_value", precision: 7, scale: 2
+    t.string "unit"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["discarded_at"], name: "index_habits_kept", where: "(discarded_at IS NULL)"

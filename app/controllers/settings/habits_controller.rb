@@ -14,7 +14,19 @@ class Settings::HabitsController < ApplicationController
   end
 
   def create
-    @habit = Habit.new(habit_params)
+    # kind is an enum — Habit.new would raise ArgumentError on an unrecognized
+    # value, which is a client input problem, not a server error. Validate it
+    # against the enum's known keys up front rather than rescuing broadly.
+    # Checked whenever the :kind KEY is present (not merely non-blank) —
+    # EnumType casts a blank string to nil, which would otherwise slip past
+    # a `.present?` check and hit the kind NOT NULL constraint as a 500.
+    if create_habit_params.key?(:kind) && !Habit.valid_kind?(create_habit_params[:kind])
+      @habit = Habit.new(create_habit_params.except(:kind))
+      @habit.errors.add(:kind, "is not a valid kind")
+      return render :new, status: :unprocessable_entity
+    end
+
+    @habit = Habit.new(create_habit_params)
     @habit.position = Habit.next_position(user: Current.user)
     if @habit.save
       redirect_to settings_habits_path, notice: "Added \"#{@habit.label}\""
@@ -27,7 +39,7 @@ class Settings::HabitsController < ApplicationController
   end
 
   def update
-    if @habit.update(habit_params)
+    if @habit.update(update_habit_params)
       redirect_to settings_habits_path, notice: "Updated \"#{@habit.label}\""
     else
       render :edit, status: :unprocessable_entity
@@ -60,8 +72,16 @@ class Settings::HabitsController < ApplicationController
     @habit = Current.user.habits.find(params[:id])
   end
 
-  def habit_params
-    params.require(:habit).permit(:label, :description, :icon)
+  # kind is a lookup key, not just a value — it's only settable at creation.
+  # Changing it under existing entries corrupts semantics (same philosophy
+  # as the MCP name rule), so update permits everything except :kind and
+  # silently ignores any kind param sent.
+  def create_habit_params
+    params.require(:habit).permit(:label, :description, :icon, :kind, :unit, :target_value, :rating_scale)
+  end
+
+  def update_habit_params
+    params.require(:habit).permit(:label, :description, :icon, :unit, :target_value, :rating_scale)
   end
 
   # Swap the `position` value with the adjacent kept habit. Position is the

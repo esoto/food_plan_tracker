@@ -4,7 +4,7 @@
   <div class="flex items-end justify-between">
     <div>
       <h1 class="text-2xl font-bold text-slate-900">Daily habits</h1>
-      <p class="text-sm text-slate-500 mt-1"><%= @daily_log.checklist_adherence_pct %>% completed today</p>
+      <p class="text-sm text-slate-500 mt-1"><%= @daily_log.habit_adherence_pct %>% completed today</p>
     </div>
     <div class="rounded-2xl bg-indigo-600 text-white px-4 py-2 text-center shadow-sm">
       <p class="text-[10px] uppercase tracking-wider opacity-80">Streak</p>
@@ -14,7 +14,7 @@
   </div>
 
   <div class="mt-3 h-2 rounded-full bg-slate-200 overflow-hidden">
-    <div class="h-2 bg-emerald-500 rounded-full transition-all" style="width: <%= @daily_log.checklist_adherence_pct %>%"></div>
+    <div class="h-2 bg-emerald-500 rounded-full transition-all" style="width: <%= @daily_log.habit_adherence_pct %>%"></div>
   </div>
 </header>
 
@@ -23,23 +23,79 @@
   <div class="rounded-2xl bg-white border border-slate-100 shadow-sm divide-y divide-slate-100">
     <% @habits.each do |habit| %>
       <% entry = @entries_by_habit[habit.id] %>
-      <% checked = entry&.checked || false %>
-      <%= form_with url: habit_entry_path(habit), method: :patch, class: "block" do |f| %>
-        <%= f.hidden_field :checked, value: checked ? "0" : "1" %>
-        <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
-          <div class="w-6 h-6 rounded-lg flex items-center justify-center <%= checked ? "bg-emerald-500 text-white" : "ring-2 ring-slate-300" %>">
-            <% if checked %>
+      <% value = entry&.value.to_f %>
+
+      <% if habit.binary? %>
+        <% checked = value > 0 %>
+        <%= form_with url: habit_entry_path(habit), method: :patch, class: "block" do |f| %>
+          <%= f.hidden_field :value, value: checked ? 0 : 1 %>
+          <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
+            <div class="w-6 h-6 rounded-lg flex items-center justify-center <%= checked ? "bg-emerald-500 text-white" : "ring-2 ring-slate-300" %>">
+              <% if checked %>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <% end %>
+            </div>
+            <div class="flex-1 min-w-0 flex items-start gap-2">
+              <span class="text-lg leading-none mt-0.5"><%= habit.icon %></span>
+              <div class="min-w-0">
+                <p class="font-medium text-slate-900 <%= "line-through text-slate-400" if checked %>"><%= habit.label %></p>
+                <p class="text-xs text-slate-500"><%= habit.description %></p>
+              </div>
+            </div>
+          </button>
+        <% end %>
+      <% elsif habit.quantity? || habit.duration? %>
+        <% target = habit.target_value %>
+        <% done = target.nil? ? value > 0 : value >= target %>
+        <div class="flex items-center gap-3 px-4 py-3">
+          <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 <%= done ? "bg-emerald-500 text-white" : "ring-2 ring-slate-300" %>">
+            <% if done %>
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
             <% end %>
           </div>
           <div class="flex-1 min-w-0 flex items-start gap-2">
             <span class="text-lg leading-none mt-0.5"><%= habit.icon %></span>
             <div class="min-w-0">
-              <p class="font-medium text-slate-900 <%= "line-through text-slate-400" if checked %>"><%= habit.label %></p>
+              <p class="font-medium text-slate-900 <%= "text-emerald-600" if done %>"><%= habit.label %></p>
               <p class="text-xs text-slate-500"><%= habit.description %></p>
             </div>
           </div>
-        </button>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-xs text-slate-500 tabular-nums whitespace-nowrap">
+              <%= value.round(1).to_s.sub(/\.0$/, "") %><% if target %> / <%= target.to_f.round(1).to_s.sub(/\.0$/, "") %><% end %> <%= habit.unit %>
+            </span>
+            <%= form_with url: habit_entry_path(habit), method: :patch, class: "inline-block" do |f| %>
+              <%= f.hidden_field :delta, value: 1 %>
+              <button type="submit" class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition">+1</button>
+            <% end %>
+            <% if habit.duration? %>
+              <%= form_with url: habit_entry_path(habit), method: :patch, class: "inline-block" do |f| %>
+                <%= f.hidden_field :delta, value: 15 %>
+                <button type="submit" class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition">+15</button>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% elsif habit.rating? %>
+        <div class="flex items-center gap-3 px-4 py-3">
+          <div class="flex-1 min-w-0 flex items-start gap-2">
+            <span class="text-lg leading-none mt-0.5"><%= habit.icon %></span>
+            <div class="min-w-0">
+              <p class="font-medium text-slate-900"><%= habit.label %></p>
+              <p class="text-xs text-slate-500"><%= habit.description %></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <% (1..habit.rating_scale).each do |n| %>
+              <%= form_with url: habit_entry_path(habit), method: :patch, class: "inline-block" do |f| %>
+                <%= f.hidden_field :value, value: n %>
+                <button type="submit" class="w-7 h-7 rounded-lg text-xs font-semibold flex items-center justify-center transition <%= value.to_i == n ? "bg-indigo-600 text-white" : "ring-1 ring-slate-300 text-slate-600 hover:bg-slate-50" %>">
+                  <%= n %>
+                </button>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
       <% end %>
     <% end %>
   </div>

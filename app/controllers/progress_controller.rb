@@ -5,5 +5,6 @@ class ProgressController < ApplicationController
     @goals = Goal.for_user(Current.user).includes(:biomarker_entries)
     @recent_logs = DailyLog.for_user(Current.user).where(date: 13.days.ago.to_date..Date.current).order(:date)
     @weekly_summary = WeeklySummary.rolling_7_days(user: Current.user)
+    @rating_trends = RatingTrends.for(Current.user)
   end
 end

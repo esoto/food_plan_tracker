@@ -113,6 +113,40 @@ RSpec.describe "Daily interactions via Stimulus/Turbo", type: :system do
     end
   end
 
+  describe "S4f: Quantity habit +1 tap shows updated progress" do
+    it "increments the value and displays current / target unit" do
+      user = create_onboarded_user(email: "quant@example.com")
+      system_sign_in(email: "quant@example.com", password: "password12345")
+
+      create(:habit, :quantity, user: user, label: "Water", description: "Stay hydrated",
+                                 icon: "💧", position: 0)
+
+      visit habits_path
+      expect(page).to have_text("Water")
+
+      click_button "+1"
+
+      expect(page).to have_text("1 / 8 glasses")
+    end
+  end
+
+  describe "S4g: Rating habit tap highlights the selected value" do
+    it "highlights the selected rating button" do
+      user = create_onboarded_user(email: "rate@example.com")
+      system_sign_in(email: "rate@example.com", password: "password12345")
+
+      create(:habit, :rating, user: user, label: "Mood", description: "How do you feel?",
+                               icon: "🙂", position: 0, rating_scale: 5)
+
+      visit habits_path
+      expect(page).to have_text("Mood")
+
+      click_button "3"
+
+      expect(page).to have_css("button.bg-indigo-600", text: "3")
+    end
+  end
+
   describe "S4e: Past-day auto-submit on /days/<yesterday>" do
     it "applies plan change to a past daily_log via the day_toggle form" do
       user = create_onboarded_user(email: "alice@example.com")

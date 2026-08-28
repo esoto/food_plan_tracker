@@ -65,24 +65,24 @@ RSpec.describe WeeklySummary, type: :model do
 
       Habit.create!(label: "Mine", position: 1, user: user)
       log = DailyLog.create!(date: Date.current, plan: plan)
-      log.habit_entries.create!(habit: Habit.where(label: "Mine").first, checked: true)
+      log.habit_entries.create!(habit: Habit.where(label: "Mine").first, value: 1)
 
       summary = WeeklySummary.rolling_7_days(user: user)
-      # User A: 1 checked, 1 total. 100%.
+      # User A: 1 done, 1 total. 100%.
       # Noise: User B's template should not increase the denominator.
       expect(summary.adherence_pct).to eq(100)
     end
 
-    it "averages each daily log's checklist_adherence_pct" do
+    it "averages each daily log's habit_adherence_pct" do
       Habit.create!(label: "X", position: 1, user: user)
       Habit.create!(label: "Y", position: 2, user: user)
 
       log1 = DailyLog.create!(date: Date.current - 2, plan: plan)
-      log1.habit_entries.create!(habit: Habit.first, checked: true)
-      log1.habit_entries.create!(habit: Habit.last, checked: true)
+      log1.habit_entries.create!(habit: Habit.first, value: 1)
+      log1.habit_entries.create!(habit: Habit.last, value: 1)
 
       log2 = DailyLog.create!(date: Date.current - 1, plan: plan)
-      log2.habit_entries.create!(habit: Habit.first, checked: true)
+      log2.habit_entries.create!(habit: Habit.first, value: 1)
 
       summary = WeeklySummary.rolling_7_days
       expect(summary.adherence_pct).to eq(75)
@@ -98,8 +98,8 @@ RSpec.describe WeeklySummary, type: :model do
       Habit.create!(label: "Y", position: 2, user: user)
 
       log1 = DailyLog.create!(date: Date.current - 1, plan: plan)
-      log1.habit_entries.create!(habit: Habit.first, checked: true)
-      log1.habit_entries.create!(habit: Habit.last, checked: true)
+      log1.habit_entries.create!(habit: Habit.first, value: 1)
+      log1.habit_entries.create!(habit: Habit.last, value: 1)
 
       DailyLog.create!(date: Date.current, plan: plan) # zero completions
 
@@ -110,7 +110,7 @@ RSpec.describe WeeklySummary, type: :model do
     it "excludes logs from the day before the window" do
       Habit.create!(label: "X", position: 1, user: user)
       out_of_window = DailyLog.create!(date: Date.current - 7, plan: plan)
-      out_of_window.habit_entries.create!(habit: Habit.first, checked: true)
+      out_of_window.habit_entries.create!(habit: Habit.first, value: 1)
 
       expect(WeeklySummary.rolling_7_days.adherence_pct).to be_nil
     end
@@ -118,9 +118,55 @@ RSpec.describe WeeklySummary, type: :model do
     it "includes logs from exactly 6 days ago (window boundary)" do
       Habit.create!(label: "X", position: 1, user: user)
       log = DailyLog.create!(date: Date.current - 6, plan: plan)
-      log.habit_entries.create!(habit: Habit.first, checked: true)
+      log.habit_entries.create!(habit: Habit.first, value: 1)
 
       expect(WeeklySummary.rolling_7_days.adherence_pct).to eq(100)
+    end
+
+    it "ignores rating habits symmetrically — they don't inflate the denominator or numerator" do
+      binary = Habit.create!(label: "Binary", position: 1, user: user)
+      rating = Habit.create!(label: "Rating", position: 2, user: user, kind: :rating, rating_scale: 5)
+
+      log = DailyLog.create!(date: Date.current, plan: plan)
+      log.habit_entries.create!(habit: binary, value: 1)
+      HabitEntry.set_value!(daily_log: log, habit: rating, value: 5)
+
+      # 1 of 1 scoreable habit done = 100%. If the rating leaked in as a
+      # second denominator slot this would be 50%.
+      summary = WeeklySummary.rolling_7_days
+      expect(summary.adherence_pct).to eq(100)
+    end
+
+    it "caps a day's contribution at 100% when a done habit is archived later the same day" do
+      kept = Habit.create!(label: "Kept", position: 1, user: user)
+      archived = Habit.create!(label: "Archived", position: 2, user: user)
+
+      log = DailyLog.create!(date: Date.current, plan: plan)
+      log.habit_entries.create!(habit: kept, value: 1)
+      log.habit_entries.create!(habit: archived, value: 1)
+      archived.discard!
+
+      # Denominator for today = 1 (`kept` only — `archived` was discarded
+      # earlier today, so kept_on(date) drops it). A numerator that ignores
+      # kept_on(date) still counts both done entries: 2/1 = 200%.
+      summary = WeeklySummary.rolling_7_days
+      expect(summary.adherence_pct).to eq(100)
+    end
+
+    it "does not let an archived-and-done habit inflate the numerator above the day's denominator" do
+      Habit.create!(label: "Kept", position: 1, user: user) # binary, no entry — not done
+      archived = Habit.create!(label: "Archived", position: 2, user: user)
+
+      log = DailyLog.create!(date: Date.current, plan: plan)
+      log.habit_entries.create!(habit: archived, value: 1)
+      archived.discard!
+
+      # Denominator for today = 1 (`Kept` only, not done). The numerator
+      # must apply the same per-day kept_on cutoff, or `archived`'s
+      # already-logged entry still counts: 1/1 = 100% despite zero kept
+      # habits being done.
+      summary = WeeklySummary.rolling_7_days
+      expect(summary.adherence_pct).to eq(0)
     end
   end
 

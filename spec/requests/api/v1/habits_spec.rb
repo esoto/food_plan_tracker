@@ -28,6 +28,18 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
       labels = response.parsed_body["habits"].map { |h| h["label"] }
       expect(labels).to contain_exactly("Old")
     end
+
+    it "includes kind/unit/target_value/rating_scale on each habit" do
+      create(:habit, :quantity, label: "Water", position: 0, user: Current.user)
+
+      get "/api/v1/habits", headers: auth_headers
+
+      habit = response.parsed_body["habits"].first
+      expect(habit["kind"]).to eq("quantity")
+      expect(habit["unit"]).to eq("glasses")
+      expect(habit["target_value"]).to eq(8.0)
+      expect(habit).to have_key("rating_scale")
+    end
   end
 
   describe "POST /api/v1/habits" do
@@ -38,6 +50,39 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
 
       expect(response).to have_http_status(:created)
       expect(response.parsed_body["habit"]["position"]).to eq(1)
+    end
+
+    it "creates a rating habit with kind and rating_scale" do
+      post "/api/v1/habits",
+           params: { habit: { label: "Mood", kind: "rating", rating_scale: 5 } }.to_json,
+           headers: auth_headers
+
+      expect(response).to have_http_status(:created)
+      habit = response.parsed_body["habit"]
+      expect(habit["kind"]).to eq("rating")
+      expect(habit["rating_scale"]).to eq(5)
+    end
+
+    it "returns 422 and creates nothing when kind is not a recognized value" do
+      expect {
+        post "/api/v1/habits",
+             params: { habit: { label: "Bogus", kind: "bogus" } }.to_json,
+             headers: auth_headers
+      }.not_to change(Habit, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to have_key("error")
+    end
+
+    it "returns 422 and creates nothing when kind is blank" do
+      expect {
+        post "/api/v1/habits",
+             params: { habit: { label: "Blank kind", kind: "" } }.to_json,
+             headers: auth_headers
+      }.not_to change(Habit, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to have_key("error")
     end
   end
 
@@ -51,6 +96,18 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
       expect(response).to have_http_status(:ok)
       expect(habit.reload.label).to eq("New")
       expect(habit.position).to eq(5)
+    end
+
+    it "ignores a kind param — kind is immutable after creation" do
+      habit = create(:habit, :quantity, label: "Water", position: 0, user: Current.user)
+
+      patch "/api/v1/habits/#{habit.id}",
+            params: { habit: { kind: "duration" } }.to_json,
+            headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(habit.reload.kind).to eq("quantity")
+      expect(response.parsed_body["habit"]["kind"]).to eq("quantity")
     end
   end
 

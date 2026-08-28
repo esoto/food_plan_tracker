@@ -1,0 +1,35 @@
+<% if rating_trends.any? %>
+  <section class="px-4 mt-4 lg:my-0 lg:px-0 lg:col-span-2">
+    <div class="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
+      <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Ratings</p>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <% rating_trends.each do |trend| %>
+          <div>
+            <div class="flex items-baseline justify-between mb-1">
+              <p class="text-sm font-semibold text-slate-900"><%= trend[:habit].label %></p>
+              <p class="text-sm text-slate-600">
+                <% if trend[:avg7].nil? %>
+                  —
+                <% else %>
+                  <%= trend[:avg7] %>
+                  <% if trend[:prev_avg7].nil? || trend[:avg7] == trend[:prev_avg7] %>
+                    →
+                  <% elsif trend[:avg7] > trend[:prev_avg7] %>
+                    ↑
+                  <% else %>
+                    ↓
+                  <% end %>
+                <% end %>
+              </p>
+            </div>
+            <div class="h-16">
+              <%= line_chart trend[:points],
+                            colors: [ "#4f46e5" ], library: { plugins: { legend: { display: false } } }, height: "60px" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </section>
+<% end %>

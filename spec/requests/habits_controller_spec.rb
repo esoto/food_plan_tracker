@@ -43,13 +43,26 @@ RSpec.describe "GET /checklist", type: :request do
         date = i.days.ago.to_date
         plan = create(:plan, slug: "active-#{i}", name: "Active #{i}", user: Current.user)
         log = create(:daily_log, user: Current.user, plan: plan, date: date)
-        create(:habit_entry, daily_log: log, habit: habit, checked: true)
+        create(:habit_entry, daily_log: log, habit: habit, value: 1)
       end
 
       get habits_path
 
       # Streak counter shows the number on the page.
       expect(response.body).to match(/<p class="text-xl font-bold leading-none mt-0\.5">3<\/p>/)
+    end
+
+    it "still counts a 100%-binary day toward the streak when a rating habit is also logged low (ratings excluded from adherence)" do
+      habit = create(:habit, label: "Walk", position: 0, user: Current.user)
+      rating = create(:habit, :rating, label: "Mood", position: 1, user: Current.user, rating_scale: 5)
+      plan = create(:plan, slug: "active-rating", name: "Active rating", user: Current.user)
+      log = create(:daily_log, user: Current.user, plan: plan, date: Date.current)
+      create(:habit_entry, daily_log: log, habit: habit, value: 1)
+      HabitEntry.set_value!(daily_log: log, habit: rating, value: 1) # low rating; must not drag adherence down
+
+      get habits_path
+
+      expect(response.body).to match(/<p class="text-xl font-bold leading-none mt-0\.5">1<\/p>/)
     end
   end
 

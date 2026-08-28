@@ -13,6 +13,11 @@ module Api
     rescue_from ActiveRecord::RecordNotFound,    with: :not_found
     rescue_from ActiveRecord::RecordInvalid,     with: :unprocessable
     rescue_from ActionController::ParameterMissing, with: :bad_request
+    # Date::Error is a subclass of ArgumentError (Ruby 3.3+) — rescue_from
+    # matches the most-recently-registered handler first, so ArgumentError
+    # MUST be registered before Date::Error or it would swallow date parse
+    # failures and downgrade their response from 400 to 422.
+    rescue_from ArgumentError,                   with: :invalid_argument
     rescue_from Date::Error,                     with: :bad_date
 
     private
@@ -51,6 +56,10 @@ module Api
 
     def bad_date
       render json: { error: "invalid date (expected YYYY-MM-DD)" }, status: :bad_request
+    end
+
+    def invalid_argument(error)
+      render json: { error: error.message }, status: :unprocessable_entity
     end
   end
 end
