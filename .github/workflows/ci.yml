@@ -108,7 +108,7 @@ jobs:
         run: bin/rails db:test:prepare
 
       - name: Set up Chrome
-        uses: browser-actions/setup-chrome@v1
+        uses: browser-actions/setup-chrome@v2
 
       - name: Run RSpec
         run: bundle exec rspec --format documentation
