@@ -77,6 +77,14 @@ class User < ApplicationRecord
     update!(deactivated_at: nil)
   end
 
+  def enable_food_tracking!
+    update!(food_tracking_enabled: true)
+  end
+
+  def disable_food_tracking!
+    update!(food_tracking_enabled: false)
+  end
+
   def promote!
     update!(role: :admin)
   end
