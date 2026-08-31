@@ -53,7 +53,7 @@ RSpec.describe "Discarded supplement and habit visibility", type: :request do
       plan = create(:plan, user: user)
       log = create(:daily_log, plan: plan, user: user)
 
-      patch habit_entry_path(habit), params: { daily_log_id: log.id, checked: "1" }
+      patch habit_entry_path(habit), params: { daily_log_id: log.id, value: "1" }
 
       expect(response).to have_http_status(:not_found)
     end

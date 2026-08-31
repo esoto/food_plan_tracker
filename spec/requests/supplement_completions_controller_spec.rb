@@ -49,11 +49,11 @@ RSpec.describe SupplementCompletionsController, type: :request do
       expect {
         post supplement_completions_path, params: { supplement_id: fib_supplement.id, daily_log_id: daily_log.id }
       }.to change {
-        daily_log.habit_entries.find_by(habit: fib_habit)&.checked
-      }.from(nil).to(true)
+        daily_log.habit_entries.find_by(habit: fib_habit)&.value
+      }.from(nil).to(1.0)
     end
 
-    it "writes value 1.0 and checked true via HabitEntry.set_value! on create" do
+    it "writes value 1.0 via HabitEntry.set_value! on create" do
       fib_habit = create(:habit, user: user,
                                   label: "Took Fibrotina with dinner",
                                   position: 0)
@@ -63,7 +63,6 @@ RSpec.describe SupplementCompletionsController, type: :request do
 
       entry = daily_log.habit_entries.find_by(habit: fib_habit)
       expect(entry.value).to eq(1.0)
-      expect(entry.checked).to eq(true)
     end
 
     it "does not write an entry when the matching Fibrotina habit is non-binary" do
