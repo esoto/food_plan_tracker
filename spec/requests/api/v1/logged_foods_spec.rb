@@ -6,6 +6,10 @@ RSpec.describe "Api::V1::LoggedFoodsController", type: :request do
 
   before { stub_api_token; plan; food }
 
+  it_behaves_like "food-gated endpoint" do
+    let(:make_request) { -> { post "/api/v1/foods/#{food.id}/log", params: {}.to_json, headers: auth_headers } }
+  end
+
   it "logs a food (default quantity = serving_grams) and reports updated macros" do
     post "/api/v1/foods/#{food.id}/log", params: {}.to_json, headers: auth_headers
     expect(response).to have_http_status(:created)

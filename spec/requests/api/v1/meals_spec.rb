@@ -14,6 +14,10 @@ RSpec.describe "GET /api/v1/meals", type: :request do
     end
   end
 
+  it_behaves_like "food-gated endpoint" do
+    let(:make_request) { -> { get "/api/v1/meals?plan=active", headers: auth_headers } }
+  end
+
   it "returns meals for the requested plan" do
     get "/api/v1/meals?plan=active", headers: auth_headers
     expect(response).to have_http_status(:ok)

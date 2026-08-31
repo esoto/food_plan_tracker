@@ -26,7 +26,11 @@ RSpec.describe "Deactivation gating", type: :request do
   end
 
   describe "/api/v1 bearer token" do
-    let(:user)      { create(:user) }
+    # food_tracking_enabled: true — this describe exercises deactivation
+    # gating on a food endpoint (/api/v1/today), not the food-tracking flag
+    # itself; a default-disabled user would 403 on reactivation for the
+    # wrong reason.
+    let(:user)      { create(:user, food_tracking_enabled: true) }
     let!(:token)    { user.api_tokens.create!(name: "spec") }
     let(:plaintext) { token.token }
 

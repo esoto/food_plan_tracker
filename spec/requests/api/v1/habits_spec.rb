@@ -6,6 +6,16 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
     Habit.delete_all
   end
 
+  describe "food tracking disabled" do
+    it "still returns 200 (habits are not gated by food tracking)" do
+      Current.user.update!(food_tracking_enabled: false)
+
+      get "/api/v1/habits", headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+    end
+  end
+
   describe "GET /api/v1/habits" do
     it "lists kept habits in display order" do
       create(:habit, label: "B", position: 1, user: Current.user)

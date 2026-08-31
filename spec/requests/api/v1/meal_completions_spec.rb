@@ -15,6 +15,10 @@ RSpec.describe "Api::V1::MealCompletionsController", type: :request do
 
   before { stub_api_token; meal }
 
+  it_behaves_like "food-gated endpoint" do
+    let(:make_request) { -> { post "/api/v1/meals/#{meal.id}/complete", params: {}.to_json, headers: auth_headers } }
+  end
+
   it "marks a meal complete and surfaces it in the day's snapshot" do
     post "/api/v1/meals/#{meal.id}/complete", params: {}.to_json, headers: auth_headers
     expect(response).to have_http_status(:created)

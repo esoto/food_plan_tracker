@@ -2,6 +2,7 @@ module Api
   module V1
     class FoodsController < Api::BaseController
       include Api::Concerns::DaySerializer
+      include Api::Concerns::RequiresFoodTracking
 
       def index
         scope = Food.alphabetical

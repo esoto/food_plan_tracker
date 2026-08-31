@@ -140,6 +140,10 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
 
   describe 'API V1 POST isolation (inject user_id into JSON body)' do
     before do
+      # This describe exercises mass-assignment isolation on food endpoints
+      # (meal_items, logged_foods), not the food-tracking flag — enable it
+      # so the food-gate guard doesn't shadow the assertions under test.
+      owner.update!(food_tracking_enabled: true)
       token = ApiToken.create!(user: owner, name: 'spec', token: 'test-token-123')
       @headers = { 'Authorization' => 'Bearer test-token-123', 'Content-Type' => 'application/json' }
     end

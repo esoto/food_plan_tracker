@@ -7,6 +7,10 @@ RSpec.describe "Api::V1::DaysController", type: :request do
     seed_plan(slug: "exercise", target_kcal: 2200)
   end
 
+  it_behaves_like "food-gated endpoint" do
+    let(:make_request) { -> { get "/api/v1/days/#{Date.current.iso8601}", headers: auth_headers } }
+  end
+
   describe "GET /api/v1/days/:date" do
     it "returns the snapshot for a past date" do
       date = (Date.current - 3).iso8601
