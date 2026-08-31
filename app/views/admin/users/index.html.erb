@@ -57,6 +57,11 @@
               <% else %>
                 <span class="rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-600">Member</span>
               <% end %>
+              <% if user.food_tracking_enabled? %>
+                <span class="rounded-full px-2 py-0.5 text-xs bg-emerald-100 text-emerald-700">Food on</span>
+              <% else %>
+                <span class="rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-600">Food off</span>
+              <% end %>
               <% if user.deactivated? %>
                 <span class="rounded-full px-2 py-0.5 text-xs bg-rose-100 text-rose-700">Deactivated</span>
               <% end %>
@@ -83,6 +88,14 @@
           <% elsif user != current_user %>
             <%= button_to "Deactivate", deactivate_admin_user_path(user), method: :patch,
                   class: "rounded-lg text-xs font-medium px-3 py-1.5 text-rose-700 hover:bg-rose-50 cursor-pointer" %>
+          <% end %>
+
+          <% if user.food_tracking_enabled? %>
+            <%= button_to "Disable food tracking", disable_food_tracking_admin_user_path(user), method: :patch,
+                  class: "rounded-lg text-xs font-medium px-3 py-1.5 text-rose-700 hover:bg-rose-50 cursor-pointer" %>
+          <% else %>
+            <%= button_to "Enable food tracking", enable_food_tracking_admin_user_path(user), method: :patch,
+                  class: "rounded-lg text-xs font-medium px-3 py-1.5 text-emerald-700 hover:bg-emerald-50 cursor-pointer" %>
           <% end %>
 
           <%= button_to "Send reset", send_password_reset_admin_user_path(user), method: :post,

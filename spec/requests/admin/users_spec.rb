@@ -29,6 +29,8 @@ RSpec.describe "Admin::Users", type: :request do
       [ :patch,  :reactivate_admin_user_path,          true ],
       [ :patch,  :promote_admin_user_path,              true ],
       [ :patch,  :demote_admin_user_path,               true ],
+      [ :patch,  :enable_food_tracking_admin_user_path,  true ],
+      [ :patch,  :disable_food_tracking_admin_user_path, true ],
       [ :post,   :send_password_reset_admin_user_path,  true ],
       [ :post,   :resend_invite_admin_user_path,         true ],
       [ :delete, :admin_user_path,                       true ]
@@ -118,6 +120,20 @@ RSpec.describe "Admin::Users", type: :request do
       expect(response.body).to include("wants-in@example.com")
       expect(response.body).to include("let me in please")
     end
+
+    it "shows the food-tracking pill and opposite-action toggle button per user" do
+      sign_in_as(admin)
+
+      food_on_user = create(:user, email_address: "food-on@example.com", food_tracking_enabled: true)
+      food_off_user = create(:user, email_address: "food-off@example.com", food_tracking_enabled: false)
+
+      get admin_root_path
+
+      expect(response.body).to include("Food on")
+      expect(response.body).to include("Food off")
+      expect(response.body).to include(disable_food_tracking_admin_user_path(food_on_user))
+      expect(response.body).to include(enable_food_tracking_admin_user_path(food_off_user))
+    end
   end
 
   describe "POST /admin/users (create)" do
@@ -199,6 +215,33 @@ RSpec.describe "Admin::Users", type: :request do
 
       expect { delete admin_user_path(target) }.to change(User, :count).by(-1)
       expect(response).to redirect_to(admin_root_path)
+    end
+
+    it "enables and disables food tracking for another user" do
+      sign_in_as(admin)
+      target = create(:user)
+
+      patch enable_food_tracking_admin_user_path(target)
+      expect(response).to redirect_to(admin_root_path)
+      expect(flash[:notice]).to eq("Enabled food tracking for #{target.email_address}.")
+      expect(target.reload).to be_food_tracking_enabled
+
+      patch disable_food_tracking_admin_user_path(target)
+      expect(response).to redirect_to(admin_root_path)
+      expect(flash[:notice]).to eq("Disabled food tracking for #{target.email_address}.")
+      expect(target.reload).not_to be_food_tracking_enabled
+    end
+
+    it "allows an admin to toggle their own food tracking" do
+      sign_in_as(admin)
+
+      patch enable_food_tracking_admin_user_path(admin)
+      expect(response).to redirect_to(admin_root_path)
+      expect(admin.reload).to be_food_tracking_enabled
+
+      patch disable_food_tracking_admin_user_path(admin)
+      expect(response).to redirect_to(admin_root_path)
+      expect(admin.reload).not_to be_food_tracking_enabled
     end
   end
 
