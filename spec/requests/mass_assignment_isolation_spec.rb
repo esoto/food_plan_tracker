@@ -96,6 +96,10 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
 
   describe 'API V1 PATCH isolation (inject user_id into JSON body)' do
     before do
+      # This describe exercises mass-assignment isolation on food endpoints
+      # (meal_items, logged_foods), not the food-tracking flag — enable it
+      # so the food-gate guard doesn't shadow the assertions under test.
+      owner.update!(food_tracking_enabled: true)
       token = ApiToken.create!(user: owner, name: 'spec', token: 'test-token-123')
       @headers = { 'Authorization' => 'Bearer test-token-123', 'Content-Type' => 'application/json' }
     end
@@ -103,6 +107,7 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
     it 'PATCH /api/v1/plans/:id ignores user_id in body' do
       plan = create(:plan, user: owner)
       patch "/api/v1/plans/#{plan.id}", params: { plan: { target_kcal: 2500, user_id: other_user.id } }.to_json, headers: @headers
+      expect(response).not_to have_http_status(:forbidden)
       expect(plan.reload.user_id).to eq(owner.id)
     end
 
@@ -115,6 +120,7 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
     it 'PATCH /api/v1/meals/:id ignores user_id in body' do
       meal = create(:meal, user: owner)
       patch "/api/v1/meals/#{meal.id}", params: { meal: { name: 'Updated', user_id: other_user.id } }.to_json, headers: @headers
+      expect(response).not_to have_http_status(:forbidden)
       expect(meal.reload.user_id).to eq(owner.id)
     end
 
@@ -122,6 +128,7 @@ RSpec.describe 'Mass-assignment isolation', type: :request do
       meal = create(:meal, user: owner)
       item = create(:meal_item, meal: meal, user: owner)
       patch "/api/v1/meal_items/#{item.id}", params: { meal_item: { quantity_grams: 200, user_id: other_user.id } }.to_json, headers: @headers
+      expect(response).not_to have_http_status(:forbidden)
       expect(item.reload.user_id).to eq(owner.id)
     end
 
