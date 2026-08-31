@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe UserReminderJob, type: :job do
-  let(:user) { create(:user) }
+  let(:user) { create(:user, food_tracking_enabled: true) }
   let!(:plan) do
     Plan.find_or_create_by!(slug: "active", user: user) do |p|
       p.name = "Active day"
@@ -167,6 +167,41 @@ RSpec.describe UserReminderJob, type: :job do
 
       expect(PushNotifier).not_to receive(:broadcast)
       described_class.perform_now(user.id, now: Time.zone.local(2026, 4, 26, 7, 0))
+    end
+  end
+
+  describe "food tracking gate" do
+    it "skips meal reminders for a food-tracking-disabled user but still fires supplement reminders" do
+      disabled_user = create(:user, food_tracking_enabled: false)
+      disabled_plan = Plan.find_or_create_by!(slug: "active", user: disabled_user) do |p|
+        p.name = "Active day"
+        p.target_kcal = 2000
+        p.target_protein_g = 180
+        p.target_carbs_g = 180
+        p.target_fat_g = 70
+      end
+      disabled_plan.meals.create!(position: 1, name: "Dinner",
+                                  scheduled_time: Time.utc(2000, 1, 1, 19, 30),
+                                  target_kcal: 700, target_protein_g: 50, target_carbs_g: 60, target_fat_g: 25, user: disabled_user)
+      disabled_supp = Supplement.create!(name: "Zinc", dose: "25mg", user: disabled_user)
+      SupplementSchedule.create!(supplement: disabled_supp, time_slot: :dinner, position: 1)
+      DailyLog.for(Date.current, user: disabled_user)
+
+      expect(PushNotifier).not_to receive(:broadcast).with(hash_including(title: "🍱 Dinner time"))
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(
+        title: "💊 Dinner supplements",
+        user:  disabled_user
+      ))
+
+      described_class.perform_now(disabled_user.id, now: Time.zone.local(2026, 4, 26, 19, 30))
+    end
+
+    it "still fires meal reminders for a food-tracking-enabled user (control)" do
+      DailyLog.for(Date.current, user: user)
+
+      expect(PushNotifier).to receive(:broadcast).with(hash_including(title: "🍱 Breakfast time"))
+
+      described_class.perform_now(user.id, now: Time.zone.local(2026, 4, 26, 7, 30))
     end
   end
 

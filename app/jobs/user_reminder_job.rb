@@ -27,7 +27,7 @@ class UserReminderJob < ApplicationJob
       today = DailyLog.for_user(user).find_by(date: Date.current)
       return unless today&.plan # no-op until this user's plan/seed exists
 
-      fire_meal_reminders(user, today, now)
+      fire_meal_reminders(user, today, now) if user.food_tracking_enabled?
       fire_supplement_reminders(user, today, now)
     end
   end

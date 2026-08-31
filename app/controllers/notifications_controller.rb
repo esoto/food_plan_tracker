@@ -4,7 +4,7 @@ class NotificationsController < ApplicationController
     @subscriptions = Current.user.push_subscriptions.order(created_at: :desc).to_a
     @recent_deliveries = Current.user.notification_deliveries.recent(20)
     @subscription_count = @subscriptions.size
-    @plan = today_log&.plan
+    @plan = food_tracking? ? today_log&.plan : nil
 
     # Mirror the guard in UserReminderJob: don't crash the page on a
     # fresh install where the seed plans haven't run yet.
