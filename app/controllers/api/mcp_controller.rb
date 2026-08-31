@@ -124,6 +124,7 @@ module Api
       tool      = TOOLS.find { |t| t[:name] == name }
 
       return tool_error("unknown tool: #{name}") unless tool
+      return tool_error("Food tracking is not enabled for this account") if tool[:food] && !Current.user.food_tracking_enabled?
 
       payload = send(tool[:handler], arguments)
       { content: [ { type: "text", text: JSON.pretty_generate(payload) } ] }
@@ -445,13 +446,15 @@ module Api
         name:        "get_today_status",
         description: "Today's plan, macro targets, consumed macros, weight, completed meals, now_meal, and logged foods.",
         inputSchema: { type: "object", properties: {} },
-        handler:     :handle_get_today_status
+        handler:     :handle_get_today_status,
+        food:        true
       },
       {
         name:        "get_day_status",
         description: "Same shape as get_today_status, for a specific date (YYYY-MM-DD).",
         inputSchema: { type: "object", properties: { "date" => DATE_PROP }, required: %w[date] },
-        handler:     :handle_get_day_status
+        handler:     :handle_get_day_status,
+        food:        true
       },
       {
         name:        "get_weekly_summary",
@@ -484,7 +487,8 @@ module Api
           },
           required: %w[name]
         },
-        handler: :handle_complete_meal
+        handler: :handle_complete_meal,
+        food:    true
       },
       {
         name:        "uncomplete_meal",
@@ -498,7 +502,8 @@ module Api
           },
           required: %w[name]
         },
-        handler: :handle_uncomplete_meal
+        handler: :handle_uncomplete_meal,
+        food:    true
       },
       {
         name:        "copy_yesterday_meals",
@@ -507,7 +512,8 @@ module Api
           type: "object",
           properties: { "date" => DATE_PROP }
         },
-        handler: :handle_copy_yesterday_meals
+        handler: :handle_copy_yesterday_meals,
+        food:    true
       },
       {
         name:        "log_food",
@@ -521,7 +527,8 @@ module Api
           },
           required: %w[name]
         },
-        handler: :handle_log_food
+        handler: :handle_log_food,
+        food:    true
       },
       {
         name:        "delete_logged_food",
@@ -531,7 +538,8 @@ module Api
           properties: { "id" => { type: "integer", exclusiveMinimum: 0 } },
           required: %w[id]
         },
-        handler: :handle_delete_logged_food
+        handler: :handle_delete_logged_food,
+        food:    true
       },
       {
         name:        "set_plan_for_day",
@@ -544,7 +552,8 @@ module Api
           },
           required: %w[slug]
         },
-        handler: :handle_set_plan_for_day
+        handler: :handle_set_plan_for_day,
+        food:    true
       },
       {
         name:        "list_goals",
@@ -560,7 +569,8 @@ module Api
           properties: { "q" => { type: "string" } },
           required: %w[q]
         },
-        handler: :handle_search_foods
+        handler: :handle_search_foods,
+        food:    true
       },
       {
         name:        "create_food",
@@ -579,7 +589,8 @@ module Api
           },
           required: %w[name category serving_grams kcal protein_g carbs_g fat_g]
         },
-        handler: :handle_create_food
+        handler: :handle_create_food,
+        food:    true
       },
       {
         name:        "list_meals",
@@ -591,7 +602,8 @@ module Api
             "date"      => DATE_PROP
           }
         },
-        handler: :handle_active_meals
+        handler: :handle_active_meals,
+        food:    true
       },
 
       # ----- Supplements (templates, not completions) -----
@@ -743,7 +755,8 @@ module Api
           },
           required: %w[slug]
         },
-        handler: :handle_update_plan
+        handler: :handle_update_plan,
+        food:    true
       },
       {
         name:        "update_meal",
@@ -761,7 +774,8 @@ module Api
           },
           required: %w[name]
         },
-        handler: :handle_update_meal
+        handler: :handle_update_meal,
+        food:    true
       },
       {
         name:        "update_goal",
@@ -789,7 +803,8 @@ module Api
           },
           required: %w[meal_name]
         },
-        handler: :handle_list_meal_items
+        handler: :handle_list_meal_items,
+        food:    true
       },
       {
         name:        "add_meal_item",
@@ -804,7 +819,8 @@ module Api
           },
           required: %w[meal_name food_name quantity_grams]
         },
-        handler: :handle_add_meal_item
+        handler: :handle_add_meal_item,
+        food:    true
       },
       {
         name:        "update_meal_item",
@@ -819,7 +835,8 @@ module Api
           },
           required: %w[meal_name food_name quantity_grams]
         },
-        handler: :handle_update_meal_item
+        handler: :handle_update_meal_item,
+        food:    true
       },
       {
         name:        "remove_meal_item",
@@ -833,7 +850,8 @@ module Api
           },
           required: %w[meal_name food_name]
         },
-        handler: :handle_remove_meal_item
+        handler: :handle_remove_meal_item,
+        food:    true
       }
     ].freeze
   end
