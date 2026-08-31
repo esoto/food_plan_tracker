@@ -87,7 +87,7 @@ RSpec.describe "GET /checklist", type: :request do
       b_habit = create(:habit, label: "FOREIGN_HEATMAP_MARKER",
                                               position: 0, user: user_b)
       b_log = create(:daily_log, user: user_b, plan: user_b_plan, date: Date.current)
-      create(:habit_entry, daily_log: b_log, habit: b_habit, checked: true)
+      create(:habit_entry, daily_log: b_log, habit: b_habit, value: 1)
 
       get habits_path
 
@@ -107,7 +107,7 @@ RSpec.describe "GET /checklist", type: :request do
         date = i.days.ago.to_date
         b_log = create(:daily_log, user: user_b, plan: user_b_plan, date: date)
         create(:habit_entry, daily_log: b_log,
-                                     habit: user_b_habit, checked: true)
+                                     habit: user_b_habit, value: 1)
       end
 
       # Current.user has ZERO daily_logs and ZERO templates.

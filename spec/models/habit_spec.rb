@@ -158,6 +158,19 @@ RSpec.describe Habit, type: :model do
     end
   end
 
+  describe "database constraints" do
+    it "rejects a rating habit with a NULL rating_scale at the DB layer, bypassing AR validations" do
+      user = create(:user)
+
+      expect {
+        ActiveRecord::Base.connection.execute(<<~SQL)
+          INSERT INTO habits (label, position, kind, rating_scale, user_id, created_at, updated_at)
+          VALUES ('Raw rating', 0, 3, NULL, #{user.id}, NOW(), NOW())
+        SQL
+      }.to raise_error(ActiveRecord::StatementInvalid, /habits_rating_scale_required_for_rating/)
+    end
+  end
+
   describe "#restore_at_end!" do
     let(:user) { create(:user) }
 
