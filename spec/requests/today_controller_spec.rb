@@ -242,6 +242,10 @@ RSpec.describe TodayController, type: :request do
         expect(nav).not_to have_link(href: "/progress")
         expect(nav_html).to include("grid-cols-5")
         expect(nav_html).not_to include("grid-cols-4")
+
+        # Order: Today · Menu · Exchanges · Supplements · Habits
+        hrefs = nav_html.scan(/href="([^"]+)"/).flatten
+        expect(hrefs).to eq(%w[/ /menu /exchanges /supplements /habits])
       end
 
       it "shows Today/Habits/Progress/Supplements with a 4-col bottom nav grid when disabled" do

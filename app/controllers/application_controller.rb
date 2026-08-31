@@ -70,8 +70,8 @@ class ApplicationController < ActionController::Base
     { key: :today,       path: "/",            label: "Today",      icon: "home" },
     { key: :menu,        path: "/menu",        label: "Menu",       icon: "utensils",   food: true },
     { key: :exchanges,   path: "/exchanges",   label: "Foods",      icon: "shuffle",    food: true },
-    { key: :habits,      path: "/habits",      label: "Habits",     icon: "check" },
-    { key: :supplements, path: "/supplements", label: "Supplements", icon: "pill" }
+    { key: :supplements, path: "/supplements", label: "Supplements", icon: "pill" },
+    { key: :habits,      path: "/habits",      label: "Habits",     icon: "check" }
   ].freeze
 
   # Shown only when food tracking is off, inserted between Habits and
@@ -88,8 +88,10 @@ class ApplicationController < ActionController::Base
       NAV_ITEMS
     else
       without_food = NAV_ITEMS.reject { |item| item[:food] }
-      supplements_index = without_food.index { |item| item[:key] == :supplements }
-      without_food.insert(supplements_index, PROGRESS_NAV_ITEM)
+      today = without_food.find { |item| item[:key] == :today }
+      habits = without_food.find { |item| item[:key] == :habits }
+      supplements = without_food.find { |item| item[:key] == :supplements }
+      [today, habits, PROGRESS_NAV_ITEM, supplements]
     end
   end
 end
