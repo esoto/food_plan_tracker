@@ -1,12 +1,16 @@
 class TodayController < ApplicationController
   def show
-    @plans = Current.user.plans.ordered
     @daily_log = today_log
-    @plan = @daily_log.plan
-    @meals = @plan.meals.includes(meal_items: :food)
-    @completed_meal_ids = @daily_log.meal_completions.pluck(:meal_id)
-    @now_meal = @meals.detect(&:now?)
-    @logged_foods = @daily_log.logged_foods.includes(:food)
+
+    if food_tracking?
+      @plans = Current.user.plans.ordered
+      @plan = @daily_log.plan
+      @meals = @plan.meals.includes(meal_items: :food)
+      @completed_meal_ids = @daily_log.meal_completions.pluck(:meal_id)
+      @now_meal = @meals.detect(&:now?)
+      @logged_foods = @daily_log.logged_foods.includes(:food)
+    end
+
     @weight_goal = Current.user.goals.find_by(metric: :weight_kg)
     @goals = Goal.for_user(Current.user).with_measurements.includes(:biomarker_entries).to_a
     @untracked_goal_count = Current.user.goals.count - @goals.size

@@ -270,5 +270,48 @@ RSpec.describe TodayController, type: :request do
         expect(hrefs).to eq(%w[/ /habits /progress /supplements])
       end
     end
+
+    describe "with food tracking disabled" do
+      it "hides the macro hero, logged foods, and right-now meal CTA, but keeps weight + journal" do
+        user_a = create(:user, password: "password12345", food_tracking_enabled: false)
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+
+        get root_path
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).not_to include("Daily target")
+        expect(response.body).not_to include("href=\"/menu\"")
+        expect(response.body).to include("daily_log[notes]")
+        expect(response.body).to include("Set a weight goal to start tracking")
+      end
+
+      it "hides the plan day-toggle switcher" do
+        user_a = create(:user, password: "password12345", food_tracking_enabled: false)
+        sign_in_as(user_a)
+        create(:plan, slug: "active", name: "Active day", user: user_a)
+
+        get root_path
+
+        expect(response.body).not_to include("Active day")
+      end
+    end
+
+    describe "with food tracking enabled" do
+      it "renders the macro hero, logged foods CTA target, and plan toggle unchanged" do
+        user_a = create(:user, password: "password12345", food_tracking_enabled: true)
+        sign_in_as(user_a)
+        create(:plan, slug: "active", name: "Active day", user: user_a)
+
+        get root_path
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Daily target")
+        expect(response.body).to include("href=\"/menu\"")
+        expect(response.body).to include("daily_log[notes]")
+        expect(response.body).to include("Set a weight goal to start tracking")
+        expect(response.body).to include("Active day")
+      end
+    end
   end
 end
