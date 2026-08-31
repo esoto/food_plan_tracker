@@ -31,8 +31,17 @@ RSpec.describe "Invite-only onboarding", type: :system do
       click_button "Save"
 
       expect(page).to have_current_path(root_path)
-      expect(page).to have_text("Exercise day")
-      expect(user.reload.plans.count).to eq(3)
+      # A newly invited user gets food_tracking_enabled: false by default
+      # (Task 1 migration), so the dashboard renders the food-off experience:
+      # 4-tab bottom nav (Today/Habits/Progress/Supplements), no plan
+      # switcher. SeedDefaults still provisions the 3 day-type plans
+      # regardless of the flag — that's a data concern, not a UI one.
+      expect(page).to have_no_text("Exercise day")
+      expect(page).to have_text("Habits")
+      expect(page).to have_text("Progress")
+      expect(page).to have_text("Supplements")
+      expect(user.reload.food_tracking_enabled?).to be false
+      expect(user.plans.count).to eq(3)
     end
   end
 
