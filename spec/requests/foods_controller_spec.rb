@@ -1,7 +1,11 @@
 require "rails_helper"
 
 RSpec.describe "FoodsController", type: :request do
-  before { sign_in_as }
+  before { sign_in_as(create(:user, password: "password12345", food_tracking_enabled: true)) }
+
+  it_behaves_like "food-gated page" do
+    let(:make_request) { -> { get "/foods/new" } }
+  end
 
   describe "GET /foods/new" do
     it "renders the form with the requested category preselected" do

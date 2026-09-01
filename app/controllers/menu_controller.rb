@@ -1,4 +1,6 @@
 class MenuController < ApplicationController
+  include RequiresFoodTrackingHtml
+
   def show
     @daily_log = today_log
     @plan = @daily_log.plan

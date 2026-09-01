@@ -1,4 +1,6 @@
 class FoodsController < ApplicationController
+  include RequiresFoodTrackingHtml
+
   def new
     @food = Food.new(category: requested_category)
   end

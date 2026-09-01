@@ -1,4 +1,6 @@
 class MealsController < ApplicationController
+  include RequiresFoodTrackingHtml
+
   def update
     meal = Current.user.meals.find(params[:id])
     if meal.update(meal_params)

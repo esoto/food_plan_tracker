@@ -33,6 +33,7 @@ RSpec.describe "Daily interactions via Stimulus/Turbo", type: :system do
   describe "S4b: Meal completion Turbo Frame swap with undo" do
     it "toggles meal completion status with in-frame Turbo Frame swap" do
       user = create_onboarded_user(email: "alice@example.com")
+      user.update!(food_tracking_enabled: true)
       system_sign_in(email: "alice@example.com", password: "password12345")
 
       # Create a meal on the user's active plan

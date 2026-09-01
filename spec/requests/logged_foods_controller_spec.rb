@@ -1,11 +1,15 @@
 require "rails_helper"
 
 RSpec.describe LoggedFoodsController, type: :request do
-  let!(:user) { create(:user) }
+  let!(:user) { create(:user, food_tracking_enabled: true) }
   let!(:plan) { seed_plan(slug: "active", user: user) }
   let!(:food) { seed_food(name: "Whole eggs", category: "protein", serving_grams: 50, kcal: 78, protein_g: 6, carbs_g: 1, fat_g: 5) }
 
   before { sign_in_as(user) }
+
+  it_behaves_like "food-gated page" do
+    let(:make_request) { -> { post logged_foods_path, params: { food_id: food.id, quantity_grams: 100 } } }
+  end
 
   describe "POST /logged_foods" do
     it "logs the food onto today by default" do
@@ -32,7 +36,7 @@ RSpec.describe LoggedFoodsController, type: :request do
 
     describe "daily_log_from_params cross-tenant (PER-556 helper)" do
       it "returns 404 when daily_log_id belongs to another user" do
-        user_a = create(:user, password: "password12345")
+        user_a = create(:user, password: "password12345", food_tracking_enabled: true)
         sign_in_as(user_a)
         other  = create(:user)
         plan_b = create(:plan, user: other)

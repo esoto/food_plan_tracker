@@ -10,7 +10,11 @@ RSpec.describe MealCompletionsController, type: :request do
     end
     let(:daily_log) { create(:daily_log, user: Current.user, plan: plan, date: Date.current) }
 
-    before { sign_in_as }
+    before { sign_in_as(create(:user, password: "password12345", food_tracking_enabled: true)) }
+
+    it_behaves_like "food-gated page" do
+      let(:make_request) { -> { post meal_completions_path, params: { meal_id: meal.id, daily_log_id: daily_log.id } } }
+    end
 
     it "creates a completion for the user's own meal" do
       expect {
@@ -54,7 +58,7 @@ RSpec.describe MealCompletionsController, type: :request do
     end
     let(:daily_log) { create(:daily_log, user: Current.user, plan: plan, date: Date.current) }
 
-    before { sign_in_as }
+    before { sign_in_as(create(:user, password: "password12345", food_tracking_enabled: true)) }
 
     it "deletes the user's own completion and renders the meal card partial" do
       completion = create(:meal_completion, daily_log: daily_log, meal: meal)
@@ -110,7 +114,7 @@ RSpec.describe "MealCompletionsController#copy_yesterday", type: :request do
                        target_kcal: 600, target_protein_g: 45, target_carbs_g: 60, target_fat_g: 20)
   end
 
-  before { sign_in_as }
+  before { sign_in_as(create(:user, password: "password12345", food_tracking_enabled: true)) }
 
   it "copies yesterday's completions when both days share a plan" do
     yesterday = DailyLog.create!(date: Date.current - 1, plan: plan)

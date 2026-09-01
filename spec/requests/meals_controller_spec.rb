@@ -10,7 +10,11 @@ RSpec.describe MealsController, type: :request do
     )
   end
 
-  before { sign_in_as }
+  before { sign_in_as(create(:user, password: "password12345", food_tracking_enabled: true)) }
+
+  it_behaves_like "food-gated page" do
+    let(:make_request) { -> { patch meal_path(meal), params: { meal: { name: "First feeding" } } } }
+  end
 
   describe "PATCH /meals/:id" do
     it "updates name + macros and redirects 303" do

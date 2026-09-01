@@ -4,7 +4,7 @@ RSpec.describe "ExchangesController target_log scoping", type: :request do
   let!(:plan) { seed_plan(slug: "active") }
   let!(:food) { seed_food(name: "Greek yogurt 0%", category: "protein") }
 
-  before { sign_in_as }
+  before { sign_in_as(create(:user, password: "password12345", food_tracking_enabled: true)) }
 
   it "renders an info banner when daily_log_id refers to a past day" do
     past = DailyLog.create!(date: Date.current - 5, plan: plan)

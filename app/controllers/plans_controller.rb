@@ -1,4 +1,6 @@
 class PlansController < ApplicationController
+  include RequiresFoodTrackingHtml
+
   def update
     plan = Current.user.plans.find(params[:id])
     if plan.update(plan_params)
