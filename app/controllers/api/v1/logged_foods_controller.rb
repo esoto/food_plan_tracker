@@ -2,6 +2,7 @@ module Api
   module V1
     class LoggedFoodsController < Api::BaseController
       include Api::Concerns::DaySerializer
+      include Api::Concerns::RequiresFoodTracking
 
       def create
         food = Food.find(params[:food_id])

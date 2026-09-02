@@ -208,4 +208,18 @@ RSpec.describe User, type: :model do
       expect(other_row.last_activity_at).to be_within(1.second).of(token_time)
     end
   end
+
+  describe "food tracking flag" do
+    it "defaults to disabled for new users" do
+      expect(create(:user).food_tracking_enabled).to be(false)
+    end
+
+    it "enables and disables via the bang mutators" do
+      user = create(:user)
+      user.enable_food_tracking!
+      expect(user.reload.food_tracking_enabled).to be(true)
+      user.disable_food_tracking!
+      expect(user.reload.food_tracking_enabled).to be(false)
+    end
+  end
 end

@@ -3,7 +3,8 @@ require "rails_helper"
 RSpec.describe "Food calculation", type: :system do
   describe "S4d: Multiplier changes update displayed nutrition" do
     it "2x multiplier updates kcal, protein, carbs, fat and hidden quantity input" do
-      create_onboarded_user(email: "alice@example.com")
+      alice = create_onboarded_user(email: "alice@example.com")
+      alice.update!(food_tracking_enabled: true)
       food = create(:food, name: "Chicken Breast", category: :protein, serving_grams: 100, kcal: 200, protein_g: 10.5, carbs_g: 25.0, fat_g: 5.0)
 
       system_sign_in(email: "alice@example.com", password: "password12345")

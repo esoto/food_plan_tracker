@@ -2,6 +2,7 @@ module Api
   module V1
     class PlansController < Api::BaseController
       include Api::Concerns::DaySerializer
+      include Api::Concerns::RequiresFoodTracking
 
       def index
         render json: { plans: Current.user.plans.ordered.map { |p| serialize_plan(p) } }

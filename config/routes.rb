@@ -83,6 +83,8 @@ Rails.application.routes.draw do
         patch :reactivate
         patch :promote
         patch :demote
+        patch :enable_food_tracking
+        patch :disable_food_tracking
         post  :send_password_reset
         post  :resend_invite
       end

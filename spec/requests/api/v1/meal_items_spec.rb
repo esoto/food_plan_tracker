@@ -14,6 +14,10 @@ RSpec.describe "Api::V1::MealItems", type: :request do
   let(:oats)  { create(:food, name: "Oats",       category: "carb",    serving_grams: 40, kcal: 150, protein_g: 5, carbs_g: 27, fat_g: 3) }
   let(:evoo)  { create(:food, name: "EVOO",       category: "fat",     serving_grams: 14, kcal: 120, protein_g: 0, carbs_g: 0, fat_g: 14) }
 
+  it_behaves_like "food-gated endpoint" do
+    let(:make_request) { -> { get "/api/v1/meals/#{meal.id}/items", headers: auth_headers } }
+  end
+
   describe "GET /api/v1/meals/:meal_id/items" do
     it "lists items with computed kcal/macros" do
       create(:meal_item, meal: meal, food: eggs, quantity_grams: 100)

@@ -217,5 +217,101 @@ RSpec.describe TodayController, type: :request do
         expect(response.body).not_to include("OTHER WEIGHT GOAL")
       end
     end
+
+    describe "per-user nav (food_tracking_enabled)" do
+      # The Today dashboard also has an unrelated "Progress & projections" CTA
+      # (Task 3 gates that) — scope assertions to the bottom nav <nav> block
+      # itself so this test only exercises the nav_items list, not page content.
+      def bottom_nav_html_from(body)
+        body[/<nav class="fixed bottom-0.*?<\/nav>/m]
+      end
+
+      it "shows the full 5-item food nav with a 5-col bottom nav grid when enabled" do
+        user_a = create(:user, password: "password12345", food_tracking_enabled: true)
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+
+        get root_path
+
+        nav_html = bottom_nav_html_from(response.body)
+        nav = Capybara.string(nav_html)
+        expect(nav).to have_link(href: "/menu")
+        expect(nav).to have_link(href: "/exchanges")
+        expect(nav).to have_link(href: "/habits")
+        expect(nav).to have_link(href: "/supplements")
+        expect(nav).not_to have_link(href: "/progress")
+        expect(nav_html).to include("grid-cols-5")
+        expect(nav_html).not_to include("grid-cols-4")
+
+        # Order: Today · Menu · Exchanges · Supplements · Habits
+        hrefs = nav_html.scan(/href="([^"]+)"/).flatten
+        expect(hrefs).to eq(%w[/ /menu /exchanges /supplements /habits])
+      end
+
+      it "shows Today/Habits/Progress/Supplements with a 4-col bottom nav grid when disabled" do
+        user_a = create(:user, password: "password12345", food_tracking_enabled: false)
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+
+        get root_path
+
+        nav_html = bottom_nav_html_from(response.body)
+        nav = Capybara.string(nav_html)
+        expect(nav).not_to have_link(href: "/menu")
+        expect(nav).not_to have_link(href: "/exchanges")
+        expect(nav).to have_link(href: "/progress")
+        expect(nav).to have_link(href: "/habits")
+        expect(nav).to have_link(href: "/supplements")
+        expect(nav_html).to include("grid-cols-4")
+        expect(nav_html).not_to include("grid-cols-5")
+
+        # Order: Today · Habits · Progress · Supplements
+        hrefs = nav_html.scan(/href="([^"]+)"/).flatten
+        expect(hrefs).to eq(%w[/ /habits /progress /supplements])
+      end
+    end
+
+    describe "with food tracking disabled" do
+      it "hides the macro hero, logged foods, and right-now meal CTA, but keeps weight + journal" do
+        user_a = create(:user, password: "password12345", food_tracking_enabled: false)
+        sign_in_as(user_a)
+        create(:plan, slug: "active", user: user_a)
+
+        get root_path
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).not_to include("Daily target")
+        expect(response.body).not_to include("href=\"/menu\"")
+        expect(response.body).to include("daily_log[notes]")
+        expect(response.body).to include("Set a weight goal to start tracking")
+      end
+
+      it "hides the plan day-toggle switcher" do
+        user_a = create(:user, password: "password12345", food_tracking_enabled: false)
+        sign_in_as(user_a)
+        create(:plan, slug: "active", name: "Active day", user: user_a)
+
+        get root_path
+
+        expect(response.body).not_to include("Active day")
+      end
+    end
+
+    describe "with food tracking enabled" do
+      it "renders the macro hero, logged foods CTA target, and plan toggle unchanged" do
+        user_a = create(:user, password: "password12345", food_tracking_enabled: true)
+        sign_in_as(user_a)
+        create(:plan, slug: "active", name: "Active day", user: user_a)
+
+        get root_path
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Daily target")
+        expect(response.body).to include("href=\"/menu\"")
+        expect(response.body).to include("daily_log[notes]")
+        expect(response.body).to include("Set a weight goal to start tracking")
+        expect(response.body).to include("Active day")
+      end
+    end
   end
 end

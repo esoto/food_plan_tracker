@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe DaysController, type: :request do
-  let!(:user) { create(:user) }
+  let!(:user) { create(:user, food_tracking_enabled: true) }
   let!(:plan) { seed_plan(slug: "active", user: user) }
   let!(:food) { seed_food(name: "Whole eggs", category: "protein", serving_grams: 50, kcal: 78, protein_g: 6, carbs_g: 1, fat_g: 5) }
   let(:past_date) { Date.current - 3 }
@@ -75,6 +75,55 @@ RSpec.describe DaysController, type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.body).not_to include("OTHER DAYS PLAN")
+    end
+  end
+
+  describe "with food tracking disabled" do
+    it "hides the macro hero, logged foods, and 'log a food' CTA, but keeps weight + journal + date nav" do
+      user_a = create(:user, password: "password12345", food_tracking_enabled: false)
+      user_a_plan = seed_plan(slug: "active", user: user_a)
+      sign_in_as(user_a)
+      past = DailyLog.create!(date: past_date, plan: user_a_plan, user: user_a)
+      past.logged_foods.create!(food: food, quantity_grams: 75, logged_at: past_date.to_time)
+
+      get day_path(past_date)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Daily target")
+      expect(response.body).not_to include("Log a food on this day")
+      expect(response.body).not_to include("Whole eggs")
+      expect(response.body).to include("daily_log[notes]")
+      expect(response.body).to include("weight")
+      expect(response.body).to include(day_path(past_date - 1))
+    end
+
+    it "hides the plan day-toggle switcher" do
+      user_a = create(:user, password: "password12345", food_tracking_enabled: false)
+      user_a_plan = seed_plan(slug: "active", name: "Active day", user: user_a)
+      sign_in_as(user_a)
+      DailyLog.create!(date: past_date, plan: user_a_plan, user: user_a)
+
+      get day_path(past_date)
+
+      expect(response.body).not_to include("Active day")
+    end
+  end
+
+  describe "with food tracking enabled" do
+    it "renders the macro hero, logged foods, and CTA unchanged" do
+      user_a = create(:user, password: "password12345", food_tracking_enabled: true)
+      user_a_plan = seed_plan(slug: "active", user: user_a)
+      sign_in_as(user_a)
+      past = DailyLog.create!(date: past_date, plan: user_a_plan, user: user_a)
+      past.logged_foods.create!(food: food, quantity_grams: 75, logged_at: past_date.to_time)
+
+      get day_path(past_date)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Daily target")
+      expect(response.body).to include("Log a food on this day")
+      expect(response.body).to include("Whole eggs")
+      expect(response.body).to include("daily_log[notes]")
     end
   end
 end

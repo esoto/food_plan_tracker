@@ -15,7 +15,7 @@ class ApplicationController < ActionController::Base
   # trigger an extra session lookup.
   before_action :ensure_onboarding_defaults, if: -> { Current.session }
 
-  helper_method :today_log, :current_user, :nav_items, :fibrotina_due?, :fibrotina_supplement
+  helper_method :today_log, :current_user, :nav_items, :fibrotina_due?, :fibrotina_supplement, :food_tracking?
 
   private
 
@@ -68,13 +68,30 @@ class ApplicationController < ActionController::Base
 
   NAV_ITEMS = [
     { key: :today,       path: "/",            label: "Today",      icon: "home" },
-    { key: :menu,        path: "/menu",        label: "Menu",       icon: "utensils" },
-    { key: :exchanges,   path: "/exchanges",   label: "Foods",      icon: "shuffle" },
+    { key: :menu,        path: "/menu",        label: "Menu",       icon: "utensils",   food: true },
+    { key: :exchanges,   path: "/exchanges",   label: "Foods",      icon: "shuffle",    food: true },
     { key: :supplements, path: "/supplements", label: "Supplements", icon: "pill" },
-    { key: :checklist,   path: "/habits",      label: "Habits",     icon: "check" }
+    { key: :habits,      path: "/habits",      label: "Habits",     icon: "check" }
   ].freeze
 
+  # Shown only when food tracking is off, inserted between Habits and
+  # Supplements so the food-off order reads Today · Habits · Progress ·
+  # Supplements.
+  PROGRESS_NAV_ITEM = { key: :progress, path: "/progress", label: "Progress", icon: "chart" }.freeze
+
+  def food_tracking?
+    Current.user&.food_tracking_enabled?
+  end
+
   def nav_items
-    NAV_ITEMS
+    if food_tracking?
+      NAV_ITEMS
+    else
+      without_food = NAV_ITEMS.reject { |item| item[:food] }
+      today = without_food.find { |item| item[:key] == :today }
+      habits = without_food.find { |item| item[:key] == :habits }
+      supplements = without_food.find { |item| item[:key] == :supplements }
+      [today, habits, PROGRESS_NAV_ITEM, supplements]
+    end
   end
 end

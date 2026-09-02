@@ -6,6 +6,10 @@ RSpec.describe "GET /api/v1/today", type: :request do
     seed_plan(slug: "active")
   end
 
+  it_behaves_like "food-gated endpoint" do
+    let(:make_request) { -> { get "/api/v1/today", headers: auth_headers } }
+  end
+
   it "returns 401 without a token" do
     get "/api/v1/today"
     expect(response).to have_http_status(:unauthorized)

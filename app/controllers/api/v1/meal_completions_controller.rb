@@ -2,6 +2,7 @@ module Api
   module V1
     class MealCompletionsController < Api::BaseController
       include Api::Concerns::DaySerializer
+      include Api::Concerns::RequiresFoodTracking
 
       def create
         log = daily_log_for(params[:date])

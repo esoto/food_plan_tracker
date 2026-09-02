@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe NotificationsController, type: :request do
-  let!(:user) { create(:user, password: "password12345") }
+  let!(:user) { create(:user, password: "password12345", food_tracking_enabled: true) }
   let!(:plan) { seed_plan(slug: "active") }
   let!(:meal) do
     plan.meals.create!(position: 1, name: "Breakfast",
@@ -136,6 +136,36 @@ RSpec.describe NotificationsController, type: :request do
       # The count line must reflect just the signed-in user's 1 subscription.
       expect(response.body).to match(/<strong>1<\/strong>\s+subscription registered server-side/)
       expect(response.body).not_to match(/<strong>3<\/strong>/)
+    end
+  end
+
+  describe "with food tracking disabled" do
+    it "hides the meal-reminders section but still shows supplement reminders" do
+      user_a = create(:user, password: "password12345", food_tracking_enabled: false)
+      sign_in_as(user_a)
+      Current.session = Session.create!(user: user_a, user_agent: "test", ip_address: "127.0.0.1")
+      plan_a = seed_plan(slug: "active", user: user_a)
+      plan_a.meals.create!(position: 1, name: "Breakfast",
+                           scheduled_time: Time.utc(2000, 1, 1, 7, 30),
+                           target_kcal: 450, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10, user: user_a)
+
+      get notifications_path
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Meal reminders")
+      expect(response.body).not_to include("Breakfast")
+      expect(response.body).to include("Supplement reminders")
+    end
+  end
+
+  describe "with food tracking enabled (control)" do
+    it "still shows the meal-reminders section unchanged" do
+      get notifications_path
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Meal reminders")
+      expect(response.body).to include("Breakfast")
+      expect(response.body).to include("Supplement reminders")
     end
   end
 end

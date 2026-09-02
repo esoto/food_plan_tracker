@@ -2,11 +2,15 @@ require "rails_helper"
 
 RSpec.describe ExchangesController, type: :request do
   before do
-    sign_in_as
+    sign_in_as(create(:user, password: "password12345", food_tracking_enabled: true))
     @chicken    = Food.create!(name: "Chicken breast", category: :protein,  serving_grams: 100, kcal: 165, protein_g: 31, carbs_g: 0,  fat_g: 4)
     @rice       = Food.create!(name: "White rice",     category: :carb,     serving_grams: 100, kcal: 130, protein_g: 3,  carbs_g: 28, fat_g: 0)
     @almonds    = Food.create!(name: "Almonds",        category: :fat,      serving_grams: 28,  kcal: 164, protein_g: 6,  carbs_g: 6,  fat_g: 14)
     @broccoli   = Food.create!(name: "Broccoli",       category: :vegetable, serving_grams: 100, kcal: 35,  protein_g: 3,  carbs_g: 7,  fat_g: 0)
+  end
+
+  it_behaves_like "food-gated page" do
+    let(:make_request) { -> { get exchanges_path } }
   end
 
   describe "GET /exchanges" do
@@ -42,7 +46,7 @@ RSpec.describe ExchangesController, type: :request do
 
   describe "cross-tenant isolation on daily_log_id" do
     it "ignores a daily_log_id belonging to another user" do
-      user_a = create(:user, password: "password12345")
+      user_a = create(:user, password: "password12345", food_tracking_enabled: true)
       sign_in_as(user_a)
       other  = create(:user)
       plan_b = create(:plan, user: other)

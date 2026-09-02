@@ -1,4 +1,6 @@
 class LoggedFoodsController < ApplicationController
+  include RequiresFoodTrackingHtml
+
   def create
     food = Food.find(params[:food_id])
     quantity = params[:quantity_grams].presence&.to_d || food.serving_grams

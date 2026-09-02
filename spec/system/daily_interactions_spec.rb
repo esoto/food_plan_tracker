@@ -4,7 +4,10 @@ RSpec.describe "Daily interactions via Stimulus/Turbo", type: :system do
   include ActionView::RecordIdentifier
   describe "S4a: Plan switcher auto-submit via label click" do
     it "changes the active plan and updates the DailyLog in the database" do
+      # Plan switcher is food UI, gated behind food_tracking_enabled — this
+      # spec is inherently about that UI, so opt this user in.
       user = create_onboarded_user(email: "alice@example.com")
+      user.update!(food_tracking_enabled: true)
       system_sign_in(email: "alice@example.com", password: "password12345")
 
       visit root_path
@@ -30,6 +33,7 @@ RSpec.describe "Daily interactions via Stimulus/Turbo", type: :system do
   describe "S4b: Meal completion Turbo Frame swap with undo" do
     it "toggles meal completion status with in-frame Turbo Frame swap" do
       user = create_onboarded_user(email: "alice@example.com")
+      user.update!(food_tracking_enabled: true)
       system_sign_in(email: "alice@example.com", password: "password12345")
 
       # Create a meal on the user's active plan
@@ -149,7 +153,10 @@ RSpec.describe "Daily interactions via Stimulus/Turbo", type: :system do
 
   describe "S4e: Past-day auto-submit on /days/<yesterday>" do
     it "applies plan change to a past daily_log via the day_toggle form" do
+      # Day-toggle switcher is food UI, gated behind food_tracking_enabled —
+      # this spec is inherently about that UI, so opt this user in.
       user = create_onboarded_user(email: "alice@example.com")
+      user.update!(food_tracking_enabled: true)
       system_sign_in(email: "alice@example.com", password: "password12345")
 
       # Create a daily_log for yesterday

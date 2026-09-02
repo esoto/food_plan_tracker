@@ -11,6 +11,12 @@ module ApiHelpers
   def stub_api_token(value = TOKEN)
     ApiToken.where(name: "spec").destroy_all
     user = Current.user || User.first || create(:user)
+    # API request specs predate the food_tracking_enabled flag and assume
+    # food endpoints work by default; the column defaults to false, so bump
+    # it here rather than touching every food-endpoint spec file. Specs that
+    # need to exercise the disabled state (see the "food-gated endpoint"
+    # shared example) flip it back explicitly.
+    user.update!(food_tracking_enabled: true) unless user.food_tracking_enabled?
     token = ApiToken.create!(name: "spec", token: value, user: user)
     Current.user = user
     token

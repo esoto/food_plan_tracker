@@ -8,6 +8,10 @@ RSpec.describe "Api::V1::FoodsController", type: :request do
     seed_food(name: "Banana", category: "carb", serving_grams: 118, kcal: 105, protein_g: 1.3, carbs_g: 27, fat_g: 0.4)
   end
 
+  it_behaves_like "food-gated endpoint" do
+    let(:make_request) { -> { get "/api/v1/foods", headers: auth_headers } }
+  end
+
   describe "GET /api/v1/foods" do
     it "lists foods alphabetically" do
       get "/api/v1/foods", headers: auth_headers

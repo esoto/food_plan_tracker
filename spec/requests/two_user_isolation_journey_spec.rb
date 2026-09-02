@@ -90,6 +90,10 @@ RSpec.describe 'Two-user isolation journey', type: :request do
   end
 
   it 'Phase 2: API V1 — Bob cannot patch Alice\'s plan' do
+    # This test exercises cross-tenant isolation on /api/v1/plans, not the
+    # food-tracking flag — enable it so the food-gate guard doesn't shadow
+    # the cross-tenant 404 assertion under test.
+    @bob.update!(food_tracking_enabled: true)
     alice_plan = create(:plan, user: @alice, slug: 'alice-plan')
     bob_token = ApiToken.create!(user: @bob, name: 'bob-token', token: 'bob-test-123')
     bob_headers = { 'Authorization' => 'Bearer bob-test-123', 'Content-Type' => 'application/json' }

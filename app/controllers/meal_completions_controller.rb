@@ -1,4 +1,6 @@
 class MealCompletionsController < ApplicationController
+  include RequiresFoodTrackingHtml
+
   before_action :set_daily_log, only: :create
 
   def create

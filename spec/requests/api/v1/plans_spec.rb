@@ -8,6 +8,10 @@ RSpec.describe "GET /api/v1/plans", type: :request do
     seed_plan(slug: "rest")
   end
 
+  it_behaves_like "food-gated endpoint" do
+    let(:make_request) { -> { get "/api/v1/plans", headers: auth_headers } }
+  end
+
   it "returns plans in canonical order with targets" do
     get "/api/v1/plans", headers: auth_headers
     expect(response).to have_http_status(:ok)

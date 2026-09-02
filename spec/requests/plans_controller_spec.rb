@@ -3,7 +3,11 @@ require "rails_helper"
 RSpec.describe PlansController, type: :request do
   let(:plan) { create(:plan, user: Current.user) }
 
-  before { sign_in_as }
+  before { sign_in_as(create(:user, password: "password12345", food_tracking_enabled: true)) }
+
+  it_behaves_like "food-gated page" do
+    let(:make_request) { -> { patch plan_path(plan), params: { plan: { target_kcal: 2200 } } } }
+  end
 
   describe "PATCH /plans/:id" do
     context "with valid params" do

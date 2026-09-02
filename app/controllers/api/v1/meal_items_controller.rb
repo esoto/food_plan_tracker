@@ -2,6 +2,7 @@ module Api
   module V1
     class MealItemsController < Api::BaseController
       include Api::Concerns::DaySerializer
+      include Api::Concerns::RequiresFoodTracking
 
       def index
         meal = Current.user.meals.find(params[:meal_id])

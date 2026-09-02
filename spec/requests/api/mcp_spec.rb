@@ -10,6 +10,11 @@ RSpec.describe "POST /mcp", type: :request do
 
   before do
     Current.user = user
+    # This spec predates the food_tracking_enabled flag and assumes food
+    # tools work by default; the column defaults to false, so bump it here
+    # rather than touching every food-tool example (mirrors ApiHelpers#stub_api_token).
+    # Examples exercising the disabled state flip it back explicitly.
+    user.update!(food_tracking_enabled: true) unless user.food_tracking_enabled?
     seed_plan(slug: "active")
   end
 
@@ -123,6 +128,43 @@ RSpec.describe "POST /mcp", type: :request do
         expect(tool["inputSchema"]).to include("type" => "object")
         expect(tool["description"]).to be_present
       end
+    end
+
+    it "still advertises all 31 tools for a food-tracking-disabled user (food tools stay listed)" do
+      user.update!(food_tracking_enabled: false)
+
+      tools = rpc("tools/list")["result"]["tools"]
+      names = tools.map { |t| t["name"] }
+      expect(names.size).to eq(31)
+      expect(names).to include("log_food", "get_weekly_summary", "list_habits")
+    end
+  end
+
+  describe "food tracking disabled" do
+    before { user.update!(food_tracking_enabled: false) }
+
+    it "returns the exact in-band error for a food tool and creates nothing" do
+      expect {
+        result = rpc("tools/call", { name: "log_food", arguments: { name: "Chicken breast" } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(result["content"].first["text"]).to eq("Error: Food tracking is not enabled for this account")
+      }.not_to change(LoggedFood, :count)
+    end
+
+    it "list_habits (non-food tool) still works normally" do
+      create(:habit, label: "Drink water", position: 0, user: user)
+
+      result = rpc("tools/call", { name: "list_habits", arguments: {} })["result"]
+      expect(result).not_to include("isError" => true)
+      payload = JSON.parse(result["content"].first["text"])
+      expect(payload["habits"].map { |h| h["label"] }).to include("Drink water")
+    end
+
+    it "get_weekly_summary (spec-mandated carve-out) still works normally" do
+      result = rpc("tools/call", { name: "get_weekly_summary", arguments: {} })["result"]
+      expect(result).not_to include("isError" => true)
+      payload = JSON.parse(result["content"].first["text"])
+      expect(payload).to have_key("adherence_pct")
     end
   end
 

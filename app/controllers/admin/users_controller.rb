@@ -63,6 +63,16 @@ module Admin
       redirect_to admin_root_path, notice: "Demoted #{@user.email_address} to member."
     end
 
+    def enable_food_tracking
+      @user.enable_food_tracking!
+      redirect_to admin_root_path, notice: "Enabled food tracking for #{@user.email_address}."
+    end
+
+    def disable_food_tracking
+      @user.disable_food_tracking!
+      redirect_to admin_root_path, notice: "Disabled food tracking for #{@user.email_address}."
+    end
+
     def send_password_reset
       PasswordsMailer.reset(@user).deliver_later
       redirect_to admin_root_path, notice: "Password reset sent."

@@ -14,7 +14,7 @@ RSpec.describe "Fresh user smoke test (PER-572)", type: :request do
     user
   end
 
-  let!(:fresh_user) { create(:user) }
+  let!(:fresh_user) { create(:user, food_tracking_enabled: true) }
 
   before do
     Onboarding::SeedDefaults.call(fresh_user)

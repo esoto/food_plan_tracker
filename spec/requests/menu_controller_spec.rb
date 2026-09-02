@@ -9,7 +9,11 @@ RSpec.describe "MenuController#show", type: :request do
                        target_kcal: 400, target_protein_g: 30, target_carbs_g: 50, target_fat_g: 10)
   end
 
-  before { sign_in_as }
+  before { sign_in_as(create(:user, password: "password12345", food_tracking_enabled: true)) }
+
+  it_behaves_like "food-gated page" do
+    let(:make_request) { -> { get menu_path } }
+  end
 
   describe "Log same as yesterday button visibility" do
     it "shows when yesterday matches plan and has more completions than today" do

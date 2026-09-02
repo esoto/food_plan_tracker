@@ -1,4 +1,6 @@
 class ExchangesController < ApplicationController
+  include RequiresFoodTrackingHtml
+
   def index
     @category = (params[:category] || "protein").to_s
     @category = "protein" unless Food.categories.key?(@category)

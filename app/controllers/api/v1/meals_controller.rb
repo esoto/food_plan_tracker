@@ -2,6 +2,7 @@ module Api
   module V1
     class MealsController < Api::BaseController
       include Api::Concerns::DaySerializer
+      include Api::Concerns::RequiresFoodTracking
 
       def index
         plan = if params[:plan].present?
