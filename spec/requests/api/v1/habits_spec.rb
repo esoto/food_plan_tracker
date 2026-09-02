@@ -142,6 +142,31 @@ RSpec.describe "Api::V1::HabitsController", type: :request do
     end
   end
 
+  describe "GET /api/v1/habits?date=" do
+    it "merges each habit's entry for that date, and nil when no entry exists" do
+      plan = seed_plan(slug: "exercise", user: Current.user)
+      logged = create(:habit, :quantity, label: "Water", position: 0, user: Current.user)
+      unlogged = create(:habit, label: "Walk", position: 1, user: Current.user)
+      log = DailyLog.for(Date.current, user: Current.user, default_plan: plan)
+      HabitEntry.set_value!(daily_log: log, habit: logged, value: 3)
+
+      get "/api/v1/habits?date=#{Date.current.iso8601}", headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      by_label = response.parsed_body["habits"].index_by { |h| h["label"] }
+      expect(by_label["Water"]["entry"]).to include("value" => 3.0, "done" => false)
+      expect(by_label["Walk"]["entry"]).to be_nil
+    end
+
+    it "does not merge an entry key when date is omitted" do
+      create(:habit, label: "Walk", position: 0, user: Current.user)
+
+      get "/api/v1/habits", headers: auth_headers
+
+      expect(response.parsed_body["habits"].first).not_to have_key("entry")
+    end
+  end
+
   describe "cross-tenant isolation" do
     # NOTE: each `it` block creates user_b's records locally so they survive
     # the outer `before { Habit.delete_all }` hook.
