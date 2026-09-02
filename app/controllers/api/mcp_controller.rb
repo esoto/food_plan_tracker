@@ -20,7 +20,7 @@ module Api
     class ToolArgumentError < StandardError; end
     USER_ERRORS = [ ToolArgumentError, ActiveRecord::RecordInvalid,
                    ActiveRecord::RecordNotFound, ArgumentError, KeyError, Date::Error,
-                   Meal::InvalidScheduledTime ].freeze
+                   Meal::InvalidScheduledTime, HabitEntry::InvalidValue ].freeze
 
     PROTOCOL_VERSION = "2025-06-18".freeze
     SERVER_INFO      = { name: "food-tracker", version: "0.2.0" }.freeze

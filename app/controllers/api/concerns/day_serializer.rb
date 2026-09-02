@@ -156,6 +156,27 @@ module Api
         }
       end
 
+      def serialize_habit_entry(entry)
+        habit = entry.habit
+        value = entry.value.to_f
+        done =
+          case habit.kind
+          when "binary", "quantity"
+            habit.target_value.nil? ? value > 0 : value >= habit.target_value
+          when "duration"
+            habit.target_value.nil? ? value > 0 : value >= habit.target_value
+          when "rating"
+            nil
+          end
+
+        {
+          habit_id: entry.habit_id,
+          date:     entry.daily_log.date.iso8601,
+          value:    value,
+          done:     done
+        }
+      end
+
       def serialize_goal(goal)
         {
           id:             goal.id,

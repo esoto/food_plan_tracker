@@ -123,6 +123,7 @@ Rails.application.routes.draw do
       end
       resources :habits, only: %i[index create update destroy] do
         member { patch :restore }
+        resources :entries, only: :create, controller: "habit_entries"
       end
     end
   end
