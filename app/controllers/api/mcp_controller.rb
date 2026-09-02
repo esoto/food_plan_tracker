@@ -291,7 +291,13 @@ module Api
 
     def handle_list_habits(args)
       scope = args["archived"].to_s == "true" ? Current.user.habits.discarded.order(:label) : Current.user.habits.kept.ordered
-      { habits: scope.map { |t| serialize_habit(t) } }
+      entries = {}
+      if (date = date_arg(args))
+        daily_log = DailyLog.for(date, user: Current.user)
+        entries = HabitEntry.includes(:habit).where(daily_log:, habit_id: scope.pluck(:id))
+                           .index_by(&:habit_id)
+      end
+      { habits: scope.map { |t| serialize_habit(t).merge(entry: entries[t.id]) } }
     end
 
     def handle_create_habit(args)
@@ -323,6 +329,23 @@ module Api
       habit = Current.user.habits.find(args.fetch("id"))
       habit.restore_at_end!
       { habit: serialize_habit(habit) }
+    end
+
+    def handle_log_habit(args)
+      habit = Current.user.habits.kept.find(args.fetch("id"))
+      daily_log = DailyLog.for(date_arg(args), user: Current.user)
+      value = args["value"]
+      delta = args["delta"]
+      if value.nil? && delta.nil?
+        raise ToolArgumentError, "must provide value or delta"
+      end
+      if delta.present?
+        HabitEntry.increment_value!(daily_log: daily_log, habit: habit, delta: delta.to_f)
+      else
+        HabitEntry.set_value!(daily_log: daily_log, habit: habit, value: value.to_f)
+      end
+      entry = HabitEntry.find_by(daily_log:, habit_id: habit.id)
+      { entry: serialize_habit_entry(entry) }
     end
 
     # ----- Settings: macro targets -----
@@ -675,10 +698,10 @@ module Api
       # ----- Habits -----
       {
         name:        "list_habits",
-        description: "List habit templates. Default returns active (non-archived) in display order. Pass archived=true for the archived list.",
+        description: "List habit templates. Default returns active (non-archived) in display order. Pass archived=true for the archived list. Pass date (YYYY-MM-DD) to include each habit's entry for that day.",
         inputSchema: {
           type: "object",
-          properties: { "archived" => { type: "boolean", default: false } }
+          properties: { "archived" => { type: "boolean", default: false }, "date" => DATE_PROP }
         },
         handler: :handle_list_habits
       },
@@ -738,6 +761,22 @@ module Api
           required: %w[id]
         },
         handler: :handle_restore_habit
+      },
+
+      {
+        name:        "log_habit",
+        description: "Log a habit entry. Accepts value (set) or delta (accumulate); delta wins when both present.",
+        inputSchema: {
+          type: "object",
+          required: ["id"],
+          properties: {
+            "id":       { type: "string" },
+            "date":     DATE_PROP,
+            "value":    { type: "number" },
+            "delta":    { type: "number" }
+          }
+        },
+        handler: :handle_log_habit
       },
 
       # ----- Settings: macro targets (plan/meal/goal) -----
