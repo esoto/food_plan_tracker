@@ -19,6 +19,7 @@ module Api
     # failures and downgrade their response from 400 to 422.
     rescue_from ArgumentError,                   with: :invalid_argument
     rescue_from Date::Error,                     with: :bad_date
+    rescue_from HabitEntry::InvalidValue,        with: :invalid_argument
 
     private
 

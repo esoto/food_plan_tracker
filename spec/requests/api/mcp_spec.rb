@@ -120,7 +120,7 @@ RSpec.describe "POST /mcp", type: :request do
         "list_supplements", "create_supplement", "update_supplement",
         "archive_supplement", "restore_supplement",
         "list_habits", "create_habit", "update_habit",
-        "archive_habit", "restore_habit",
+        "archive_habit", "restore_habit", "log_habit",
         "update_plan", "update_meal", "update_goal",
         "list_meal_items", "add_meal_item", "update_meal_item", "remove_meal_item"
       )
@@ -130,13 +130,13 @@ RSpec.describe "POST /mcp", type: :request do
       end
     end
 
-    it "still advertises all 31 tools for a food-tracking-disabled user (food tools stay listed)" do
+    it "still advertises all 32 tools for a food-tracking-disabled user (food tools stay listed)" do
       user.update!(food_tracking_enabled: false)
 
       tools = rpc("tools/list")["result"]["tools"]
       names = tools.map { |t| t["name"] }
-      expect(names.size).to eq(31)
-      expect(names).to include("log_food", "get_weekly_summary", "list_habits")
+      expect(names.size).to eq(32)
+      expect(names).to include("log_food", "get_weekly_summary", "list_habits", "log_habit")
     end
   end
 
@@ -651,6 +651,52 @@ RSpec.describe "POST /mcp", type: :request do
         # After restore, position should be 1 (max of kept habits before restore)
         expect(payload["habit"]["position"]).to eq(1)
         expect(archived.reload.discarded_at).to be_nil
+      end
+
+      it "log_habit sets a value on a binary habit" do
+        habit = create(:habit, label: "Walk", position: 0, user: user)
+
+        result = rpc("tools/call", { name: "log_habit", arguments: { id: habit.id, value: 1 } })["result"]
+        expect(result).not_to include("isError" => true)
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["entry"]["value"]).to eq(1.0)
+        expect(payload["entry"]["done"]).to be(true)
+      end
+
+      it "log_habit accumulates delta on a quantity habit" do
+        habit = create(:habit, :quantity, label: "Water", position: 0, user: user)
+
+        rpc("tools/call", { name: "log_habit", arguments: { id: habit.id, delta: 3 } })
+        result = rpc("tools/call", { name: "log_habit", arguments: { id: habit.id, delta: 5 } })["result"]
+        expect(result).not_to include("isError" => true)
+        payload = JSON.parse(result["content"].first["text"])
+        expect(payload["entry"]["value"]).to eq(8.0)
+      end
+
+      it "log_habit returns isError when a rating value exceeds scale, and writes nothing" do
+        habit = create(:habit, :rating, label: "Mood", position: 0, rating_scale: 5, user: user)
+
+        result = rpc("tools/call", { name: "log_habit", arguments: { id: habit.id, value: 9 } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(HabitEntry.where(habit: habit)).not_to exist
+      end
+
+      it "log_habit returns isError on another user's habit" do
+        other_habit = create(:habit, label: "Theirs", position: 0, user: other_user)
+
+        result = rpc("tools/call", { name: "log_habit", arguments: { id: other_habit.id } })["result"]
+        expect(result["isError"]).to be(true)
+        expect(HabitEntry.where(habit: other_habit)).not_to exist
+      end
+
+      it "list_habits with a date arg includes each habit's entry for that day" do
+        habit = create(:habit, :quantity, label: "Water", position: 0, user: user)
+        rpc("tools/call", { name: "log_habit", arguments: { id: habit.id, value: 3 } })
+
+        result = rpc("tools/call", { name: "list_habits", arguments: { date: Date.current.iso8601 } })["result"]
+        payload = JSON.parse(result["content"].first["text"])
+        found = payload["habits"].find { |h| h["label"] == "Water" }
+        expect(found["entry"]).to include("value" => 3.0)
       end
     end
 

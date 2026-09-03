@@ -5,7 +5,17 @@ module Api
 
       def index
         scope = params[:archived].to_s == "true" ? Current.user.habits.discarded.order(:label) : Current.user.habits.kept.ordered
-        render json: { habits: scope.map { |t| serialize_habit(t) } }
+        habits = scope.to_a
+
+        if params[:date].present?
+          log = daily_log_for(params[:date])
+          entries_by_habit = HabitEntry.includes(:habit, :daily_log).where(daily_log: log, habit_id: habits.map(&:id)).index_by(&:habit_id)
+          payload = habits.map { |h| serialize_habit(h).merge(entry: entries_by_habit[h.id]&.then { |e| serialize_habit_entry(e) }) }
+        else
+          payload = habits.map { |h| serialize_habit(h) }
+        end
+
+        render json: { habits: payload }
       end
 
       def create

@@ -306,10 +306,10 @@ server.registerTool(
   "list_habits",
   {
     title: "List habits",
-    description: "List habit templates. Default returns active in display order; pass archived=true for the archived list.",
-    inputSchema: { archived: z.boolean().optional() }
+    description: "List habit templates. Default returns active in display order; pass archived=true for the archived list. Pass date (YYYY-MM-DD) to include each habit's entry for that day.",
+    inputSchema: { archived: z.boolean().optional(), date: ISO_DATE.optional() }
   },
-  async ({ archived }) => jsonResult(await api("GET", `/api/v1/habits${archived ? "?archived=true" : ""}`))
+  async ({ archived, date }) => jsonResult(await api("GET", `/api/v1/habits${archived ? "?archived=true" : ""}${date ? `&date=${date}` : ""}`))
 );
 
 server.registerTool(
@@ -367,6 +367,21 @@ server.registerTool(
     inputSchema: { id: z.number().int().positive() }
   },
   async ({ id }) => jsonResult(await api("PATCH", `/api/v1/habits/${id}/restore`))
+);
+
+server.registerTool(
+  "log_habit",
+  {
+    title: "Log a habit entry",
+    description: "Log a habit entry for a day (default today). Pass value to set or delta to accumulate. Returns the updated entry.",
+    inputSchema: {
+      id:    z.number().int().positive(),
+      value: z.number().min(0).optional(),
+      delta: z.number().optional(),
+      date:  ISO_DATE.optional()
+    }
+  },
+  async ({ id, ...entry }) => jsonResult(await api("POST", `/api/v1/habits/${id}/entries`, { entry }))
 );
 
 // ----- Settings: macro targets (plan/meal/goal) -----
